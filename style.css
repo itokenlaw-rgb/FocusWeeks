@@ -605,6 +605,7 @@ header {
 }
 
 /* Footer / Bottom Actions Bar */
+/* Footer / Bottom Actions Bar */
 .bottom-nav {
   height: var(--footer-height);
   border-top: 1px solid var(--border-color);
@@ -612,7 +613,8 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background-color: #79b1a5; /* Teal footer from screenshot */
+  /* 【変更】#79b1a5（緑）から くすんだ青（例: #5a7b9a や #4e6a85）に変更 */
+  background-color: #5a7b9a; 
   color: white;
 }
 
@@ -894,4 +896,12 @@ header {
   background-color: var(--panel-bg);
   color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+/* 月を区切る太線のデザイン設定 */
+.day-cell.month-border-top {
+  border-top: 2px solid #1e293b !important; /* 前の週との区切り */
+}
+
+.day-cell.month-border-left {
+  border-left: 2px solid #1e293b !important; /* 横のマスとの区切り */
 }

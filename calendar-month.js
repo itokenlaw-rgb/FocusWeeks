@@ -181,10 +181,38 @@ export const MonthCalendar = {
         }
       }
 
-      week.days.forEach(day => {
+week.days.forEach(day => {
         const dayCell = document.createElement('div');
         dayCell.className = 'day-cell';
         dayCell.dataset.date = day.dateKey;
+
+        // --- 【追加】ここから：月の変わり目ジグザグ太線の判定 ---
+        const currentMonth = day.date.getMonth();
+        
+        // ① 上隣のマスとの月比較（1日のマス、またはその週より上が別月の場合）
+        // 1日、または1日より後の日付で、1マスの前の日（前日）が別月、あるいは週の初めで上方向が別月になる判定
+        if (day.date.getDate() === 1) {
+          // 1日なら確実に上側に境界線（週の途中の場合）
+          dayCell.classList.add('month-border-top');
+        } else {
+          // 同一週の「上」のマスを想定し、7日前が違う月なら上線
+          const sevenDaysAgo = new Date(day.date);
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          if (sevenDaysAgo.getMonth() !== currentMonth) {
+            dayCell.classList.add('month-border-top');
+          }
+        }
+
+        // ② 左隣のマスとの月比較
+        if (day.date.getDate() === 1) {
+          // 1日のマスは、週の始まり（月曜始まりなら月曜日）でなければ、左側に境界線が必要
+          // settings.weekStartの曜日インデックスに合わせて調整
+          const isWeekStart = (settings.weekStart === 'sunday' && day.date.getDay() === 0) || 
+                              (settings.weekStart === 'monday' && day.date.getDay() === 1);
+          if (!isWeekStart) {
+            dayCell.classList.add('month-border-left');
+          }
+        }
 
         // Is current day selected?
         if (day.dateKey === selectedDateKey) {
@@ -353,11 +381,12 @@ scrollToToday() {
     if (todayCell) {
       const row = todayCell.closest('.week-row');
       if (row) {
-        // レンダリング完了後に実行させるため、setTimeoutで一瞬だけ処理を遅らせます
         setTimeout(() => {
+          // row.offsetTop をそのまま指定することで、
+          // 前の週の一番下のライン（＝今週の一番上のライン）がコンテナの最上部に。
           const rowTop = row.offsetTop;
           scrollContainer.scrollTop = rowTop;
-        }, 50); // 50ミリ秒のバッファを持たせることで確実に最上部に揃えます
+        }, 20);
       }
     }
   },
