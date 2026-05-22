@@ -267,12 +267,27 @@ header {
   color: var(--text-primary);
 }
 
+/* 【変更】他月セルの背景をグレーから白に変更 */
 .day-cell.other-month {
-  background-color: #f1f5f9;
+  background-color: var(--panel-bg) !important; /* #f1f5f9 から白に変更 */
 }
+
+/* 他月の数字の色は現状通り少し薄いグレー（#94a3b8）のまま維持されます */
 .day-cell.other-month .day-number {
   color: #94a3b8;
 }
+
+/* 月の区切り（1日があるセル）の境界線を太くする */
+.day-cell[data-date$="-01"] {
+  border-top: 2.5px solid var(--text-primary) !important;
+}
+
+/* 月曜始まりの場合、1日が月曜日以外なら左側にも区切り線を入れるとより明確になります */
+.day-cell[data-date$="-01"] {
+  position: relative;
+}
+
+/* 1日のセルの上に太い線が引かれることで、視覚的に月の変わり目がハッキリします */
 
 /* Event List inside Cells */
 .cell-events {

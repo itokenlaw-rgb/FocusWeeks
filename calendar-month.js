@@ -353,9 +353,11 @@ scrollToToday() {
     if (todayCell) {
       const row = todayCell.closest('.week-row');
       if (row) {
-        // - 80 していたオフセットをなくし、行の最上部（offsetTop）にスクロールを合わせます
-        const rowTop = row.offsetTop;
-        scrollContainer.scrollTop = rowTop;
+        // レンダリング完了後に実行させるため、setTimeoutで一瞬だけ処理を遅らせます
+        setTimeout(() => {
+          const rowTop = row.offsetTop;
+          scrollContainer.scrollTop = rowTop;
+        }, 50); // 50ミリ秒のバッファを持たせることで確実に最上部に揃えます
       }
     }
   },
