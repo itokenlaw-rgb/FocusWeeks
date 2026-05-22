@@ -777,5 +777,15 @@ function formatDateKey(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+// PWA Service Workerの登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('Service Worker 登録成功:', reg.scope))
+      .catch((err) => console.error('Service Worker 登録失敗:', err));
+  });
+}
+
 // Run initializer
 init();
+
