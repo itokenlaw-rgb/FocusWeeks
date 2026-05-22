@@ -191,9 +191,8 @@ header {
 /* Infinite/Vertical Scroll Month Body */
 .month-grid-scroll {
   flex: 1;
-  overflow-y: scroll;
-  scroll-behavior: smooth;
-  /* Hide scrollbars for clean look */
+  overflow-y: auto !important; /* 縦スクロールを完全に許可 */
+  -webkit-overflow-scrolling: touch; /* スマホでのスムーズな慣性スクロール */
   scrollbar-width: none;
 }
 .month-grid-scroll::-webkit-scrollbar {
@@ -203,6 +202,8 @@ header {
 .month-grid-content {
   display: flex;
   flex-direction: column;
+  height: auto !important; /* 子要素（54週分）の高さの合計に自動追従させる */
+  min-height: 100%;
 }
 
 /* Week row height is animated */

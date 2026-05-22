@@ -4,8 +4,12 @@
 const STORAGE_KEYS = {
   SETTINGS: 'focusweeks_settings',
   CALENDARS: 'focusweeks_calendars',
-  LOCAL_EVENTS: 'focusweeks_local_events'
+  LOCAL_EVENTS: 'focusweeks_local_events',
+  DATA_VERSION: 'focusweeks_data_version'
 };
+
+// データバージョンを上げると古いlocalStorageが自動クリアされる
+const CURRENT_DATA_VERSION = '3';
 
 const DEFAULT_SETTINGS = {
   weekStart: 'monday',      // 'monday' or 'sunday'
@@ -40,7 +44,6 @@ const DEFAULT_CALENDARS = [
   }
 ];
 
-// 【修正】テスト用のダミー予定をすべて削除し、初期状態を空にします
 const DEFAULT_EVENTS = [];
 
 export const StorageManager = {
@@ -81,8 +84,18 @@ export const StorageManager = {
     localStorage.setItem(STORAGE_KEYS.CALENDARS, JSON.stringify(calendars));
   },
 
+  // データバージョンをチェックし、古ければキャッシュをリセットする
+  checkAndMigrateData() {
+    const storedVersion = localStorage.getItem(STORAGE_KEYS.DATA_VERSION);
+    if (storedVersion !== CURRENT_DATA_VERSION) {
+      localStorage.removeItem(STORAGE_KEYS.LOCAL_EVENTS);
+      localStorage.setItem(STORAGE_KEYS.DATA_VERSION, CURRENT_DATA_VERSION);
+    }
+  },
+
   // Events Management (Gets cleared if you need to force-reload defaults)
   getEvents() {
+    this.checkAndMigrateData();
     const raw = localStorage.getItem(STORAGE_KEYS.LOCAL_EVENTS);
     if (!raw) {
       this.saveEvents(DEFAULT_EVENTS);
