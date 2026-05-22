@@ -165,6 +165,19 @@
       </div>
 
       <div class="modal-buttons">
+<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: var(--font-sm);">Googleカレンダー連携</label>
+          <button type="button" id="google-login-btn" class="btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #fff; color: #757575; border: 1px solid #747775;">
+            <span style="width: 14px; height: 14px; background-color: #4285F4; border-radius: 50%; display: inline-block;"></span>
+            Googleアカウントでログイン
+          </button>
+          <p id="google-status-txt" style="font-size: var(--font-xs); color: var(--text-secondary); margin-top: 6px; text-align: center;">現在：未連携</p>
+        </div>
+        <div class="modal-buttons" style="margin-top: 20px;">
+          <button type="button" id="settings-close-btn" class="btn btn-secondary">キャンセル</button>
+          <button type="button" id="settings-save-btn" class="btn btn-primary">保存</button>
+        </div>
+
         <button id="settings-save-btn" class="btn btn-primary" style="width: 100%;">閉じる</button>
       </div>
     </div>

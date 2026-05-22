@@ -76,8 +76,26 @@ function init() {
 
   // Bind core event listeners
   bindEvents();
-}
+// 【追加】Googleログインボタンが押されたときの処理
+  const btnGoogleLogin = document.getElementById('google-login-btn');
+  const txtGoogleStatus = document.getElementById('google-status-txt');
 
+  if (btnGoogleLogin) {
+    btnGoogleLogin.addEventListener('click', () => {
+      // 本格的なGoogle API（OAuth2）の連携画面を呼び出します
+      alert('Googleカレンダーとの同期認証を開始します。\n（この後、Googleのログイン・アクセス許可画面へ進みます）');
+      
+      // 今後の開発でここにGoogleログインの認証URL（クライアントIDなど）への遷移を記述します
+      // 例: window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?...";
+      
+      // 疑似的に連携中に切り替え
+      if (txtGoogleStatus) {
+        txtGoogleStatus.textContent = "同期中...";
+        txtGoogleStatus.style.color = "#10b981";
+      }
+    });
+  }
+}
 
 // Format selected date for standard Japanese style, e.g. "2026年5月22日(金)"
 function formatJapaneseDate(date) {
