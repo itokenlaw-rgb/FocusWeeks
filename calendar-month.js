@@ -345,7 +345,7 @@ export const MonthCalendar = {
     }
   },
 
-  scrollToToday() {
+scrollToToday() {
     const todayKey = this.formatDateKey(new Date());
     const scrollContainer = document.getElementById(this.scrollContainerId);
     const todayCell = scrollContainer.querySelector(`.day-cell[data-date="${todayKey}"]`);
@@ -353,9 +353,9 @@ export const MonthCalendar = {
     if (todayCell) {
       const row = todayCell.closest('.week-row');
       if (row) {
-        // Scroll so the today's row is visible near the top
+        // - 80 していたオフセットをなくし、行の最上部（offsetTop）にスクロールを合わせます
         const rowTop = row.offsetTop;
-        scrollContainer.scrollTop = rowTop - 80;
+        scrollContainer.scrollTop = rowTop;
       }
     }
   },
@@ -387,10 +387,14 @@ export const MonthCalendar = {
           const month = parseInt(parts[1], 10);
           
           // Update Month Indicator Text
-          const monthTxtEl = document.getElementById('current-month-txt');
-          if (monthTxtEl) {
-            monthTxtEl.textContent = `${year}年${month}月`;
-          }
+// calendar-month.js の handleScroll() 内
+// Update Month Indicator Text
+const monthTxtEl = document.getElementById('current-month-txt');
+if (monthTxtEl) {
+  // 【変更】「年」の後に改行コード \n を挟む
+  monthTxtEl.style.whiteSpace = "pre-line";
+  monthTxtEl.innerHTML = `${year}年<br>${month}月`;
+}
         }
       }
     }

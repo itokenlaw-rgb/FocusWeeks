@@ -480,9 +480,11 @@ header {
   z-index: 15;
   display: flex;
   flex-direction: column;
+  /* 【変更】100%隠れるように設定 */
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 
 .bottom-sheet.open {
   transform: translateY(0);

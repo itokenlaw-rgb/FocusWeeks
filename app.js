@@ -65,15 +65,19 @@ function init() {
   MonthCalendar.init(onDaySelected);
   WeekCalendar.init(onDaySelected, openAddModal, openEditModal);
 
-  // Set default view
+// Switch to default view
   switchView('month');
 
-  // Trigger initial bottom sheet populate for today
-  onDaySelected(selectedDate);
+  // 【変更】初期起動時は「今日」を選択しますが、ボトムシートは表示させないため
+  // onDaySelected(selectedDate); の代わりに、ボトムシートを表示しない初期化を行います。
+  selectedDate = new Date();
+  populateBottomSheet(selectedDate);
+  elBottomSheet.classList.remove('open'); // 初期状態は確実に閉じる
 
   // Bind core event listeners
   bindEvents();
 }
+
 
 // Format selected date for standard Japanese style, e.g. "2026年5月22日(金)"
 function formatJapaneseDate(date) {
@@ -85,11 +89,13 @@ function formatJapaneseDate(date) {
 function onDaySelected(date) {
   selectedDate = new Date(date);
   
-  // Update footer text
-  elNavDateDisplay.textContent = formatJapaneseDate(selectedDate);
-  
   // Refresh bottom sheet list
   populateBottomSheet(selectedDate);
+  
+  // 【追加】日付がタップされたら個別予定欄（ボトムシート）を表示する
+  if (currentView === 'month') {
+    elBottomSheet.classList.add('open');
+  }
 
   // Keep both calendars in sync
   if (currentView === 'month') {
@@ -241,8 +247,10 @@ function populateBottomSheet(date) {
     }
   }
 
-  // Ensure sheet slides up when day changes
-  elBottomSheet.classList.add('open');
+// Ensure sheet slides up when day changes
+  // 【変更】この自動で 'open' を付与する処理を削除、または条件付きにします。
+  // 日付タップ時のみ開くようにするため、ここでは何もしません（selectDay側で制御します）。
+  // elBottomSheet.classList.add('open'); <-- コメントアウトまたは削除
 }
 
 // Switch between Month View and Week View
