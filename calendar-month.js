@@ -260,34 +260,82 @@ week.days.forEach(day => {
 
         const isWeekExpanded = (week.index === expandedWeekIndex);
 
-        if (isWeekExpanded) {
-          // Render detailed events with times
+if (isWeekExpanded) {
+          // --- 【変更】3倍拡大枠内を5つの時間帯に分類して配置 ---
+          
+          // 5つの時間帯スロットを定義
+          const slots = [
+            { id: 0, label: '0:00～8:59',   events: [], check: (h) => h >= 0 && h < 9 },
+            { id: 1, label: '9:00～11:59',  events: [], check: (h) => h >= 9 && h < 12 },
+            { id: 2, label: '12:00～14:59', events: [], check: (h) => h >= 12 && h < 15 },
+            { id: 3, label: '15:00～17:59', events: [], check: (h) => h >= 15 && h < 18 },
+            { id: 4, label: '18:00～23:59', events: [], check: (h) => h >= 18 && h <= 24 }
+          ];
+
+          // 当日の予定を時間帯ごとに振り分ける（終日予定は1番上の0番スロットに仮配置）
           day.events.forEach(evt => {
-            const badge = document.createElement('div');
-            badge.className = 'event-badge-detailed';
-            badge.style.borderLeftColor = calColorMap[evt.calendarId] || '#3b82f6';
-            badge.style.backgroundColor = this.hexToRgba(calColorMap[evt.calendarId] || '#3b82f6', 0.1);
-            badge.dataset.eventId = evt.id;
-
-            const timeSpan = document.createElement('span');
-            timeSpan.className = 'event-time';
             if (evt.allDay) {
-              timeSpan.textContent = '終日';
-            } else {
-              const startT = evt.start.split('T')[1]?.substring(0, 5) || '';
-              const endT = evt.end?.split('T')[1]?.substring(0, 5) || '';
-              timeSpan.textContent = endT ? `${startT}～${endT}` : startT;
+              slots[0].events.push(evt);
+              return;
             }
+            // 開始時間を数値化 (例: "13:30" -> 13.5)
+            const timePart = evt.start.split('T')[1] || '00:00:00';
+            const parts = timePart.split(':').map(Number);
+            const hourDecimal = parts[0] + (parts[1] / 60);
 
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'event-title';
-            titleSpan.textContent = evt.title;
-
-            badge.appendChild(timeSpan);
-            badge.appendChild(titleSpan);
-            eventsContainer.appendChild(badge);
+            // 該当するスロットに格納
+            const targetSlot = slots.find(s => s.check(hourDecimal));
+            if (targetSlot) {
+              targetSlot.events.push(evt);
+            } else {
+              slots[0].events.push(evt); // 例外は0番へ
+            }
           });
+
+          // 5つのスロットを順番に走査して、要素を作って配置していく
+          slots.forEach(slot => {
+            if (slot.events.length > 0) {
+              // 予定がある時間帯は通常通りバッジを描画
+              slot.events.forEach(evt => {
+                const badge = document.createElement('div');
+                badge.className = 'event-badge-detailed';
+                badge.style.borderLeftColor = calColorMap[evt.calendarId] || '#3b82f6';
+                badge.style.backgroundColor = this.hexToRgba(calColorMap[evt.calendarId] || '#3b82f6', 0.1);
+                badge.dataset.eventId = evt.id;
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'event-time';
+                if (evt.allDay) {
+                  timeSpan.textContent = '終日';
+                } else {
+                  const startT = evt.start.split('T')[1]?.substring(0, 5) || '';
+                  const endT = evt.end?.split('T')[1]?.substring(0, 5) || '';
+                  timeSpan.textContent = endT ? `${startT}～${endT}` : startT;
+                }
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'event-title';
+                titleSpan.textContent = evt.title;
+
+                badge.appendChild(timeSpan);
+                badge.appendChild(titleSpan);
+                eventsContainer.appendChild(badge);
+              });
+            } else {
+              // 【重要】予定がない時間帯は、「見えない隙間（スペーサー）」を入れて
+              // 次の時間帯の予定が自動的に下に押し下げられるようにする
+              const spacer = document.createElement('div');
+              spacer.className = 'event-slot-spacer';
+              // 1マスの高さに合わせて適切な隙間を設定（約1行分の高さに相当）
+              spacer.style.height = '24px'; 
+              spacer.style.margin = '2px 0';
+              eventsContainer.appendChild(spacer);
+            }
+          });
+          
+          // ----------------------------------------------------
         } else {
+
           // Render compact events (small lines / tiny text)
           day.events.slice(0, 2).forEach(evt => {
             const label = document.createElement('div');
@@ -381,15 +429,19 @@ scrollToToday() {
     if (todayCell) {
       const row = todayCell.closest('.week-row');
       if (row) {
+        // 50msだと端末によって描画が間に合わないことがあるため、100msに伸ばしてより確実にします
         setTimeout(() => {
-          // row.offsetTop をそのまま指定することで、
-          // 前の週の一番下のライン（＝今週の一番上のライン）がコンテナの最上部に。
+          // 今週の行のトップ位置
           const rowTop = row.offsetTop;
-          scrollContainer.scrollTop = rowTop;
-        }, 20);
-      }
-    }
-  },
+          
+          // 標準的な1行の高さ（75px）を基準に、どれくらい上にずらすかを調整します。
+          // 75px〜100pxほど引いておくと、前の週の真ん中付近がトップに位置するようになります。
+          const offset = 85; 
+          
+          // マイナス値にならないように安全ガードを挟んでスクロール位置を設定
+          scrollContainer.scrollTop = Math.max(0, rowTop - offset);
+        }, 25);
+
 
   handleScroll() {
     // Detect which week row is near the top of the scroll container
