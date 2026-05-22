@@ -156,11 +156,15 @@ export const MonthCalendar = {
     let expandedWeekIndex = selectedWeekIndex !== -1 ? selectedWeekIndex : weeksToRender.findIndex(w => w.containsToday);
     if (expandedWeekIndex === -1) expandedWeekIndex = 0;
 
-    // Render each week
+// Render each week
     weeksToRender.forEach(week => {
       const weekRow = document.createElement('div');
+      // 【重要】CSSで高さを固定・アニメーションできるようにクラスを確実に付与
       weekRow.className = `week-row week-row-${week.index}`;
       weekRow.dataset.weekIndex = week.index;
+      
+      // 明示的に最小の高さをインラインでも確保し、ブラウザの潰れを防止
+      weekRow.style.display = 'grid';
 
       if (week.index === expandedWeekIndex) {
         const multiplier = settings.focusWeekSize || 3;
@@ -199,6 +203,7 @@ export const MonthCalendar = {
           dayCell.classList.add('selected');
         }
 
+        // ここでthis.selectedDateの月と比較してother-monthを判定
         if (day.date.getMonth() !== this.selectedDate.getMonth()) {
           dayCell.classList.add('other-month');
         }
