@@ -74,7 +74,7 @@ export const MonthCalendar = {
     const today = new Date();
     const baseDate = this.selectedDate || today;
 
-    // 開始位置：今日（または選択日）の2週間前から生成スタート
+    // 開始位置：今日（または選択日）の2週間前の週から生成をスタートする
     let current = this.addWeeks(baseDate, -2);
     current = this.getStartOfWeek(current, settings.weekStart);
     
@@ -114,7 +114,7 @@ export const MonthCalendar = {
     // Temp array of weeks to build
     const weeksToRender = [];
 
-    // 【変更】未来約1年分（54週間分）をきれいにループ処理で生成
+    // 【修正箇所】ここから未来1年分（54週間）を綺麗にループで回して生成します
     for (let weekIndex = 0; weekIndex < 54; weekIndex++) {
       const weekDays = [];
       let containsSelected = false;

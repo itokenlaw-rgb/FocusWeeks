@@ -13,7 +13,6 @@ const DEFAULT_SETTINGS = {
   fontSize: 'medium'       // 'small', 'medium', 'large'
 };
 
-// Seed mock data matching the user's screenshots (May 2026)
 const DEFAULT_CALENDARS = [
   {
     id: 'cal_work',
@@ -41,173 +40,68 @@ const DEFAULT_CALENDARS = [
   }
 ];
 
-// Seed events matching screenshot (May-June 2026)
+// 【大幅拡充】2026年5月（過去・先週）から未来1年分（2027年にかけて）の予定データを投入
 const DEFAULT_EVENTS = [
-  // Tuesday, May 19, 2026
-  {
-    id: 'seed_1',
-    calendarId: 'cal_work',
-    title: '齊藤祐介打ち合わせ',
-    start: '2026-05-19T11:00:00',
-    end: '2026-05-19T12:00:00',
-    description: '打合せ'
-  },
-  {
-    id: 'seed_2',
-    calendarId: 'cal_private',
-    title: '近藤さんウェブ面談',
-    start: '2026-05-19T14:00:00',
-    end: '2026-05-19T15:00:00',
-    description: '定期面談'
-  },
-  // Wednesday, May 20, 2026
-  {
-    id: 'seed_3',
-    calendarId: 'cal_work',
-    title: '越野ｖｓ認証会議',
-    start: '2026-05-20T13:30:00',
-    end: '2026-05-20T14:30:00',
-    description: ''
-  },
-  {
-    id: 'seed_4',
-    calendarId: 'cal_private',
-    title: 'ハノイ神田打合せ',
-    start: '2026-05-20T16:00:00',
-    end: '2026-05-20T17:00:00',
-    description: ''
-  },
-  // Thursday, May 21, 2026
-  {
-    id: 'seed_5',
-    calendarId: 'cal_work',
-    title: '東弁部会',
-    start: '2026-05-21T14:30:00',
-    end: '2026-05-21T15:30:00',
-    description: ''
-  },
-  {
-    id: 'seed_6',
-    calendarId: 'cal_work',
-    title: '東弁若手会合',
-    start: '2026-05-21T15:00:00',
-    end: '2026-05-21T16:00:00',
-    description: ''
-  },
-  // Friday, May 22, 2026
-  {
-    id: 'seed_7',
-    calendarId: 'cal_private',
-    title: '後藤よしのり債権者集会',
-    start: '2026-05-22T11:00:00',
-    end: '2026-05-22T12:00:00',
-    description: '債権者集会出席'
-  },
-  // Saturday, May 23, 2026
-  {
-    id: 'seed_8',
-    calendarId: 'cal_family',
-    title: '阪本小運動会',
-    start: '2026-05-23T09:00:00',
-    end: '2026-05-23T10:00:00',
-    description: 'お弁当持参'
-  },
-  // Sunday, May 24, 2026 (Hourly view mock)
-  {
-    id: 'seed_9',
-    calendarId: 'cal_private',
-    title: '口おためし',
-    start: '2026-05-24T09:00:00',
-    end: '2026-05-24T10:00:00',
-    description: 'サンプルイベント'
-  },
-  // Monday, May 25, 2026
-  {
-    id: 'seed_10',
-    calendarId: 'cal_family',
-    title: '阪本小振替休日',
-    start: '2026-05-25T10:00:00',
-    end: '2026-05-25T11:00:00',
-    description: '学校休み'
-  },
-  // Tuesday, May 26, 2026
-  {
-    id: 'seed_11',
-    calendarId: 'cal_work',
-    title: '近藤行寛打ち合わせ',
-    start: '2026-05-26T15:00:00',
-    end: '2026-05-26T16:30:00',
-    description: '進捗確認'
-  },
-  // Wednesday, May 27, 2026
-  {
-    id: 'seed_12',
-    calendarId: 'cal_work',
-    title: '人形町案件',
-    start: '2026-05-27T10:00:00',
-    end: '2026-05-27T11:00:00',
-    description: ''
-  },
-  {
-    id: 'seed_13',
-    calendarId: 'cal_work',
-    title: 'リックテレコ会議',
-    start: '2026-05-27T13:00:00',
-    end: '2026-05-27T14:00:00',
-    description: ''
-  },
-  // Thursday, May 28, 2026
-  {
-    id: 'seed_14',
-    calendarId: 'cal_family',
-    title: '阪本小学校外学習',
-    start: '2026-05-28T07:30:00',
-    end: '2026-05-28T08:30:00',
-    description: ''
-  },
-  {
-    id: 'seed_15',
-    calendarId: 'cal_work',
-    title: 'リッケイ面談',
-    start: '2026-05-28T11:00:00',
-    end: '2026-05-28T12:00:00',
-    description: ''
-  },
-  {
-    id: 'seed_16',
-    calendarId: 'cal_family',
-    title: '阪本小３年校外学習',
-    start: '2026-05-28T15:00:00',
-    end: '2026-05-28T16:00:00',
-    description: ''
-  },
-  // Thursday, June 4, 2026
-  {
-    id: 'seed_17',
-    calendarId: 'cal_work',
-    title: '弁護士業務研修',
-    start: '2026-06-04T16:30:00',
-    end: '2026-06-04T18:30:00',
-    description: ''
-  },
-  // Saturday, June 13, 2026
-  {
-    id: 'seed_18',
-    calendarId: 'cal_family',
-    title: '阪本小土曜授業',
-    start: '2026-06-13T09:00:00',
-    end: '2026-06-13T10:00:00',
-    description: ''
-  }
+  // --- 5月前半（過去・先週以前の予定） ---
+  { id: 'evt_past_1', calendarId: 'cal_work', title: 'GW進捗確認ミーティング', start: '2026-05-01T10:00:00', end: '2026-05-01T11:30:00', allDay: false },
+  { id: 'evt_past_2', calendarId: 'cal_private', title: '美容院予約', start: '2026-05-02T14:00:00', end: '2026-05-02T15:30:00', allDay: false },
+  { id: 'evt_past_3', calendarId: 'cal_family', title: 'こどもの日 家族夕食', start: '2026-05-05T18:00:00', end: '2026-05-05T21:00:00', allDay: false },
+  { id: 'evt_past_4', calendarId: 'cal_work', title: '先週の定例部会', start: '2026-05-11T09:30:00', end: '2026-05-11T11:00:00', allDay: false },
+  { id: 'evt_past_5', calendarId: 'cal_private', title: 'ジムトレーニング', start: '2026-05-13T19:00:00', end: '2026-05-13T20:00:00', allDay: false },
+  { id: 'evt_past_6', calendarId: 'cal_family', title: '学校提出書類 締め切り', start: '2026-05-15', end: '2026-05-15', allDay: true },
+
+  // --- 5月中旬・今週（現在の画面で見えている付近） ---
+  { id: 'evt_now_1', calendarId: 'cal_work', title: '企画レビュー会議', start: '2026-05-18T14:00:00', end: '2026-05-18T16:00:00', allDay: false },
+  { id: 'evt_now_2', calendarId: 'cal_private', title: '歯医者定期検診', start: '2026-05-19T10:30:00', end: '2026-05-19T11:30:00', allDay: false },
+  { id: 'evt_now_3', calendarId: 'cal_work', title: 'クライアント商談', start: '2026-05-20T13:00:00', end: '2026-05-20T14:30:00', allDay: false },
+  { id: 'evt_now_4', calendarId: 'cal_family', title: '週末の買い物リスト作成', start: '2026-05-22T21:00:00', end: '2026-05-22T21:30:00', allDay: false },
+  { id: 'evt_now_5', calendarId: 'cal_private', title: '友人宅でホムパ', start: '2026-05-23T12:00:00', end: '2026-05-23T17:00:00', allDay: false },
+  { id: 'evt_now_6', calendarId: 'cal_family', title: '部屋の大掃除・衣替え', start: '2026-05-24', end: '2026-05-24', allDay: true },
+
+  // --- 6月の予定（未来の予定その1） ---
+  { id: 'evt_jun_1', calendarId: 'cal_work', title: 'プロモーション施策開始', start: '2026-06-01T09:00:00', end: '2026-06-01T10:00:00', allDay: false },
+  { id: 'evt_jun_2', calendarId: 'cal_family', title: '学校日曜参観', start: '2026-06-07T08:45:00', end: '2026-06-07T12:00:00', allDay: false },
+  { id: 'evt_jun_3', calendarId: 'cal_work', title: 'Q2中間振り返り面談', start: '2026-06-10T15:30:00', end: '2026-06-10T17:00:00', allDay: false },
+  { id: 'evt_jun_4', calendarId: 'cal_private', title: '夏フェスチケット抽選発表', start: '2026-06-12', end: '2026-06-12', allDay: true },
+  { id: 'evt_jun_5', calendarId: 'cal_work', title: '新プロジェクトキックオフ', start: '2026-06-16T13:00:00', end: '2026-06-16T15:00:00', allDay: false },
+  { id: 'evt_jun_6', calendarId: 'cal_family', title: '衣類クリーニング引き取り', start: '2026-06-20T11:00:00', end: '2026-06-20T12:00:00', allDay: false },
+  { id: 'evt_jun_7', calendarId: 'cal_private', title: '週末温泉旅行（箱根）', start: '2026-06-27', end: '2026-06-28', allDay: true },
+  { id: 'evt_jun_8', calendarId: 'cal_work', title: '月末経費精算締め切り', start: '2026-06-30T17:00:00', end: '2026-06-30T18:00:00', allDay: false },
+
+  // --- 7月の予定（未来の予定その2） ---
+  { id: 'evt_jul_1', calendarId: 'cal_work', title: '下半期戦略会議', start: '2026-07-01T10:00:00', end: '2026-07-01T12:00:00', allDay: false },
+  { id: 'evt_jul_2', calendarId: 'cal_family', title: '七夕 飾り付け', start: '2026-07-07', end: '2026-07-07', allDay: true },
+  { id: 'evt_jul_3', calendarId: 'cal_private', title: '海開き・ビーチBBQ', start: '2026-07-11T11:00:00', end: '2026-07-11T16:00:00', allDay: false },
+  { id: 'evt_jul_4', calendarId: 'cal_family', title: '子供の夏休みスタート', start: '2026-07-21', end: '2026-07-21', allDay: true },
+  { id: 'evt_jul_5', calendarId: 'cal_work', title: 'クライアント夏季挨拶回り', start: '2026-07-24T14:00:00', end: '2026-07-24T16:00:00', allDay: false },
+
+  // --- 8月の予定（未来の予定その3） ---
+  { id: 'evt_aug_1', calendarId: 'cal_private', title: '花火大会観覧予約', start: '2026-08-08T18:30:00', end: '2026-08-08T21:00:00', allDay: false },
+  { id: 'evt_aug_2', calendarId: 'cal_family', title: 'お盆休み帰省（実家）', start: '2026-08-12', end: '2026-08-16', allDay: true },
+  { id: 'evt_aug_3', calendarId: 'cal_work', title: '夏季休暇明け全体ミーティング', start: '2026-08-17T09:30:00', end: '2026-08-17T11:00:00', allDay: false },
+
+  // --- 9月〜12月（秋・冬の予定） ---
+  { id: 'evt_sep_1', calendarId: 'cal_work', title: '期末決算説明会準備', start: '2026-09-15T13:00:00', end: '2026-09-15T15:00:00', Day: false },
+  { id: 'evt_oct_1', calendarId: 'cal_family', title: '地域の秋祭り・運動会', start: '2026-10-11T09:00:00', end: '2026-10-11T15:00:00', allDay: false },
+  { id: 'evt_nov_1', calendarId: 'cal_private', title: '紅葉狩りドライブ', start: '2026-11-14T08:00:00', end: '2026-11-14T17:00:00', allDay: false },
+  { id: 'evt_dec_1', calendarId: 'cal_family', title: 'クリスマス家族パーティー', start: '2026-12-25T18:00:00', end: '2026-12-25T21:00:00', allDay: false },
+  { id: 'evt_dec_2', calendarId: 'cal_work', title: '仕事納め・大掃除', start: '2026-12-28', end: '2026-12-28', allDay: true },
+
+  // --- 来年（2027年1月以降） ---
+  { id: 'evt_jan_1', calendarId: 'cal_private', title: '初詣・お正月休み', start: '2027-01-01', end: '2027-01-03', allDay: true },
+  { id: 'evt_jan_2', calendarId: 'cal_work', title: '新年賀詞交歓会', start: '2027-01-05T11:00:00', end: '2027-01-05T13:00:00', allDay: false }
 ];
 
 export const StorageManager = {
-  // Settings
+  // Settings Management
   getSettings() {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (!raw) return { ...DEFAULT_SETTINGS };
+    if (!raw) {
+      this.saveSettings(DEFAULT_SETTINGS);
+      return { ...DEFAULT_SETTINGS };
+    }
     try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      return JSON.parse(raw);
     } catch (e) {
       return { ...DEFAULT_SETTINGS };
     }
@@ -217,7 +111,7 @@ export const StorageManager = {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
-  // Calendars
+  // Calendars Management
   getCalendars() {
     const raw = localStorage.getItem(STORAGE_KEYS.CALENDARS);
     if (!raw) {
@@ -236,7 +130,7 @@ export const StorageManager = {
     localStorage.setItem(STORAGE_KEYS.CALENDARS, JSON.stringify(calendars));
   },
 
-  // Events (both seeded & user created)
+  // Events Management (Gets cleared if you need to force-reload defaults)
   getEvents() {
     const raw = localStorage.getItem(STORAGE_KEYS.LOCAL_EVENTS);
     if (!raw) {
@@ -254,7 +148,6 @@ export const StorageManager = {
     localStorage.setItem(STORAGE_KEYS.LOCAL_EVENTS, JSON.stringify(events));
   },
 
-  // Helper to add a new event
   addEvent(event) {
     const events = this.getEvents();
     event.id = event.id || 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -263,17 +156,22 @@ export const StorageManager = {
     return event;
   },
 
-  // Helper to update an event
   updateEvent(updatedEvent) {
     let events = this.getEvents();
     events = events.map(e => e.id === updatedEvent.id ? updatedEvent : e);
     this.saveEvents(events);
+    return updatedEvent;
   },
 
-  // Helper to delete an event
   deleteEvent(eventId) {
     let events = this.getEvents();
     events = events.filter(e => e.id !== eventId);
     this.saveEvents(events);
+  },
+
+  // 【重要】ブラウザのキャッシュ（古いデータ）を強制クリアして、上記の新しいデータを読み込ませる関数
+  forceResetToNewDefaults() {
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_EVENTS);
+    this.saveEvents(DEFAULT_EVENTS);
   }
 };
