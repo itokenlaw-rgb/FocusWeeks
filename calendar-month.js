@@ -71,20 +71,12 @@ export const MonthCalendar = {
     const gridBody = document.getElementById(this.containerId);
     gridBody.innerHTML = '';
     
-    // Generate dates to display: from 8 weeks ago to 24 weeks in the future (total ~32 weeks)
-    // This allows smooth scrolling without memory bloat
     const today = new Date();
-// 開始位置：今日（または選択日）の2週間前から生成スタート
+    const baseDate = this.selectedDate || today;
+
+    // 開始位置：今日（または選択日）の2週間前から生成スタート
     let current = this.addWeeks(baseDate, -2);
     current = this.getStartOfWeek(current, settings.weekStart);
-    
-    // 【変更】 8 だったところを 54（約1年分）に増やします
-    for (let i = 0; i < 54; i++) {
-      const weekRow = document.createElement('div');
-      weekRow.className = `week-row week-row-${i}`;
-    
-    const startDate = this.getStartOfWeek(this.addWeeks(new Date(today), startOffset), settings.weekStart);
-    const endDate = this.getEndOfWeek(this.addWeeks(new Date(today), endOffset), settings.weekStart);
     
     // Filter active (visible) calendars and sort them by order
     const visibleCalIds = new Set(calendars.filter(c => c.visible).map(c => c.id));
@@ -108,18 +100,12 @@ export const MonthCalendar = {
     // Sort events in each date by start time, and then by calendar order
     Object.keys(eventsByDate).forEach(dateKey => {
       eventsByDate[dateKey].sort((a, b) => {
-        // Sort by start time first
         const timeA = a.start.includes('T') ? a.start.split('T')[1] : '00:00:00';
         const timeB = b.start.includes('T') ? b.start.split('T')[1] : '00:00:00';
         if (timeA !== timeB) return timeA.localeCompare(timeB);
-        
-        // Then by calendar priority order
         return calOrderMap[a.calendarId] - calOrderMap[b.calendarId];
       });
     });
-
-    let current = new Date(startDate);
-    let weekIndex = 0;
     
     // Find which week index contains the selected date
     let selectedWeekIndex = -1;
@@ -128,7 +114,8 @@ export const MonthCalendar = {
     // Temp array of weeks to build
     const weeksToRender = [];
 
-    while (current <= endDate) {
+    // 【変更】未来約1年分（54週間分）をきれいにループ処理で生成
+    for (let weekIndex = 0; weekIndex < 54; weekIndex++) {
       const weekDays = [];
       let containsSelected = false;
       let containsToday = false;
@@ -163,15 +150,11 @@ export const MonthCalendar = {
         index: weekIndex,
         containsToday: containsToday
       });
-
-      weekIndex++;
     }
 
     // Determine which week row gets the expanded height
-    // If a day is selected, its week is expanded.
-    // If no day is selected (selectedWeekIndex is -1), or by default, the week containing "today" (or the first row) is expanded.
     let expandedWeekIndex = selectedWeekIndex !== -1 ? selectedWeekIndex : weeksToRender.findIndex(w => w.containsToday);
-    if (expandedWeekIndex === -1) expandedWeekIndex = 0; // Fallback to first row
+    if (expandedWeekIndex === -1) expandedWeekIndex = 0;
 
     // Render each week
     weeksToRender.forEach(week => {
@@ -179,7 +162,6 @@ export const MonthCalendar = {
       weekRow.className = `week-row week-row-${week.index}`;
       weekRow.dataset.weekIndex = week.index;
 
-      // Apply the selected focus height multiplier
       if (week.index === expandedWeekIndex) {
         const multiplier = settings.focusWeekSize || 3;
         if (multiplier > 1) {
@@ -187,21 +169,17 @@ export const MonthCalendar = {
         }
       }
 
-week.days.forEach(day => {
+      week.days.forEach(day => {
         const dayCell = document.createElement('div');
         dayCell.className = 'day-cell';
         dayCell.dataset.date = day.dateKey;
 
-        // --- 【追加】ここから：月の変わり目ジグザグ太線の判定 ---
+        // --- 月の変わり目ジグザグ太線の判定 ---
         const currentMonth = day.date.getMonth();
         
-        // ① 上隣のマスとの月比較（1日のマス、またはその週より上が別月の場合）
-        // 1日、または1日より後の日付で、1マスの前の日（前日）が別月、あるいは週の初めで上方向が別月になる判定
         if (day.date.getDate() === 1) {
-          // 1日なら確実に上側に境界線（週の途中の場合）
           dayCell.classList.add('month-border-top');
         } else {
-          // 同一週の「上」のマスを想定し、7日前が違う月なら上線
           const sevenDaysAgo = new Date(day.date);
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           if (sevenDaysAgo.getMonth() !== currentMonth) {
@@ -209,10 +187,7 @@ week.days.forEach(day => {
           }
         }
 
-        // ② 左隣のマスとの月比較
         if (day.date.getDate() === 1) {
-          // 1日のマスは、週の始まり（月曜始まりなら月曜日）でなければ、左側に境界線が必要
-          // settings.weekStartの曜日インデックスに合わせて調整
           const isWeekStart = (settings.weekStart === 'sunday' && day.date.getDay() === 0) || 
                               (settings.weekStart === 'monday' && day.date.getDay() === 1);
           if (!isWeekStart) {
@@ -220,35 +195,29 @@ week.days.forEach(day => {
           }
         }
 
-        // Is current day selected?
         if (day.dateKey === selectedDateKey) {
           dayCell.classList.add('selected');
         }
 
-        // Highlight other months visually (like grey background)
         if (day.date.getMonth() !== this.selectedDate.getMonth()) {
           dayCell.classList.add('other-month');
         }
 
-        // Day header (date number)
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
         
         const dayNum = document.createElement('span');
         dayNum.className = 'day-number';
-        // If it is the first of the month, display "M月1日" instead of just "1"
         if (day.date.getDate() === 1) {
           dayNum.textContent = `${day.date.getMonth() + 1}月1日`;
         } else {
           dayNum.textContent = day.date.getDate();
         }
 
-        // Saturday / Sunday date text color
         const wday = day.date.getDay();
-        if (wday === 0) dayNum.style.color = '#ef4444'; // Red
-        else if (wday === 6) dayNum.style.color = '#3b82f6'; // Blue
+        if (wday === 0) dayNum.style.color = '#ef4444';
+        else if (wday === 6) dayNum.style.color = '#3b82f6';
 
-        // Highlight today's date circle or bg
         if (day.isToday) {
           dayNum.style.background = '#0b57d0';
           dayNum.style.color = 'white';
@@ -260,11 +229,10 @@ week.days.forEach(day => {
         dayHeader.appendChild(dayNum);
         dayCell.appendChild(dayHeader);
 
-        // Event container inside cells
         const eventsContainer = document.createElement('div');
         eventsContainer.className = 'cell-events';
 
-const isWeekExpanded = (week.index === expandedWeekIndex);
+        const isWeekExpanded = (week.index === expandedWeekIndex);
 
         if (isWeekExpanded) {
           // --- 3倍拡大枠内を5つの時間帯に分類して配置 ---
@@ -408,9 +376,9 @@ const isWeekExpanded = (week.index === expandedWeekIndex);
       if (row) {
         setTimeout(() => {
           const rowTop = row.offsetTop;
-          const offset = 120; 
+          const offset = 85; 
           scrollContainer.scrollTop = Math.max(0, rowTop - offset);
-        }, 25);
+        }, 100);
       }
     }
   },
