@@ -74,8 +74,14 @@ export const MonthCalendar = {
     // Generate dates to display: from 8 weeks ago to 24 weeks in the future (total ~32 weeks)
     // This allows smooth scrolling without memory bloat
     const today = new Date();
-    const startOffset = -8; // 8 weeks back
-    const endOffset = 24;  // 24 weeks forward
+// 開始位置：今日（または選択日）の2週間前から生成スタート
+    let current = this.addWeeks(baseDate, -2);
+    current = this.getStartOfWeek(current, settings.weekStart);
+    
+    // 【変更】 8 だったところを 54（約1年分）に増やします
+    for (let i = 0; i < 54; i++) {
+      const weekRow = document.createElement('div');
+      weekRow.className = `week-row week-row-${i}`;
     
     const startDate = this.getStartOfWeek(this.addWeeks(new Date(today), startOffset), settings.weekStart);
     const endDate = this.getEndOfWeek(this.addWeeks(new Date(today), endOffset), settings.weekStart);
