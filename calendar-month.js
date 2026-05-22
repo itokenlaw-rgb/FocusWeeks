@@ -72,10 +72,9 @@ export const MonthCalendar = {
     gridBody.innerHTML = '';
     
     const today = new Date();
-    const baseDate = this.selectedDate || today;
 
-    // 開始位置：今日（または選択日）の4週間前の週から生成をスタートする
-    let current = this.addWeeks(baseDate, -4);
+    // 開始位置：常に「今日」の4週間前を基準にする（選択日に関係なく固定）
+    let current = this.addWeeks(today, -4);
     current = this.getStartOfWeek(current, settings.weekStart);
     
     // Filter active (visible) calendars and sort them by order
@@ -88,13 +87,29 @@ export const MonthCalendar = {
     });
 
     // Group events by YYYY-MM-DD
+    // 終日・複数日イベントは期間内の全日付にマップする
     const eventsByDate = {};
+    const addToDate = (key, evt) => {
+      if (!eventsByDate[key]) eventsByDate[key] = [];
+      eventsByDate[key].push(evt);
+    };
     events.forEach(evt => {
       if (!visibleCalIds.has(evt.calendarId)) return;
       
-      const dateKey = evt.start.split('T')[0];
-      if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
-      eventsByDate[dateKey].push(evt);
+      const startKey = evt.start.split('T')[0];
+      // 終日かつ終了日が開始日と異なる場合は全日付に展開
+      if (evt.allDay && evt.end && evt.end.split('T')[0] !== startKey) {
+        const d = new Date(startKey);
+        const endDate = new Date(evt.end.split('T')[0]);
+        while (d <= endDate) {
+          const pad = n => String(n).padStart(2, '0');
+          const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+          addToDate(key, evt);
+          d.setDate(d.getDate() + 1);
+        }
+      } else {
+        addToDate(startKey, evt);
+      }
     });
 
     // Sort events in each date by start time, and then by calendar order
