@@ -402,9 +402,9 @@ const isWeekExpanded = (week.index === expandedWeekIndex);
       if (row) {
         setTimeout(() => {
           const rowTop = row.offsetTop;
-          const offset = 85; 
+          const offset = 120; 
           scrollContainer.scrollTop = Math.max(0, rowTop - offset);
-        }, 50);
+        }, 25);
       }
     }
   },
