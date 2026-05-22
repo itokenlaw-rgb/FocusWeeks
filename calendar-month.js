@@ -74,8 +74,8 @@ export const MonthCalendar = {
     const today = new Date();
     const baseDate = this.selectedDate || today;
 
-    // 開始位置：今日（または選択日）の2週間前の週から生成をスタートする
-    let current = this.addWeeks(baseDate, -2);
+    // 開始位置：今日（または選択日）の4週間前の週から生成をスタートする
+    let current = this.addWeeks(baseDate, -4);
     current = this.getStartOfWeek(current, settings.weekStart);
     
     // Filter active (visible) calendars and sort them by order
@@ -114,8 +114,8 @@ export const MonthCalendar = {
     // Temp array of weeks to build
     const weeksToRender = [];
 
-    // 【修正箇所】ここから未来1年分（54週間）を綺麗にループで回して生成します
-    for (let weekIndex = 0; weekIndex < 54; weekIndex++) {
+    // 【修正箇所】4週間前〜未来1年分（54週間）＝合計58週をループで生成します
+    for (let weekIndex = 0; weekIndex < 58; weekIndex++) {
       const weekDays = [];
       let containsSelected = false;
       let containsToday = false;
