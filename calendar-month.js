@@ -440,7 +440,7 @@ scrollToToday() {
           
           // マイナス値にならないように安全ガードを挟んでスクロール位置を設定
           scrollContainer.scrollTop = Math.max(0, rowTop - offset);
-        }, 25);
+        }, 100);
 
 
   handleScroll() {
