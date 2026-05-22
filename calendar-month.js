@@ -72,9 +72,10 @@ export const MonthCalendar = {
     gridBody.innerHTML = '';
     
     const today = new Date();
+    const baseDate = this.selectedDate || today;
 
-    // 開始位置：常に「今日」の4週間前を基準にする（選択日に関係なく固定）
-    let current = this.addWeeks(today, -4);
+    // 開始位置：今日（または選択日）の2週間前の週から生成をスタートする
+    let current = this.addWeeks(baseDate, -2);
     current = this.getStartOfWeek(current, settings.weekStart);
     
     // Filter active (visible) calendars and sort them by order
@@ -87,29 +88,13 @@ export const MonthCalendar = {
     });
 
     // Group events by YYYY-MM-DD
-    // 終日・複数日イベントは期間内の全日付にマップする
     const eventsByDate = {};
-    const addToDate = (key, evt) => {
-      if (!eventsByDate[key]) eventsByDate[key] = [];
-      eventsByDate[key].push(evt);
-    };
     events.forEach(evt => {
       if (!visibleCalIds.has(evt.calendarId)) return;
       
-      const startKey = evt.start.split('T')[0];
-      // 終日かつ終了日が開始日と異なる場合は全日付に展開
-      if (evt.allDay && evt.end && evt.end.split('T')[0] !== startKey) {
-        const d = new Date(startKey);
-        const endDate = new Date(evt.end.split('T')[0]);
-        while (d <= endDate) {
-          const pad = n => String(n).padStart(2, '0');
-          const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-          addToDate(key, evt);
-          d.setDate(d.getDate() + 1);
-        }
-      } else {
-        addToDate(startKey, evt);
-      }
+      const dateKey = evt.start.split('T')[0];
+      if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+      eventsByDate[dateKey].push(evt);
     });
 
     // Sort events in each date by start time, and then by calendar order
@@ -129,8 +114,8 @@ export const MonthCalendar = {
     // Temp array of weeks to build
     const weeksToRender = [];
 
-    // 【修正箇所】4週間前〜未来1年分（54週間）＝合計58週をループで生成します
-    for (let weekIndex = 0; weekIndex < 58; weekIndex++) {
+    // 【修正箇所】ここから未来1年分（54週間）を綺麗にループで回して生成します
+    for (let weekIndex = 0; weekIndex < 54; weekIndex++) {
       const weekDays = [];
       let containsSelected = false;
       let containsToday = false;
@@ -171,15 +156,11 @@ export const MonthCalendar = {
     let expandedWeekIndex = selectedWeekIndex !== -1 ? selectedWeekIndex : weeksToRender.findIndex(w => w.containsToday);
     if (expandedWeekIndex === -1) expandedWeekIndex = 0;
 
-// Render each week
+    // Render each week
     weeksToRender.forEach(week => {
       const weekRow = document.createElement('div');
-      // 【重要】CSSで高さを固定・アニメーションできるようにクラスを確実に付与
       weekRow.className = `week-row week-row-${week.index}`;
       weekRow.dataset.weekIndex = week.index;
-      
-      // 明示的に最小の高さをインラインでも確保し、ブラウザの潰れを防止
-      weekRow.style.display = 'grid';
 
       if (week.index === expandedWeekIndex) {
         const multiplier = settings.focusWeekSize || 3;
@@ -218,7 +199,6 @@ export const MonthCalendar = {
           dayCell.classList.add('selected');
         }
 
-        // ここでthis.selectedDateの月と比較してother-monthを判定
         if (day.date.getMonth() !== this.selectedDate.getMonth()) {
           dayCell.classList.add('other-month');
         }
