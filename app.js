@@ -57,14 +57,11 @@ async function init() {
   if (window.location.search.includes('code=')) {
     const success = await GoogleAuth.handleCallback();
     if (success) {
-      // ログイン成功後、設定モーダルを開いてカレンダー選択へ
-      setTimeout(() => {
-        populateSettingsModal();
-        modalSettings.classList.add('open');
-        
-        // ★ 修正：設定モーダルを開いた後、自動でカレンダーピッカー（同期用モーダル）を起動する
-        openGoogleCalendarPicker();
-      }, 300);
+      // URLから認可コードパラメータを綺麗に削除
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // ★ 修正：モーダルを開かず、バックグラウンドで全自動同期を開始する
+      syncAllGoogleCalendarsBackground();
     }
   }
   // Load settings & apply styles
@@ -80,7 +77,7 @@ async function init() {
   MonthCalendar.init(onDaySelected);
   WeekCalendar.init(onDaySelected, openAddModal, openEditModal);
 
-// Switch to default view
+  // Switch to default view
   switchView('month');
 
   // 【変更】初期起動時は「今日」を選択しますが、ボトムシートは表示させないため
@@ -93,6 +90,35 @@ async function init() {
   bindEvents();
 }
 
+// ★ 追加：ログイン直後にすべてを全自動・バックグラウンドで同期するロジック
+async function syncAllGoogleCalendarsBackground() {
+  try {
+    // 1. カレンダー一覧をAPIから取得
+    const gcals = await GoogleAuth.fetchCalendarList();
+    if (!gcals || !gcals.length) return;
+
+    // 2. すべてのカレンダーを対象に、バックグラウンドで並列同期処理を実行
+    const syncPromises = gcals.map(async (gcal) => {
+      try {
+        await GoogleAuth.syncCalendar(gcal);
+      } catch (err) {
+        console.error(`バックグラウンド同期エラー (${gcal.summary}):`, err);
+      }
+    });
+
+    // すべての同期処理の完了を待つ
+    await Promise.all(syncPromises);
+
+    // 3. 同期が完了したら画面表示を完全に更新（予定がカレンダーに現れる）
+    renderSettingsCalendars();
+    renderGoogleAuthSection();
+    refreshAllViews();
+    
+    console.log("Googleカレンダーの全自動バックグラウンド同期が完了しました。");
+  } catch (error) {
+    console.error("全自動バックグラウンド同期の開始に失敗しました:", error);
+  }
+}
 
 // Format selected date for standard Japanese style, e.g. "2026年5月22日(金)"
 function formatJapaneseDate(date) {
@@ -261,11 +287,6 @@ function populateBottomSheet(date) {
       elSheetSlots.appendChild(extraDiv);
     }
   }
-
-// Ensure sheet slides up when day changes
-  // 【変更】この自動で 'open' を付与する処理を削除、または条件付きにします。
-  // 日付タップ時のみ開くようにするため、ここでは何もしません（selectDay側で制御します）。
-  // elBottomSheet.classList.add('open'); <-- コメントアウトまたは削除
 }
 
 // Switch between Month View and Week View
@@ -602,7 +623,6 @@ function renderSettingsCalendars() {
     right.appendChild(visibleChk);
 
     // Delete calendar (only if it's not a seeded calendar or if custom imported)
-    // To make it easy, allow deleting any calendar except it prompts confirm
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn';
     delBtn.style.width = '28px';
@@ -662,13 +682,10 @@ async function importCalendarFromUrl() {
   btnImportUrl.disabled = true;
 
   try {
-    // Attempt fetch. Since CORS blocks might happen, we try direct first
-    // If it fails, we inform the user to download the file, or try standard proxy
     let response;
     try {
       response = await fetch(url);
     } catch (corsErr) {
-      // Proxy alternative to bypass CORS
       console.warn("Direct fetch blocked by CORS, trying open proxy...");
       const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
       response = await fetch(proxyUrl);
@@ -684,9 +701,8 @@ async function importCalendarFromUrl() {
       throw new Error('予定が見つからないか、iCalフォーマットが正しくありません。');
     }
 
-    // Add calendar to settings
     const calendars = StorageManager.getCalendars();
-    const colors = ['#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#a855f7']; // Cool pastel colors
+    const colors = ['#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#a855f7'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
     const newCal = {
@@ -700,11 +716,9 @@ async function importCalendarFromUrl() {
     calendars.push(newCal);
     StorageManager.saveCalendars(calendars);
 
-    // Save parsed events
     const allEvents = StorageManager.getEvents();
     StorageManager.saveEvents([...allEvents, ...parsedEvents]);
 
-    // Reset inputs
     inputImportName.value = '';
     inputImportUrl.value = '';
     
@@ -720,7 +734,7 @@ async function importCalendarFromUrl() {
   }
 }
 
-// Import calendar via local uploaded ICS file (100% reliable - bypasses CORS)
+// Import calendar via local uploaded ICS file
 function importCalendarFromFile(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -756,7 +770,6 @@ function importCalendarFromFile(e) {
       const allEvents = StorageManager.getEvents();
       StorageManager.saveEvents([...allEvents, ...parsedEvents]);
 
-      // Reset
       inputImportName.value = '';
       inputImportFile.value = '';
 
@@ -869,7 +882,6 @@ async function openGoogleCalendarPicker() {
 }
 
 function showGoogleCalendarPickerModal(gcals) {
-  // 既存モーダルが無ければ作成
   let modal = document.getElementById('gcal-picker-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -893,10 +905,8 @@ function showGoogleCalendarPickerModal(gcals) {
     document.body.appendChild(modal);
   }
 
-  // カレンダーリスト描画
   const listEl = modal.querySelector('#gcal-list');
   listEl.innerHTML = '';
-  const checked = new Map();
 
   gcals.forEach((gcal) => {
     const row = document.createElement('label');
