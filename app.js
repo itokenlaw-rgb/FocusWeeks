@@ -61,6 +61,9 @@ async function init() {
       setTimeout(() => {
         populateSettingsModal();
         modalSettings.classList.add('open');
+        
+        // ★ 修正：設定モーダルを開いた後、自動でカレンダーピッカー（同期用モーダル）を起動する
+        openGoogleCalendarPicker();
       }, 300);
     }
   }
@@ -963,4 +966,3 @@ if ('serviceWorker' in navigator) {
 
 // Run initializer
 init();
-
