@@ -973,12 +973,35 @@ function showGoogleCalendarPickerModal(gcals) {
   };
 }
 
-// PWA Service Workerの登録
+// PWA Service Workerの登録（古いキャッシュを即座に破棄して常に最新化する設定）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((reg) => console.log('Service Worker 登録成功:', reg.scope))
-      .catch((err) => console.error('Service Worker 登録失敗:', err));
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => {
+        console.log('ServiceWorker registration successful with scope: ', reg.scope);
+        
+        // 新しいバージョンのコード（Gitへのアップなど）を検知した場合の処理
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker == null) return;
+          
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                // 新しいコードがあることをログに出し、自動的にアクティベートさせる
+                console.log('New content is available; please refresh.');
+                // ユーザーを待たせずに強制リロードさせて最新化させる場合は以下を有効化
+                window.location.reload();
+              } else {
+                console.log('Content is cached for offline use.');
+              }
+            }
+          };
+        };
+      })
+      .catch((err) => {
+        console.error('ServiceWorker registration failed: ', err);
+      });
   });
 }
 
