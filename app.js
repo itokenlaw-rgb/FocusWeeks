@@ -70,7 +70,7 @@ async function init() {
   // Load settings & apply styles
   applySettingsTheme();
 
-  // 【追加】起動時、またはログイン直後にUI状態（ボタン表示など）を最新にする
+  // 起動時、またはログイン直後にUI状態（ボタン表示など）を最新にする
   renderGoogleAuthSection();
   renderSettingsCalendars();
 
@@ -96,38 +96,7 @@ async function init() {
   bindEvents();
 }
 
-  // Load settings & apply styles
-  applySettingsTheme();
-
-  // 【追加】ログイン完了後、または通常起動時にUI状態を最新にする
-  if (modalSettings.classList.contains('open')) {
-    renderGoogleAuthSection();
-  }
-
-  // Set today icon day number
-  const today = new Date();
-  if (elTodayIconDay) {
-    elTodayIconDay.textContent = today.getDate();
-  }
-
-  // Initialize view calendars
-  MonthCalendar.init(onDaySelected);
-  WeekCalendar.init(onDaySelected, openAddModal, openEditModal);
-
-  // Switch to default view
-  switchView('month');
-
-  // 【変更】初期起動時は「今日」を選択しますが、ボトムシートは表示させないため
-  // onDaySelected(selectedDate); の代わりに、ボトムシートを表示しない初期化を行います。
-  selectedDate = new Date();
-  populateBottomSheet(selectedDate);
-  elBottomSheet.classList.remove('open'); // 初期状態は確実に閉じる
-
-  // Bind core event listeners
-  bindEvents();
-}
-
-// ★ 追加：ログイン直後にすべてを全自動・バックグラウンドで同期するロジック
+// 追加：ログイン直後にすべてを全自動・バックグラウンドで同期するロジック
 async function syncAllGoogleCalendarsBackground() {
   try {
     // 1. カレンダー一覧をAPIから取得
@@ -162,6 +131,7 @@ function formatJapaneseDate(date) {
   const daysJa = ['日', '月', '火', '水', '木', '金', '土'];
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日(${daysJa[date.getDay()]})`;
 }
+
 
 // Update local state when a date is selected in calendars
 function onDaySelected(date) {
