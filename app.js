@@ -51,6 +51,8 @@ const inputImportUrl = document.getElementById('import-cal-url');
 const btnImportUrl = document.getElementById('import-url-btn');
 const inputImportFile = document.getElementById('import-file-input');
 
+
+
 // Initialize the app
 async function init() {
   // Google OAuth コールバック処理（リダイレクト後）
@@ -60,12 +62,47 @@ async function init() {
       // URLから認可コードパラメータを綺麗に削除
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // ★ 修正：モーダルを開かず、バックグラウンドで全自動同期を開始する
-      syncAllGoogleCalendarsBackground();
+      // バックグラウンドで全自動同期を開始（完了を待つ）
+      await syncAllGoogleCalendarsBackground();
     }
   }
+
   // Load settings & apply styles
   applySettingsTheme();
+
+  // 【追加】起動時、またはログイン直後にUI状態（ボタン表示など）を最新にする
+  renderGoogleAuthSection();
+  renderSettingsCalendars();
+
+  // Set today icon day number
+  const today = new Date();
+  if (elTodayIconDay) {
+    elTodayIconDay.textContent = today.getDate();
+  }
+
+  // Initialize view calendars
+  MonthCalendar.init(onDaySelected);
+  WeekCalendar.init(onDaySelected, openAddModal, openEditModal);
+
+  // Switch to default view
+  switchView('month');
+
+  // 初期状態は確実に閉じる
+  selectedDate = new Date();
+  populateBottomSheet(selectedDate);
+  elBottomSheet.classList.remove('open');
+
+  // Bind core event listeners
+  bindEvents();
+}
+
+  // Load settings & apply styles
+  applySettingsTheme();
+
+  // 【追加】ログイン完了後、または通常起動時にUI状態を最新にする
+  if (modalSettings.classList.contains('open')) {
+    renderGoogleAuthSection();
+  }
 
   // Set today icon day number
   const today = new Date();
@@ -410,15 +447,16 @@ function bindEvents() {
   btnNavToday.addEventListener('click', jumpToToday);
   btnTodayIcon.addEventListener('click', jumpToToday);
 
-  // Settings Panel Buttons
+// Settings Panel Buttons
   const toggleSettings = () => {
     if (modalSettings.classList.contains('open')) {
       modalSettings.classList.remove('open');
     } else {
-      populateSettingsModal();
+      populateSettingsModal(); // ここで renderGoogleAuthSection() が実行されます
       modalSettings.classList.add('open');
     }
   };
+
   btnSettingsOpen.addEventListener('click', toggleSettings);
   btnMenuOpen.addEventListener('click', toggleSettings);
   btnSettingsClose.addEventListener('click', () => modalSettings.classList.remove('open'));
