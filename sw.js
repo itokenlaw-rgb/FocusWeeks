@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focusweeks-v2';
+const CACHE_NAME = 'focusweeks-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -34,6 +34,20 @@ self.addEventListener('activate', (e) => {
 
 // リクエスト発生時にキャッシュを返す（オフライン対応）
 self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+
+  // OAuth コールバック・認証系リクエストはキャッシュせず素通りさせる
+  if (
+    url.searchParams.has('code') ||
+    url.searchParams.has('state') ||
+    url.searchParams.has('error') ||
+    url.hostname === 'accounts.google.com' ||
+    url.hostname === 'oauth2.googleapis.com' ||
+    url.hostname === 'www.googleapis.com'
+  ) {
+    return; // SWを介さずブラウザがそのまま処理する
+  }
+
   e.respondWith(
     caches.match(e.request).then((response) => {
       return response || fetch(e.request);

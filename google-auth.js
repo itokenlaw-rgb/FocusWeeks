@@ -117,6 +117,12 @@ export const GoogleAuth = {
 
     const verifier = sessionStorage.getItem('pkce_verifier');
 
+    if (!verifier) {
+      console.error('PKCEの検証子が見つかりません。Service Workerがコールバックを横取りした可能性があります。');
+      this._clearCallbackParams();
+      return false;
+    }
+
     try {
       const body = new URLSearchParams({
         client_id: CLIENT_ID,
@@ -132,7 +138,10 @@ export const GoogleAuth = {
         body: body.toString(),
       });
 
-      if (!res.ok) throw new Error('トークン取得失敗');
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        throw new Error('トークン取得失敗 HTTP ' + res.status + ': ' + errBody);
+      }
 
       const tokenData = await res.json();
 
