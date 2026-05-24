@@ -25,22 +25,31 @@ interface MonthViewProps {
 }
 
 export const getEventSlotIndex = (event: CalendarEvent): number => {
-  if (event.allDay) return 0;
+  if (event.allDay) return 0; // 終日予定は一番上
   try {
     const d = new Date(event.start);
     const hours = d.getHours();
     const minutes = d.getMinutes();
-    const timeVal = hours + minutes / 60;
-    if (timeVal < 9) return 0;
-    if (timeVal < 12) return 1;
-    if (timeVal < 15) return 2;
-    if (timeVal < 18) return 3;
+    // 分換算、または時間（hours）で判定
+    
+    // ① 0:00 ～ 8:59 -> 1番目の枠 (index: 0)
+    if (hours < 9) return 0;
+    
+    // ② 9:00 ～ 11:59 -> 2番目の枠 (index: 1)
+    if (hours < 12) return 1;
+    
+    // ③ 12:00 ～ 14:59 -> 3番目の枠 (index: 2)
+    if (hours < 15) return 2;
+    
+    // ④ 15:00 ～ 17:59 -> 4番目の枠 (index: 3)
+    if (hours < 18) return 3;
+    
+    // ⑤ 18:00 ～ 23:59 -> 5番目の枠 (index: 4)
     return 4;
   } catch {
     return 0;
   }
 };
-
 export const MonthView: React.FC<MonthViewProps> = ({
   weeks,
   events,

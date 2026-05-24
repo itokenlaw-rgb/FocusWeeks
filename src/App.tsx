@@ -91,13 +91,23 @@ export default function App() {
   });
 
   // Save settings when changed
-  useEffect(() => {
-    localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
-    // Apply body classes for CSS theme & text size
-    document.body.className = '';
-    document.body.classList.add(`theme-${settings.themeColor}`);
-    document.body.classList.add(`size-${settings.textSize}`);
-  }, [settings]);
+useEffect(() => {
+  const base = new Date();
+  const list = generateWeeksList(base, settings.weekStart, 10, 40);
+  setWeeks(list);
+
+  const todayStr = getFormattedDateString(base);
+  const defaultFocusedWeek = list.find(week => 
+    week.some(day => day.dateString === todayStr)
+  );
+  
+  if (defaultFocusedWeek) {
+    // 起動時に今日の週のID（月曜または日曜の文字列表記）をセット
+    setFocusedWeekId(defaultFocusedWeek[0].dateString);
+    // 起動時だけはselectedDateも今日にしておくとより確実です（任意）
+    // setSelectedDate(todayStr); 
+  }
+}, [settings.weekStart]);
 
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -218,21 +228,23 @@ export default function App() {
   };
 
   // Callback when month scrolls and header needs updating
-  const handleVisibleMonthChange = (year: number, month: number) => {
-    setCurrentYear(year);
-    setCurrentMonth(month);
-    
-    // If no day is selected, default focus shifts to the first week of this newly visible month
-    if (!selectedDate) {
-      const targetFirstDayStr = getFormattedDateString(new Date(year, month, 1));
-      const newFocusedWeek = weeks.find(week => 
-        week.some(day => day.dateString === targetFirstDayStr)
-      );
-      if (newFocusedWeek) {
-        setFocusedWeekId(newFocusedWeek[0].dateString);
-      }
+const handleVisibleMonthChange = (year: number, month: number) => {
+  setCurrentYear(year);
+  setCurrentMonth(month);
+  
+  // 【修正】すでに selectedDate または focusedWeekId がある場合は、
+  // スクロールだけで勝手にフォーカス週を上書きしないようにコメントアウト、または条件を変更します。
+  /* if (!selectedDate) {
+    const targetFirstDayStr = getFormattedDateString(new Date(year, month, 1));
+    const newFocusedWeek = weeks.find(week => 
+      week.some(day => day.dateString === targetFirstDayStr)
+    );
+    if (newFocusedWeek) {
+      setFocusedWeekId(newFocusedWeek[0].dateString);
     }
-  };
+  }
+  */
+};
 
   // Save Event Action (Insert or Update)
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {

@@ -38,16 +38,32 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* --- index.css --- */
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
   font-size: var(--text-md);
-  overflow: hidden; /* Main window is fixed, scrolling happens in views */
+  overflow: hidden; 
   height: 100vh;
   width: 100vw;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center; /* 左寄せ(flex-start)から中央寄せ(center)に変更 */
+  align-items: center;     /* 上下も中央に配置 */
+}
+
+/* App Wrapper to fit viewport on devices */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  max-width: 430px; /* iPhone等の画面幅を想定した最大幅を設定 */
+  box-shadow: 0 0 20px rgba(0,0,0,0.1); /* PC表示時にスマホらしく見せるシャドウ（任意） */
+  background-color: var(--bg-card);
+  position: relative;
+  overflow: hidden;
 }
 
 /* Font Size Modifiers */
@@ -153,10 +169,13 @@ body.theme-green {
   flex-direction: column;
   height: 100vh;
   width: 100%;
+  max-width: 430px; /* iPhone等の画面幅を想定した最大幅を設定 */
+  box-shadow: 0 0 20px rgba(0,0,0,0.1); /* PC表示時にスマホらしく見せるシャドウ（任意） */
   background-color: var(--bg-card);
   position: relative;
   overflow: hidden;
 }
+
 
 /* Header Styles */
 .app-header {
@@ -304,17 +323,22 @@ body.theme-green {
 }
 
 .calendar-week {
+.calendar-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-bottom: 1px solid var(--border-color);
-  min-height: var(--row-height-normal);
+  /* min-height ではなく height で固定値か変数を持たせる */
+  height: var(--row-height-normal); 
   transition: var(--transition-normal);
+  overflow: hidden; /* 中身がはみ出さないように */
 }
 
 .calendar-week.focused {
-  min-height: var(--row-height-focused);
+  /* インラインスタイルで渡された --focus-height-multiplier を使って高さを動的に計算 */
+  height: calc(var(--row-height-normal) * var(--focus-height-multiplier));
   background-color: var(--focus-week-bg);
 }
+
 
 /* Date Frame Box */
 .day-cell {
@@ -325,6 +349,7 @@ body.theme-green {
   flex-direction: column;
   cursor: pointer;
   overflow: hidden;
+  height: 100%; /* 親の週の高さに合わせる */
   transition: var(--transition-normal);
   background-color: var(--bg-card);
 }
