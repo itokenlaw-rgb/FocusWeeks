@@ -1,14 +1,251 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FocusWeeks - シンプルなGoogleカレンダー表示・フォーカスアプリ</title>
-    <meta name="description" content="FocusWeeksは、週の拡大表示と時間帯別スケジュール配置で1日の時間を直感的に把握できる、シンプルでスタイリッシュなGoogleカレンダー表示アプリです。" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a90e2">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FocusWeeks - カレンダー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-medium">
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="header-left">
+        <button id="menu-btn" class="icon-btn" aria-label="メニュー">
+          <!-- Hamburger Icon SVG -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div id="month-display" class="month-dropdown">
+          <span id="current-month-txt">2026年5月</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="search-btn" class="icon-btn" aria-label="検索">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <button id="today-icon-btn" class="icon-btn" aria-label="今日">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><text id="today-icon-day" x="50%" y="72%" font-size="10" font-weight="bold" text-anchor="middle" fill="currentColor">22</text></svg>
+        </button>
+        <div id="view-toggle" class="segmented-control" style="width: 100px; height: 32px; margin-left: 8px;">
+          <button id="toggle-month-btn" class="segmented-btn active">月</button>
+          <button id="toggle-week-btn" class="segmented-btn">週</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main View Area -->
+    <div class="main-view-container">
+      
+      <!-- MONTH VIEW -->
+      <div id="month-view" class="month-view-wrapper">
+        <div id="month-week-days" class="week-days-header">
+          <!-- Populated dynamically via JS based on Monday/Sunday start -->
+        </div>
+        <div class="month-grid-scroll" id="month-scroll-container">
+          <div class="month-grid-content" id="month-grid-body">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- WEEK VIEW (Hourly grid) -->
+      <div id="week-view" class="week-view-wrapper" style="display: none;">
+        <div id="week-grid-hdr" class="week-grid-header">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="week-grid-scroll">
+          <div class="week-grid-body">
+            <!-- Time labels column -->
+            <div class="time-axis" id="week-time-axis">
+              <!-- Populated dynamically 8:00 - 23:00 -->
+            </div>
+            <!-- Dashed horizontal lines -->
+            <div class="grid-lines-layer" id="week-grid-lines">
+              <!-- Populated dynamically -->
+            </div>
+            <!-- Day columns for event cards -->
+            <div class="week-grid-columns" id="week-columns-container">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-up Bottom Sheet (Schedule Panel) -->
+      <div id="schedule-bottom-sheet" class="bottom-sheet">
+        <div class="bottom-sheet-drag-bar" id="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-content">
+          <div class="bottom-sheet-slots" id="sheet-slots-container">
+            <!-- Populated dynamically: 3 slots minimum -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation Footer -->
+
+    <footer class="bottom-nav">
+      <button id="nav-today-btn" class="nav-today-btn">今日</button>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button id="nav-settings-btn" class="icon-btn" aria-label="設定">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Floating Add Button (Google style) -->
+    <button id="floating-add-btn" class="floating-add-btn" aria-label="予定追加">+</button>
+  </div>
+
+  <!-- Settings Modal (Backdrop) -->
+  <div id="settings-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">カレンダー設定</h2>
+        <button id="settings-close-btn" class="icon-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- App Preferences -->
+      <div class="form-group">
+        <label>週の開始曜日</label>
+        <div class="segmented-control" id="settings-weekstart">
+          <button data-value="sunday" class="segmented-btn">日曜始まり</button>
+          <button data-value="monday" class="segmented-btn active">月曜始まり</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>第１週の拡大倍率（フォーカス前）</label>
+        <div class="segmented-control" id="settings-weeksize">
+          <button data-value="1" class="segmented-btn">1倍 (標準)</button>
+          <button data-value="2" class="segmented-btn">2倍</button>
+          <button data-value="3" class="segmented-btn active">3倍</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>文字サイズ</label>
+        <div class="segmented-control" id="settings-fontsize">
+          <button data-value="small" class="segmented-btn">小</button>
+          <button data-value="medium" class="segmented-btn active">中</button>
+          <button data-value="large" class="segmented-btn">大</button>
+        </div>
+      </div>
+
+      <!-- Google Calendar Sync -->
+      <div style="margin-top: 10px;">
+        <h3 style="font-size: var(--font-lg); font-weight: 600; margin-bottom: 8px;">Googleカレンダー連携</h3>
+        <div id="google-auth-section">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Google Calendar Sync Manager -->
+      <div style="margin-top: 10px;">
+        <h3 style="font-size: var(--font-lg); font-weight: 600; margin-bottom: 8px;">Googleカレンダー管理 / 表示順</h3>
+        
+        <div class="calendar-list" id="calendar-list-manager">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div class="import-section">
+          <h4 style="font-size: var(--font-sm); font-weight: 600;">新しいカレンダーをインポート</h4>
+          <input type="text" id="import-cal-name" class="form-input" placeholder="カレンダー名 (例: 仕事)">
+          <input type="url" id="import-cal-url" class="form-input" placeholder="Googleカレンダー非公開/公開 iCal URL (.ics)">
+          <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">
+            ※ Googleカレンダー設定の「非公開アドレス (iCal形式)」や「公開アドレス」を貼り付けて同期できます。
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <button id="import-url-btn" class="btn btn-primary" style="flex: 1; padding: 8px;">URLからインポート</button>
+            <label class="btn btn-secondary" style="flex: 1; padding: 8px; text-align: center; display: inline-block;">
+              ICSファイルを選択
+              <input type="file" id="import-file-input" accept=".ics" style="display: none;">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-buttons">
+        <button id="settings-save-btn" class="btn btn-primary" style="width: 100%;">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Add / Edit Modal -->
+  <div id="event-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="event-modal-title" class="modal-title">予定の追加</h2>
+        <button id="event-close-btn" class="icon-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="event-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="event-id">
+        
+        <div class="form-group">
+          <label for="event-title">タイトル</label>
+          <input type="text" id="event-title" class="form-input" required placeholder="予定のタイトル">
+        </div>
+
+        <div class="form-group">
+          <label for="event-calendar">カレンダー</label>
+          <select id="event-calendar" class="form-select">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="event-start-date">開始日</label>
+            <input type="date" id="event-start-date" class="form-input" required>
+          </div>
+          <div class="form-group" style="flex: 1;" id="event-start-time-group">
+            <label for="event-start-time">時間</label>
+            <input type="time" id="event-start-time" class="form-input">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="event-end-date">終了日</label>
+            <input type="date" id="event-end-date" class="form-input" required>
+          </div>
+          <div class="form-group" style="flex: 1;" id="event-end-time-group">
+            <label for="event-end-time">時間</label>
+            <input type="time" id="event-end-time" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="event-allday"> 終日予定
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="event-desc">メモ</label>
+          <textarea id="event-desc" class="form-textarea" rows="2" placeholder="詳細やメモなど"></textarea>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 12px;">
+          <button type="button" id="event-delete-btn" class="btn btn-danger" style="display: none; margin-right: auto;">削除</button>
+          <button type="button" id="event-cancel-btn" class="btn btn-secondary">キャンセル</button>
+          <button type="submit" id="event-submit-btn" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Javascript Modules -->
+  <script type="module" src="app.js"></script>
+</body>
 </html>

@@ -1,0 +1,908 @@
+/* style.css */
+/* Modern design system, theme variables, layout rules, and transitions for FocusWeeks */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+:root {
+  /* Color Palette (Premium Slate & Blue-grey theme) */
+  --bg-color: #f8fafc;
+  --panel-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-color: #e2e8f0;
+  --accent-color: #3b82f6;
+  --accent-light: #eff6ff;
+  --selected-day-bg: #fef9c3; /* Yellow highlight from screenshot */
+  --selected-day-border: #facc15;
+  --week-header-bg: #ffffff;
+  
+  /* Font Scaling Options */
+  --font-scale: 1.0;
+  
+  /* Layout Dimensions */
+  --header-height: 56px;
+  --footer-height: 56px;
+  --bottom-sheet-height: 240px;
+  
+  /* Font sizes (scaled) */
+  --font-xs: calc(0.7rem * var(--font-scale));
+  --font-sm: calc(0.8rem * var(--font-scale));
+  --font-md: calc(0.9rem * var(--font-scale));
+  --font-lg: calc(1.0rem * var(--font-scale));
+  --font-xl: calc(1.15rem * var(--font-scale));
+  --font-2xl: calc(1.35rem * var(--font-scale));
+  
+  /* Grid sizes (height multipliers for focused week) */
+  --row-height-1x: 75px;
+  --row-height-2x: 135px;
+  --row-height-3x: 195px; /* Fits about 3 full lines + date */
+}
+
+/* Dark mode theme if preferred, but screenshot is light-themed. Let's keep a beautiful light-focused theme with a clean grey/slate background */
+body.dark-mode {
+  --bg-color: #0f172a;
+  --panel-bg: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --accent-color: #60a5fa;
+  --accent-light: #1e293b;
+  --selected-day-bg: #3e3d23;
+  --selected-day-border: #ca8a04;
+  --week-header-bg: #1e293b;
+}
+
+/* Font Scale Body Classes */
+body.font-small { --font-scale: 0.85; }
+body.font-medium { --font-scale: 1.0; }
+body.font-large { --font-scale: 1.25; }
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Responsive mobile simulator frame for desktop, but stretches full screen on mobile devices */
+.app-container {
+  width: 100%;
+  height: 100%;
+  max-width: 480px; /* Standard phone aspect ratio */
+  max-height: 960px;
+  background-color: var(--panel-bg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 0; /* Fullscreen styling */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+@media (min-width: 768px) {
+  .app-container {
+    border-radius: 20px; /* Show as an elegant phone frame on larger monitors */
+    height: 90vh;
+  }
+}
+
+/* Header Component */
+header {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: var(--panel-bg);
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--font-xl);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: var(--border-color);
+}
+
+.month-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-xl);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Main Content Area */
+.main-view-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Month view styles */
+.month-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.week-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--week-header-bg);
+  padding: 8px 0;
+  text-align: center;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.week-days-header div.sat {
+  color: #3b82f6; /* Blue for Saturday */
+}
+.week-days-header div.sun {
+  color: #ef4444; /* Red for Sunday */
+}
+
+/* Infinite/Vertical Scroll Month Body */
+.month-grid-scroll {
+  flex: 1;
+  overflow-y: auto !important; /* 縦スクロールを完全に許可 */
+  -webkit-overflow-scrolling: touch; /* スマホでのスムーズな慣性スクロール */
+  scrollbar-width: none;
+}
+.month-grid-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.month-grid-content {
+  display: flex;
+  flex-direction: column;
+  height: auto !important; /* 子要素（54週分）の高さの合計に自動追従させる */
+  min-height: 100%;
+}
+
+/* Week row height is animated */
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border-color);
+  height: var(--row-height-1x);
+  min-height: var(--row-height-1x);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* Sizes of week row */
+.week-row.height-2x {
+  height: var(--row-height-2x);
+  min-height: var(--row-height-2x);
+}
+.week-row.height-3x {
+  height: var(--row-height-3x);
+  min-height: var(--row-height-3x);
+}
+
+/* Day cell */
+.day-cell {
+  border-right: 1px solid var(--border-color);
+  padding: 4px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--panel-bg);
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+.day-cell:last-child {
+  border-right: none;
+}
+
+.day-cell:hover {
+  background-color: var(--bg-color);
+}
+
+.day-cell.selected {
+  background-color: var(--selected-day-bg) !important;
+  outline: 2px solid var(--selected-day-border);
+  outline-offset: -2px;
+  z-index: 2;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.day-number {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 【変更】他月セルの背景をグレーから白に変更 */
+.day-cell.other-month {
+  background-color: var(--panel-bg) !important; /* #f1f5f9 から白に変更 */
+}
+
+/* 他月の数字の色は現状通り少し薄いグレー（#94a3b8）のまま維持されます */
+.day-cell.other-month .day-number {
+  color: #94a3b8;
+}
+
+/* 月の区切り（1日があるセル）の境界線を太くする */
+.day-cell[data-date$="-01"] {
+  border-top: 2.5px solid var(--text-primary) !important;
+}
+
+/* 月曜始まりの場合、1日が月曜日以外なら左側にも区切り線を入れるとより明確になります */
+.day-cell[data-date$="-01"] {
+  position: relative;
+}
+
+/* 1日のセルの上に太い線が引かれることで、視覚的に月の変わり目がハッキリします */
+
+/* Event List inside Cells */
+.cell-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Normal week event badge (compact) */
+.event-dot-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: auto;
+}
+.event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.event-badge-compact {
+  font-size: calc(var(--font-xs) * 0.9);
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: white;
+  font-weight: 500;
+  max-width: 100%;
+}
+
+/* Focused week event badge (shows times) */
+.event-badge-detailed {
+  font-size: calc(var(--font-xs) * 0.95);
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #1e293b;
+  border-left: 3px solid var(--accent-color);
+  background-color: var(--accent-light);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-right: 1px solid rgba(0,0,0,0.05);
+}
+
+.event-badge-detailed .event-time {
+  font-size: calc(var(--font-xs) * 0.8);
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.event-badge-detailed .event-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Week Hourly view styles (Image 1) */
+.week-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.week-grid-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.week-grid-header {
+  display: grid;
+  grid-template-columns: 45px repeat(7, 1fr);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--week-header-bg);
+  padding: 8px 0;
+  text-align: center;
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+.week-grid-header .time-header-lbl {
+  color: transparent;
+}
+.week-grid-header .day-col-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.week-grid-header .day-col-header.sat { color: #3b82f6; }
+.week-grid-header .day-col-header.sun { color: #ef4444; }
+
+.week-grid-header .day-col-num {
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.week-grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+.week-grid-body {
+  display: grid;
+  grid-template-columns: 45px repeat(7, 1fr);
+  position: relative;
+  /* Min height to let scrolling happen */
+  height: 960px; /* 16 hours * 60px */
+}
+
+.time-axis {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--panel-bg);
+}
+
+.time-axis-label {
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 4px;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.week-grid-columns {
+  display: contents;
+}
+
+.week-grid-column {
+  border-right: 1px solid var(--border-color);
+  position: relative;
+  height: 100%;
+}
+.week-grid-column:last-child {
+  border-right: none;
+}
+
+/* Horizontal guidelines */
+.grid-lines-layer {
+  position: absolute;
+  top: 0;
+  left: 45px;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+.grid-line {
+  height: 60px;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+/* Hourly event card block */
+.hourly-event-card {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 4px;
+  padding: 4px;
+  color: white;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.1s;
+}
+
+.hourly-event-card:hover {
+  transform: scale(0.98);
+}
+
+/* Bottom Sheet Component */
+.bottom-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 15px rgba(0,0,0,0.06);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  /* 【変更】100%隠れるように設定 */
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+.bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-drag-bar {
+  height: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+.bottom-sheet-drag-bar::before {
+  content: '';
+  width: 36px;
+  height: 4px;
+  background-color: var(--border-color);
+  border-radius: 2px;
+}
+
+/* Slide up details list */
+.bottom-sheet-content {
+  flex: 1;
+  padding: 0 16px 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Exactly 3 slots display */
+.bottom-sheet-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet-slot {
+  height: 48px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  user-select: none;
+}
+
+.sheet-slot:hover {
+  background-color: var(--accent-light);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.sheet-slot.filled {
+  border-style: solid;
+  border-color: var(--border-color);
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.slot-event-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot-event-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.slot-event-time {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  white-space: nowrap;
+}
+
+.slot-event-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-event-icon {
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+/* Empty list styling */
+.slot-empty-msg {
+  text-align: center;
+  width: 100%;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Footer / Bottom Actions Bar */
+/* Footer / Bottom Actions Bar */
+.bottom-nav {
+  height: var(--footer-height);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  /* 【変更】#79b1a5（緑）から くすんだ青（例: #5a7b9a や #4e6a85）に変更 */
+  background-color: #5a7b9a; 
+  color: white;
+}
+
+.bottom-nav .icon-btn {
+  color: white;
+}
+.bottom-nav .icon-btn:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.nav-today-btn {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.nav-today-btn:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.nav-date-display {
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+/* Add Button in bottom right */
+.floating-add-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 72px; /* Sits above footer */
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: #0b57d0; /* Google blue add button */
+  color: white;
+  border: none;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  transition: transform 0.2s, background-color 0.2s;
+  z-index: 12;
+}
+
+.floating-add-btn:hover {
+  background-color: #0045b5;
+  transform: scale(1.05);
+}
+
+/* Modals & Backdrop */
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  width: 100%;
+  background-color: var(--panel-bg);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 -10px 25px rgba(0,0,0,0.15);
+  transform: translateY(100%);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 80%;
+  overflow-y: auto;
+}
+
+.modal-backdrop.open .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+}
+
+/* Inputs and Forms */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-input, .form-select, .form-textarea {
+  font-family: inherit;
+  font-size: var(--font-md);
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: var(--font-md);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.btn-secondary {
+  background-color: var(--border-color);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+.btn-danger:hover {
+  background-color: #dc2626;
+}
+
+/* Settings Manager Components */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setting-label {
+  font-weight: 600;
+  font-size: var(--font-md);
+}
+.setting-desc {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+}
+
+/* Calendar list manager */
+.calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--panel-bg);
+}
+
+.calendar-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-drag-handle {
+  cursor: grab;
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+.calendar-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+.calendar-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Segmented Control */
+.segmented-control {
+  display: flex;
+  background-color: var(--border-color);
+  padding: 2px;
+  border-radius: 8px;
+  width: 100%;
+}
+.segmented-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 6px;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.segmented-btn.active {
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+/* 月を区切る太線のデザイン設定 */
+.day-cell.month-border-top {
+  border-top: 2px solid #1e293b !important; /* 前の週との区切り */
+}
+
+.day-cell.month-border-left {
+  border-left: 2px solid #1e293b !important; /* 横のマスとの区切り */
+}
