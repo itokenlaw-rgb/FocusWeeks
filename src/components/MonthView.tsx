@@ -28,7 +28,7 @@ export const getEventSlotIndex = (event: CalendarEvent): number => {
   if (event.allDay) return 0;
   try {
     const d = new Date(event.start);
-    const hours = d.getHours(); // 💡 hours だけ残せばOKです
+    const hours = d.getHours();
     
     // ① 0:00 ～ 8:59 -> 1番目の枠 (index: 0)
     if (hours < 9) return 0;
@@ -63,6 +63,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 無限ループ・過剰な親への通知を防ぐため、最後に通知した年月を記録
+  const lastNotifiedMonth = useRef<{ year: number; month: number } | null>(null);
 
   // Filter events for a specific date
   const getEventsForDate = (dateString: string) => {
@@ -105,27 +109,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount
 
-  // Scroll to today's week on initial mount so it appears at the top
-  useEffect(() => {
-    const scrollToToday = () => {
-      const todayStr = new Date().toISOString().substring(0, 10);
-      const allWeekEls = containerRef.current?.querySelectorAll('.calendar-week');
-      if (!allWeekEls) return;
-
-      for (let i = 0; i < allWeekEls.length; i++) {
-        const el = allWeekEls[i] as HTMLElement;
-        const containsAttr = el.getAttribute('data-contains-date') || '';
-        if (containsAttr.split(',').includes(todayStr)) {
-          el.scrollIntoView({ block: 'start', behavior: 'auto' });
-          break;
-        }
-      }
-    };
-    const timer = setTimeout(scrollToToday, 50);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount
-
   // Scroll event handler to detect visible month
   const handleScroll = () => {
     isScrollingRef.current = true;
@@ -155,17 +138,37 @@ export const MonthView: React.FC<MonthViewProps> = ({
         if (week && week.length > 3) {
           // Use the Wednesday (middle day) of the week to define the active month
           const middleDate = week[3].date;
-          onVisibleMonthChange(middleDate.getFullYear(), middleDate.getMonth());
+          const targetYear = middleDate.getFullYear();
+          const targetMonth = middleDate.getMonth();
+
+          // 前回通知した年月と異なる場合のみ親に通知（無限ループ・負荷対策）
+          if (
+            !lastNotifiedMonth.current ||
+            lastNotifiedMonth.current.year !== targetYear ||
+            lastNotifiedMonth.current.month !== targetMonth
+          ) {
+            lastNotifiedMonth.current = { year: targetYear, month: targetMonth };
+            onVisibleMonthChange(targetYear, targetMonth);
+          }
         }
       }
     }
 
-    // Reset scrolling flag after scroll stops
-    clearTimeout((window as any).scrollTimeout);
-    (window as any).scrollTimeout = setTimeout(() => {
+    // Reset scrolling flag after scroll stops (Using safe useRef)
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
       isScrollingRef.current = false;
     }, 150);
   };
+
+  // クリーンアップ処理（コンポーネントがアンマウントされた際のタイマー解除）
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
 
   return (
     <div 
@@ -204,7 +207,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 data-week-index={weekIndex}
                 data-contains-date={containsDates.join(',')}
                 style={{
-                  // Set height multipliers dynamically based on focus and settings
                   '--focus-height-multiplier': settings.focusSize,
                 } as React.CSSProperties}
               >
@@ -306,4 +308,5 @@ export const MonthView: React.FC<MonthViewProps> = ({
     </div>
   );
 };
+
 export type { DayData };
