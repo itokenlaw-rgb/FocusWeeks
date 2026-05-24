@@ -146,10 +146,10 @@ export default function App() {
     const list = generateWeeksList(base, settings.weekStart, 10, 40);
     setWeeks(list);
 
-    // Initial default focused week: week containing 1st day of current month
-    const firstOfMonthStr = getFormattedDateString(new Date(base.getFullYear(), base.getMonth(), 1));
+    // Initial default focused week: week containing today
+    const todayStr = getFormattedDateString(new Date());
     const defaultFocusedWeek = list.find(week => 
-      week.some(day => day.dateString === firstOfMonthStr)
+      week.some(day => day.dateString === todayStr)
     );
     if (defaultFocusedWeek) {
       setFocusedWeekId(defaultFocusedWeek[0].dateString);

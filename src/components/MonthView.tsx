@@ -74,19 +74,28 @@ export const MonthView: React.FC<MonthViewProps> = ({
     }
   };
 
-  // Scroll to active month on load or when selected month changes from header
-  // Note: we only do it if the user isn't scrolling actively to prevent scroll fights
+  // Scroll to today's week on initial mount so it appears at the top
   useEffect(() => {
-    if (isScrollingRef.current) return;
+    const scrollToToday = () => {
+      const todayStr = new Date().toISOString().substring(0, 10);
+      const allWeekEls = containerRef.current?.querySelectorAll('.calendar-week');
+      if (!allWeekEls) return;
+
+      for (let i = 0; i < allWeekEls.length; i++) {
+        const el = allWeekEls[i] as HTMLElement;
+        const containsAttr = el.getAttribute('data-contains-date') || '';
+        if (containsAttr.split(',').includes(todayStr)) {
+          el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          break;
+        }
+      }
+    };
     
-    // Find week that contains today or the selectedDate and scroll to it
-    const targetDate = selectedDate || new Date().toISOString().substring(0, 10);
-    const targetWeekEl = containerRef.current?.querySelector(`[data-contains-date="${targetDate}"]`);
-    
-    if (targetWeekEl) {
-      targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }, [selectedDate]);
+    // Use setTimeout to ensure DOM has rendered
+    const timer = setTimeout(scrollToToday, 50);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // Scroll event handler to detect visible month
   const handleScroll = () => {
