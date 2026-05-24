@@ -90,25 +90,6 @@ export default function App() {
     };
   });
 
-  // Save settings when changed
-useEffect(() => {
-  const base = new Date();
-  const list = generateWeeksList(base, settings.weekStart, 10, 40);
-  setWeeks(list);
-
-  const todayStr = getFormattedDateString(base);
-  const defaultFocusedWeek = list.find(week => 
-    week.some(day => day.dateString === todayStr)
-  );
-  
-  if (defaultFocusedWeek) {
-    // 起動時に今日の週のID（月曜または日曜の文字列表記）をセット
-    setFocusedWeekId(defaultFocusedWeek[0].dateString);
-    // 起動時だけはselectedDateも今日にしておくとより確実です（任意）
-    // setSelectedDate(todayStr); 
-  }
-}, [settings.weekStart]);
-
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -150,17 +131,17 @@ useEffect(() => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Re-generate weeks on weekStart configuration change
+  // Re-generate weeks on weekStart configuration change & initial default focused week
   useEffect(() => {
     const base = new Date();
     const list = generateWeeksList(base, settings.weekStart, 10, 40);
     setWeeks(list);
 
-    // Initial default focused week: week containing today
-    const todayStr = getFormattedDateString(new Date());
+    const todayStr = getFormattedDateString(base);
     const defaultFocusedWeek = list.find(week => 
       week.some(day => day.dateString === todayStr)
     );
+    
     if (defaultFocusedWeek) {
       setFocusedWeekId(defaultFocusedWeek[0].dateString);
     }
@@ -178,7 +159,6 @@ useEffect(() => {
     setGoogleToken(null);
     localStorage.removeItem('google_access_token');
     localStorage.removeItem('google_token_expires_at');
-    // Keep local events or clear? Let's keep them but disconnect
   }, []);
 
   useEffect(() => {
@@ -195,7 +175,6 @@ useEffect(() => {
   const syncEvents = async (token: string) => {
     try {
       const today = new Date();
-      // Sync events within visual scroll bounds (~10 weeks ago to ~40 weeks ahead)
       const start = new Date(today);
       start.setDate(today.getDate() - 12 * 7);
       const end = new Date(today);
@@ -228,23 +207,10 @@ useEffect(() => {
   };
 
   // Callback when month scrolls and header needs updating
-const handleVisibleMonthChange = (year: number, month: number) => {
-  setCurrentYear(year);
-  setCurrentMonth(month);
-  
-  // 【修正】すでに selectedDate または focusedWeekId がある場合は、
-  // スクロールだけで勝手にフォーカス週を上書きしないようにコメントアウト、または条件を変更します。
-  /* if (!selectedDate) {
-    const targetFirstDayStr = getFormattedDateString(new Date(year, month, 1));
-    const newFocusedWeek = weeks.find(week => 
-      week.some(day => day.dateString === targetFirstDayStr)
-    );
-    if (newFocusedWeek) {
-      setFocusedWeekId(newFocusedWeek[0].dateString);
-    }
-  }
-  */
-};
+  const handleVisibleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  };
 
   // Save Event Action (Insert or Update)
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
@@ -260,26 +226,21 @@ const handleVisibleMonthChange = (year: number, month: number) => {
           const created = await createGoogleEvent(googleToken, eventData);
           finalEvent = created;
         }
-        
-        // Sync full event cache
         syncEvents(googleToken);
       } catch (err) {
         console.error('Google API error, saving locally only:', err);
-        // Fallback to local
         finalEvent = {
           ...eventData,
           id: eventData.id || 'local-' + Date.now(),
         };
       }
     } else {
-      // Local Only Mode
       finalEvent = {
         ...eventData,
         id: eventData.id || 'local-' + Date.now(),
       };
     }
 
-    // Save locally
     let newEvents = [...events];
     if (isEdit) {
       newEvents = newEvents.map(e => e.id === finalEvent.id ? finalEvent : e);
@@ -290,7 +251,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
 
-    // Reset modals
     setActiveForm(null);
     setIsBottomPanelOpen(false);
   };
@@ -312,7 +272,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
     
-    // Close forms
     setActiveForm(null);
     setIsBottomPanelOpen(false);
   };
@@ -345,15 +304,14 @@ const handleVisibleMonthChange = (year: number, month: number) => {
   // Duplicate Mode Triggers
   const handleTriggerDuplicate = (event: CalendarEvent) => {
     setDuplicateEvent(event);
-    setActiveForm(null); // Close form
-    setIsBottomPanelOpen(false); // Close bottom panel
+    setActiveForm(null); 
+    setIsBottomPanelOpen(false); 
   };
 
   // Paste Duplicated Event
   const handlePasteDuplicate = async (targetDateString: string) => {
     if (!duplicateEvent) return;
 
-    // Calculate time differences for duplication
     const originalStart = new Date(duplicateEvent.start);
     const originalEnd = new Date(duplicateEvent.end);
     const duration = originalEnd.getTime() - originalStart.getTime();
@@ -401,8 +359,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
     const newEvents = [...events, finalEvent];
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
-
-    // Reset duplicate state
     setDuplicateEvent(null);
   };
 
@@ -423,7 +379,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
       timeSlot: null,
     });
   };
-
 
   // Generate week-based days array for WeekView
   const getWeekDaysForSelectedWeek = (): any[] => {
@@ -501,7 +456,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
                       }}
                       onClick={() => {
                         handleVisibleMonthChange(year, month);
-                        // Trigger scroll to 1st of month
                         const dateStr = getFormattedDateString(new Date(year, month, 1));
                         const targetWeekEl = document.querySelector(`[data-contains-date*="${dateStr}"]`);
                         if (targetWeekEl) {
@@ -593,7 +547,7 @@ const handleVisibleMonthChange = (year: number, month: number) => {
           />
         )}
 
-        {/* Floating Add Event Button in Month View (When no date selected) */}
+        {/* Floating Add Event Button in Month View */}
         {view === 'month' && !selectedDate && (
           <button 
             className="floating-add-btn" 
@@ -605,7 +559,7 @@ const handleVisibleMonthChange = (year: number, month: number) => {
         )}
       </div>
 
-      {/* Bottom Sheet sliding panel (Month view only) */}
+      {/* Bottom Sheet sliding panel */}
       {view === 'month' && (
         <BottomPanel
           isOpen={isBottomPanelOpen}
@@ -613,7 +567,7 @@ const handleVisibleMonthChange = (year: number, month: number) => {
           events={events}
           onClose={() => {
             setIsBottomPanelOpen(false);
-            setSelectedDate(null); // Reset select highlight
+            setSelectedDate(null);
           }}
           onEventClick={handleOpenEditForm}
           onAddEventClick={handleOpenAddForm}
@@ -629,13 +583,11 @@ const handleVisibleMonthChange = (year: number, month: number) => {
             const todayStr = getFormattedDateString(today);
             setSelectedDate(null);
             
-            // Scroll to today's week in MonthView
             const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
             if (targetWeekEl) {
               targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
             }
             
-            // In WeekView, reset to today's week
             if (weeks.length > 0) {
               const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
               if (currentWeek) {
@@ -643,7 +595,6 @@ const handleVisibleMonthChange = (year: number, month: number) => {
               }
             }
             
-            // Update visible month in header
             handleVisibleMonthChange(today.getFullYear(), today.getMonth());
           }}
         >
