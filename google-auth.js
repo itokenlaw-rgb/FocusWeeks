@@ -9,8 +9,7 @@ const GOOGLE_CALENDARS_KEY = 'focusweeks_google_calendars';
 
 // ★ ここにご自身のクライアントIDを入力してください
 // Google Cloud Console > APIとサービス > 認証情報 > OAuth 2.0 クライアントID
-const CLIENT_ID = '1005545288287-apf5ubci7csiqvr8g83sq2aurnh85ooi.apps.googleusercontent.com
-';
+const CLIENT_ID = '1005545288287-apf5ubci7csiqvr8g83sq2aurnh85ooi.apps.googleusercontent.com';
 
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
