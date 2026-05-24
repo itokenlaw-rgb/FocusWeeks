@@ -25,12 +25,10 @@ interface MonthViewProps {
 }
 
 export const getEventSlotIndex = (event: CalendarEvent): number => {
-  if (event.allDay) return 0; // 終日予定は一番上
+  if (event.allDay) return 0;
   try {
     const d = new Date(event.start);
-    const hours = d.getHours();
-    const minutes = d.getMinutes();
-    // 分換算、または時間（hours）で判定
+    const hours = d.getHours(); // 💡 hours だけ残せばOKです
     
     // ① 0:00 ～ 8:59 -> 1番目の枠 (index: 0)
     if (hours < 9) return 0;
@@ -50,6 +48,7 @@ export const getEventSlotIndex = (event: CalendarEvent): number => {
     return 0;
   }
 };
+
 export const MonthView: React.FC<MonthViewProps> = ({
   weeks,
   events,
