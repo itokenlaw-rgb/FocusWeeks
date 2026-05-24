@@ -51,8 +51,6 @@ const inputImportUrl = document.getElementById('import-cal-url');
 const btnImportUrl = document.getElementById('import-url-btn');
 const inputImportFile = document.getElementById('import-file-input');
 
-
-
 // Initialize the app
 async function init() {
   // Google OAuth コールバック処理（リダイレクト後）
@@ -62,17 +60,12 @@ async function init() {
       // URLから認可コードパラメータを綺麗に削除
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // バックグラウンドで全自動同期を開始（完了を待つ）
-      await syncAllGoogleCalendarsBackground();
+      // ★ 修正：モーダルを開かず、バックグラウンドで全自動同期を開始する
+      syncAllGoogleCalendarsBackground();
     }
   }
-
   // Load settings & apply styles
   applySettingsTheme();
-
-  // 起動時、またはログイン直後にUI状態（ボタン表示など）を最新にする
-  renderGoogleAuthSection();
-  renderSettingsCalendars();
 
   // Set today icon day number
   const today = new Date();
@@ -87,16 +80,17 @@ async function init() {
   // Switch to default view
   switchView('month');
 
-  // 初期状態は確実に閉じる
+  // 【変更】初期起動時は「今日」を選択しますが、ボトムシートは表示させないため
+  // onDaySelected(selectedDate); の代わりに、ボトムシートを表示しない初期化を行います。
   selectedDate = new Date();
   populateBottomSheet(selectedDate);
-  elBottomSheet.classList.remove('open');
+  elBottomSheet.classList.remove('open'); // 初期状態は確実に閉じる
 
   // Bind core event listeners
   bindEvents();
 }
 
-// 追加：ログイン直後にすべてを全自動・バックグラウンドで同期するロジック
+// ★ 追加：ログイン直後にすべてを全自動・バックグラウンドで同期するロジック
 async function syncAllGoogleCalendarsBackground() {
   try {
     // 1. カレンダー一覧をAPIから取得
@@ -131,7 +125,6 @@ function formatJapaneseDate(date) {
   const daysJa = ['日', '月', '火', '水', '木', '金', '土'];
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日(${daysJa[date.getDay()]})`;
 }
-
 
 // Update local state when a date is selected in calendars
 function onDaySelected(date) {
@@ -417,16 +410,15 @@ function bindEvents() {
   btnNavToday.addEventListener('click', jumpToToday);
   btnTodayIcon.addEventListener('click', jumpToToday);
 
-// Settings Panel Buttons
+  // Settings Panel Buttons
   const toggleSettings = () => {
     if (modalSettings.classList.contains('open')) {
       modalSettings.classList.remove('open');
     } else {
-      populateSettingsModal(); // ここで renderGoogleAuthSection() が実行されます
+      populateSettingsModal();
       modalSettings.classList.add('open');
     }
   };
-
   btnSettingsOpen.addEventListener('click', toggleSettings);
   btnMenuOpen.addEventListener('click', toggleSettings);
   btnSettingsClose.addEventListener('click', () => modalSettings.classList.remove('open'));
@@ -973,35 +965,12 @@ function showGoogleCalendarPickerModal(gcals) {
   };
 }
 
-// PWA Service Workerの登録（古いキャッシュを即座に破棄して常に最新化する設定）
+// PWA Service Workerの登録
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then((reg) => {
-        console.log('ServiceWorker registration successful with scope: ', reg.scope);
-        
-        // 新しいバージョンのコード（Gitへのアップなど）を検知した場合の処理
-        reg.onupdatefound = () => {
-          const installingWorker = reg.installing;
-          if (installingWorker == null) return;
-          
-          installingWorker.onstatechange = () => {
-            if (installingWorker.state === 'installed') {
-              if (navigator.serviceWorker.controller) {
-                // 新しいコードがあることをログに出し、自動的にアクティベートさせる
-                console.log('New content is available; please refresh.');
-                // ユーザーを待たせずに強制リロードさせて最新化させる場合は以下を有効化
-                window.location.reload();
-              } else {
-                console.log('Content is cached for offline use.');
-              }
-            }
-          };
-        };
-      })
-      .catch((err) => {
-        console.error('ServiceWorker registration failed: ', err);
-      });
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('Service Worker 登録成功:', reg.scope))
+      .catch((err) => console.error('Service Worker 登録失敗:', err));
   });
 }
 
