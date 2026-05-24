@@ -97,6 +97,27 @@ export const MonthView: React.FC<MonthViewProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount
 
+  // Scroll to today's week on initial mount so it appears at the top
+  useEffect(() => {
+    const scrollToToday = () => {
+      const todayStr = new Date().toISOString().substring(0, 10);
+      const allWeekEls = containerRef.current?.querySelectorAll('.calendar-week');
+      if (!allWeekEls) return;
+
+      for (let i = 0; i < allWeekEls.length; i++) {
+        const el = allWeekEls[i] as HTMLElement;
+        const containsAttr = el.getAttribute('data-contains-date') || '';
+        if (containsAttr.split(',').includes(todayStr)) {
+          el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          break;
+        }
+      }
+    };
+    const timer = setTimeout(scrollToToday, 50);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
+
   // Scroll event handler to detect visible month
   const handleScroll = () => {
     isScrollingRef.current = true;
@@ -155,7 +176,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
           const firstDayOfMonth = week.find(day => day.dayOfMonth === 1);
           const hasDivider = !!firstDayOfMonth;
           const dividerMonthName = firstDayOfMonth 
-            ? `${firstDayOfMonth.date.getFullYear()}年 ${firstDayOfMonth.date.getMonth() + 1}月`
+            ? `${firstDayOfMonth.date.getMonth() + 1}月`
             : '';
 
           // Data attribute for search
@@ -164,7 +185,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
           return (
             <React.Fragment key={weekId}>
               {hasDivider && (
-                <div className="month-divider-line" style={{ position: 'relative' }}>
+                <div className="month-divider-line">
                   <span className="month-divider-label">{dividerMonthName}</span>
                 </div>
               )}
