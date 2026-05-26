@@ -145,6 +145,7 @@ body.theme-green {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   position: relative;
+  background-color: var(--bg-primary);
 }
 .scroll-content::-webkit-scrollbar { width: 4px; }
 .scroll-content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
@@ -161,7 +162,7 @@ body.theme-green {
 .calendar-week.focused { height: calc(var(--row-height-normal) * var(--focus-height-multiplier)); background-color: var(--focus-week-bg); }
 
 /* Day Cells */
-.day-cell { position: relative; border-right: 1px solid var(--border-color); padding: 4px; display: flex; flex-direction: column; cursor: pointer; overflow: hidden; height: 100%; transition: var(--transition-normal); background-color: var(--bg-card); }
+.day-cell { position: relative; border-right: 1px solid var(--border-color); padding: 4px; display: flex; flex-direction: column; cursor: pointer; overflow: hidden; height: 100%; transition: var(--transition-normal); background-color: var(--bg-primary); }
 .day-cell:last-child { border-right: none; }
 .day-cell.other-month { opacity: 0.4; }
 .day-cell.today { background-color: var(--today-bg); }
@@ -219,7 +220,7 @@ body.theme-green {
 .panel-no-events-text { font-size: var(--text-sm); color: var(--text-secondary); text-align: center; padding: 6px 0; font-style: italic; }
 
 /* Fullscreen overlays */
-.fullscreen-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-card); z-index: 150; display: flex; flex-direction: column; overflow: hidden; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.fullscreen-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-card); z-index: 500; display: flex; flex-direction: column; overflow: hidden; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .fullscreen-overlay.active { transform: translateX(0); }
 .fullscreen-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); background-color: var(--bg-card); }
 .fullscreen-title { font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); }

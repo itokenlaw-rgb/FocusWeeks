@@ -607,7 +607,10 @@ export default function App() {
         </span>
         <button 
           className="nav-settings-btn" 
-          onClick={() => setShowSettings(true)}
+          onClick={() => {
+            setShowSettings(true);
+            setIsBottomPanelOpen(false);
+          }}
           aria-label="設定"
         >
           <SettingsIcon size={20} />
