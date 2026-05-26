@@ -61,9 +61,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const containerRef = useRef<HTMLDivElement>(null);
+const isScrollingRef = useRef(false);
+const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); 
   
   // 無限ループ・過剰な親への通知を防ぐため、最後に通知した年月を記録
   const lastNotifiedMonth = useRef<{ year: number; month: number } | null>(null);
