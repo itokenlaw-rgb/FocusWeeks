@@ -489,12 +489,12 @@ return (
           </div>
         </div>
 
-        {/* 【ここを修正】検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
+{/* 【修正】検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
         <div className="header-right">
-          {/* 今日ボタン */}
+          {/* 今日ボタン (背景を少し透過した白にして文字を反転) */}
           <button 
             className="switch-btn" 
-            style={{ backgroundColor: 'var(--bg-primary)', padding: '6px 12px' }}
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'var(--bg-card)', padding: '6px 12px' }}
             onClick={() => {
               const today = new Date();
               const todayStr = getFormattedDateString(today);
@@ -518,16 +518,18 @@ return (
             今日
           </button>
           
-          {/* 月週の切り替えスイッチ */}
-          <div className="view-switch">
+          {/* 月週の切り替えスイッチ (外枠を少し明るく調整) */}
+          <div className="view-switch" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <button 
               className={`switch-btn ${view === 'month' ? 'active' : ''}`}
+              style={{ color: view === 'month' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.7)' }}
               onClick={() => setView('month')}
             >
               月
             </button>
             <button 
               className={`switch-btn ${view === 'week' ? 'active' : ''}`}
+              style={{ color: view === 'week' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.7)' }}
               onClick={() => setView('week')}
             >
               週
