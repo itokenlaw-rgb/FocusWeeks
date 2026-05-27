@@ -191,7 +191,15 @@ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px
 
 /* Focused day view grid slots */
 .day-events-focused { display: grid; grid-template-rows: repeat(5, 1fr); flex: 1; gap: 1px; }
-.day-time-slot { border-top: 1px dashed rgba(0, 0, 0, 0.05); position: relative; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.day-time-slot { 
+  /* border-top を 0 または none にして点線を削除します */
+  border-top: none; 
+  position: relative; 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
+  overflow: hidden; 
+}
 .day-time-slot::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background-color: transparent; }
 
 .focused-event { font-size: calc(var(--text-xs) * 0.95); line-height: 1.1; padding: 2px 4px; 
