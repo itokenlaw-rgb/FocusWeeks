@@ -75,24 +75,69 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
   return weeks;
 }
 
-export default function App() {
-  // Global Settings State
-  const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('focusweeks_settings');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return {
-      textSize: 'medium',
-      focusSize: 3,
-      weekStart: 'monday',
-      themeColor: 'blue',
-    };
-  }); 
+// 1. Reactから「useEffect」に加えて「useState」がインポートされているか確認（既存）
+import { useState, useEffect, useCallback } from 'react';
+// ...他のインポートはそのまま
 
-  // ----------------------------------------------------
-  // ★ 追加する useEffect（useState の外側に独立して配置します）
-  // ----------------------------------------------------
+export default function App() {
+  // --- 既存のState群の近くに「現在時刻」のStateを追加 ---
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // --- 1秒ごとに時刻を更新するタイマーを設定 ---
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer); // クリーンアップ
+  }, []);
+
+  // 時・分を「00:00」の形式にするフォーマット関数
+  const formatTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // ...中略（他の既存ロジックはそのまま）...
+
+  return (
+    <div className="app-container">
+      {/* ...中略... */}
+      
+      <header className="app-header">
+        <div className="header-left">
+          <div className="header-title-container">
+            <span className="header-year">{currentYear}年</span>
+            
+            {/* ★ 表示部分の修正：横並びにするため div で包み、時刻を追加 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                className="header-month icon-btn" 
+                style={{ padding: '0 4px', borderRadius: '4px' }}
+                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+              >
+                {currentMonth + 1}月
+                <ChevronDown size={16} />
+              </button>
+              
+              {/* ココに現在時刻を表示 */}
+              <span 
+                style={{ 
+                  fontSize: 'var(--text-md)', 
+                  fontWeight: '500', 
+                  opacity: 0.9,
+                  marginLeft: '4px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}
+              >
+                {formatTime(currentTime)}
+              </span>
+            </div>
+            
+            {/* ...ドロップダウンメニューなどの既存コードに続く... */}
   useEffect(() => {
     // 一度関係するクラスをすべて削除
     document.body.classList.remove(
