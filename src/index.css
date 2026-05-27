@@ -226,34 +226,55 @@ body.theme-green {
   left: 0; 
   right: 0; 
   bottom: 0; 
-  /* カレンダーが完全に透けないように、アプリのカード背景色（白）を指定 */
-  background-color: var(--bg-card); 
+  /* カレンダーの上に被さる「グレー（半透明の黒）」の背景シールド */
+  background-color: rgba(0, 0, 0, 0.4); 
   z-index: 500; 
   display: flex; 
-  flex-direction: column; 
-  overflow: hidden; 
-  transform: translateX(100%); 
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-  
-  /* 【追加】設定画面の周りを少し暗いグレーで囲むような影をつけて、
-     カレンダーの上に重なっている立体感を強調します */
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15); 
-}
-.fullscreen-overlay.active { 
-  transform: translateX(0); 
+  justify-content: flex-end; /* 右側からスライドインする構造にします */
+  overflow: hidden;
 }
 
-/* 【追加】設定の各フォームグループの背景を少しトーンダウンさせ、
-   カレンダーの文字と視覚的に完全に切り離すためのスタイル */
-.fullscreen-body {
-  background-color: var(--bg-primary); /* 下地を薄いグレーに */
+/* 設定コンテンツを保持するメインコンテナ */
+.fullscreen-modal-content {
+  width: 100%;
+  max-width: 480px; /* スマートフォンやPCブラウザで適切なサイズに固定 */
+  height: 100%;
+  background-color: var(--bg-card); /* 完全にカレンダーを隠す不透明な白 */
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
 }
-.fullscreen-body .form-group {
-  background-color: var(--bg-card);   /* 入力項目を白いカード風に */
+
+/* 設定画面のヘッダー（カレンダーが透けないように背景とパディングを固定） */
+.fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 16px;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+.fullscreen-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 設定グループの下地スタイル */
+.fullscreen-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: var(--bg-primary); /* 下地を柔らかいグレーに */
+}
+
+/* 各設定項目を独立した白いカードとして魅せる */
+.fullscreen-body .form-group {
+  background-color: var(--bg-card);   
+  padding: 20px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 0; /* gapで制御するためリセット */
+  margin-bottom: 0; /* gapで均等配置するためリセット */
 }
 
 
