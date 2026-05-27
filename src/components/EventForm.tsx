@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Trash2, Copy } from 'lucide-react';
+import { Trash2, Copy, X } from 'lucide-react'; // ★ X アイコンを追加
 
 interface EventFormProps {
   event: CalendarEvent | null;
@@ -39,7 +39,6 @@ export const EventForm: React.FC<EventFormProps> = ({
       const endDateTime = new Date(event.end);
       
       if (event.allDay) {
-        // Date-only string or ISO date part
         setStartDate(event.start.substring(0, 10));
         setEndDate(event.end.substring(0, 10));
         setStartTime('00:00');
@@ -57,11 +56,8 @@ export const EventForm: React.FC<EventFormProps> = ({
       setStartDate(initialDate);
       setEndDate(initialDate);
       
-      // Determine default times based on time slot if available
       if (initialTimeSlot !== null) {
         if (initialTimeSlot >= 0 && initialTimeSlot <= 4) {
-          // Focused 5 time periods:
-          // 0: 0:00 - 8:59, 1: 9:00 - 11:59, 2: 12:00 - 14:59, 3: 15:00 - 17:59, 4: 18:00 - 23:59
           const slotTimes = [
             { start: '08:00', end: '08:50' },
             { start: '10:00', end: '11:00' },
@@ -72,14 +68,12 @@ export const EventForm: React.FC<EventFormProps> = ({
           setStartTime(slotTimes[initialTimeSlot].start);
           setEndTime(slotTimes[initialTimeSlot].end);
         } else {
-          // Hour (0-23) passed from WeekView
           const startHourStr = String(initialTimeSlot).padStart(2, '0');
           const endHourStr = String((initialTimeSlot + 1) % 24).padStart(2, '0');
           setStartTime(`${startHourStr}:00`);
           setEndTime(`${endHourStr}:00`);
         }
       } else {
-        // Default time
         const now = new Date();
         const currentHour = now.getHours();
         const startHourStr = String((currentHour + 1) % 24).padStart(2, '0');
@@ -141,7 +135,6 @@ export const EventForm: React.FC<EventFormProps> = ({
     if (event) {
       onDuplicate(event);
     } else {
-      // If creating new but want to duplicate the current form inputs
       let startIso = '';
       let endIso = '';
       if (allDay) {
@@ -162,15 +155,50 @@ export const EventForm: React.FC<EventFormProps> = ({
     }
   };
 
-return (
+  return (
     <div className="fullscreen-overlay active" onClick={onCancel}>
-      {/* 内枠コンテナを追加し、横幅いっぱいのクラスを付与。内側のタップイベント伝播を防止 */}
-<div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
-  
-  {/* ヘッダーを丸ごと削除 */}        
-<div className="fullscreen-body">
+      <div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
+        
+        {/* ★ 右上に「×」ボタンを配置するヘッダー領域を新設 */}
+        <div 
+          className="fullscreen-header" 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-card)'
+          }}
+        >
+          <span className="fullscreen-title" style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
+            {event ? '予定の編集' : '予定の追加'}
+          </span>
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            className="icon-btn" 
+            aria-label="閉じる"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="fullscreen-body">
           <form onSubmit={handleSubmit}>
-            {/* --- 既存のフォームの中身（MEMOフィールド、タイトル等）はそのまま --- */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="event-title">タイトル</label>
+              <input
+                id="event-title"
+                type="text"
+                className="form-input"
+                placeholder="タイトルを入力してください"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
             <div className="form-group">
               <label className="form-label" htmlFor="event-memo">メモ</label>
               <textarea
@@ -182,7 +210,58 @@ return (
               />
             </div>
             
-            {/* ... (中略、残りのフォーム項目は元のコードのまま) ... */}
+            {/* 日時設定などの項目（必要に応じて既存のコードをそのまま配置してください） */}
+            <div className="form-group-row">
+              <span className="form-label">終日</span>
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  checked={allDay} 
+                  onChange={(e) => setAllDay(e.target.checked)} 
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">開始日時</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)} 
+                />
+                {!allDay && (
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={startTime} 
+                    onChange={(e) => setStartTime(e.target.value)} 
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">終了日時</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={endDate} 
+                  onChange={(e) => setEndDate(e.target.value)} 
+                />
+                {!allDay && (
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={endTime} 
+                    onChange={(e) => setEndTime(e.target.value)} 
+                  />
+                )}
+              </div>
+            </div>
             
             <div className="button-row">
               {event && (
