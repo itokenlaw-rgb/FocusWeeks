@@ -226,31 +226,41 @@ body.theme-green {
   left: 0; 
   right: 0; 
   bottom: 0; 
-  /* カレンダーの上に被さる「グレー（半透明の黒）」の背景シールド */
+  /* カレンダーの上に被さる半透明のグレー背景（シールド） */
   background-color: rgba(0, 0, 0, 0.4); 
   z-index: 500; 
+  
+  /* 【変更】右寄せから「画面の中央配置」に変更します */
   display: flex; 
-  justify-content: flex-end; /* 右側からスライドインする構造にします */
+  align-items: center;     /* 上下中央 */
+  justify-content: center;  /* 左右中央 */
   overflow: hidden;
+  
+  /* 画面全体の余白（スマホなどで端にピタッとくっつかないように調整） */
+  padding: 16px; 
 }
 
 /* 設定コンテンツを保持するメインコンテナ */
 .fullscreen-modal-content {
   width: 100%;
-  max-width: 480px; /* スマートフォンやPCブラウザで適切なサイズに固定 */
-  height: 100%;
-  background-color: var(--bg-card); /* 完全にカレンダーを隠す不透明な白 */
+  max-width: 480px;         /* PCでも広がりすぎない適切なサイズ */
+  max-height: 90vh;         /* 画面の高さの90%を上限とし、はみ出さないようにする */
+  background-color: var(--bg-card); /* カレンダーを完全に隠す不透明な白 */
   display: flex;
   flex-direction: column;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  
+  /* 【変更】右からのスライドではなく、中央にふわっと浮かび上がるように角を丸くします */
+  border-radius: var(--radius-lg); 
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
-/* 設定画面のヘッダー（カレンダーが透けないように背景とパディングを固定） */
+/* 設定画面のヘッダー */
 .fullscreen-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 16px 20px;
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
 }
@@ -268,13 +278,13 @@ body.theme-green {
   background-color: var(--bg-primary); /* 下地を柔らかいグレーに */
 }
 
-/* 各設定項目を独立した白いカードとして魅せる */
+/* 各設定項目を独立した白いカードにする */
 .fullscreen-body .form-group {
   background-color: var(--bg-card);   
   padding: 20px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 0; /* gapで均等配置するためリセット */
+  margin-bottom: 0;
 }
 
 

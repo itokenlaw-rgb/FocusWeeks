@@ -40,10 +40,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, themeColor });
   };
 
+const handleThemeColorChange = (themeColor: Settings['themeColor']) => {
+    onUpdateSettings({ ...settings, themeColor });
+  };
+
   return (
-    /* active は CSS 側のアニメーションで制御するため、ベースは fullscreen-overlay のみにします */
-    <div className="fullscreen-overlay">
-      <div className="fullscreen-modal-content">
+    /* 背景のグレー部分をクリックしたら閉じるように onClick を追加 */
+    <div className="fullscreen-overlay" onClick={onClose}>
+      {/* 白いカード部分（コンテンツ）をクリックした時は閉じないように対策を追加 */}
+      <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="fullscreen-header">
           <button onClick={onClose} className="icon-btn" aria-label="閉じる">
             <X size={24} />
