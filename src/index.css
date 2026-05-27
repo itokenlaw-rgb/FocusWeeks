@@ -59,34 +59,38 @@ body.size-large { --font-size-multiplier: 1.25; }
 
 /* Theme Colors */
 body.theme-monochrome {
-  --bg-primary: #f4f4f5; --bg-card: #ffffff; --text-primary: #18181b; --text-secondary: #71717a;
-  --accent-color: #27272a; --accent-light: #e4e4e7; --border-color: #e4e4e7; --border-thick: #27272a;
-  --today-bg: #f4f4f5; --today-border: #27272a; --saturday-color: #4b5563; --sunday-color: #b91c1c;
-  --focus-week-bg: rgba(228, 228, 231, 0.3); --selected-day-border: #18181b;
+  --bg-primary: #f8f9fa; --bg-card: #ffffff; --text-primary: #212529; --text-secondary: #6c757d;
+  --accent-color: #495057; --accent-light: #e9ecef; --border-color: #e9ecef; --border-thick: #495057;
+  --today-bg: #f1f3f5; --today-border: #495057; --saturday-color: #495057; --sunday-color: #dc3545;
+  --focus-week-bg: rgba(233, 236, 239, 0.3); --selected-day-border: #212529;
 }
 body.theme-red {
-  --bg-primary: #faf5f5; --bg-card: #ffffff; --text-primary: #3f2f2f; --text-secondary: #8a7a7a;
-  --accent-color: #a85858; --accent-light: #f7e6e6; --border-color: #f0e2e2; --border-thick: #a85858;
-  --today-bg: #faefef; --today-border: #a85858; --saturday-color: #556c82; --sunday-color: #b24747;
-  --focus-week-bg: rgba(247, 230, 230, 0.3); --selected-day-border: #a85858;
+  /* --accent-light をふんわりしたパステルピンク (#ffe3e3) に変更 */
+  --bg-primary: #fff5f5; --bg-card: #ffffff; --text-primary: #491212; --text-secondary: #864e4e;
+  --accent-color: #ff8787; --accent-light: #ffe3e3; --border-color: #ffe3e3; --border-thick: #ff8787;
+  --today-bg: #fff0f0; --today-border: #ff8787; --saturday-color: #4dabf7; --sunday-color: #fa5252;
+  --focus-week-bg: rgba(255, 227, 227, 0.3); --selected-day-border: #ff8787;
 }
 body.theme-blue {
-  --bg-primary: #f2f5fa; --bg-card: #ffffff; --text-primary: #2d3540; --text-secondary: #727a87;
-  --accent-color: #557297; --accent-light: #e6edf7; --border-color: #e0e6f0; --border-thick: #557297;
-  --today-bg: #edf3fa; --today-border: #557297; --saturday-color: #3b82f6; --sunday-color: #ef4444;
-  --focus-week-bg: rgba(230, 237, 247, 0.4); --selected-day-border: #557297;
+  /* --accent-light を爽やかなパステルブルー (#e7f5ff) に変更 */
+  --bg-primary: #f8f9fa; --bg-card: #ffffff; --text-primary: #0b2d4f; --text-secondary: #4a6b8c;
+  --accent-color: #74c0fc; --accent-light: #e7f5ff; --border-color: #d0ebff; --border-thick: #74c0fc;
+  --today-bg: #e7f5ff; --today-border: #74c0fc; --saturday-color: #3b82f6; --sunday-color: #ef4444;
+  --focus-week-bg: rgba(231, 245, 255, 0.4); --selected-day-border: #74c0fc;
 }
 body.theme-yellow {
-  --bg-primary: #faf8f2; --bg-card: #ffffff; --text-primary: #3d3b35; --text-secondary: #878378;
-  --accent-color: #9c8046; --accent-light: #faf2dc; --border-color: #ebdcc0; --border-thick: #9c8046;
-  --today-bg: #faf6e6; --today-border: #9c8046; --saturday-color: #64748b; --sunday-color: #ca8a04;
-  --focus-week-bg: rgba(250, 242, 220, 0.3); --selected-day-border: #9c8046;
+  /* --accent-light を明るいパステルイエロー (#fff9db) に変更 */
+  --bg-primary: #fdfaf2; --bg-card: #ffffff; --text-primary: #453a16; --text-secondary: #7d6f3d;
+  --accent-color: #ffd43b; --accent-light: #fff9db; --border-color: #fff3bf; --border-thick: #ffd43b;
+  --today-bg: #fff9db; --today-border: #ffd43b; --saturday-color: #64748b; --sunday-color: #f59e0b;
+  --focus-week-bg: rgba(255, 249, 219, 0.3); --selected-day-border: #ffd43b;
 }
 body.theme-green {
-  --bg-primary: #f3f6f3; --bg-card: #ffffff; --text-primary: #2e332e; --text-secondary: #727a72;
-  --accent-color: #557d55; --accent-light: #e6ece6; --border-color: #dfe5df; --border-thick: #557d55;
-  --today-bg: #edf3ed; --today-border: #557d55; --saturday-color: #4b6352; --sunday-color: #c25151;
-  --focus-week-bg: rgba(230, 236, 230, 0.3); --selected-day-border: #557d55;
+  /* --accent-light を優しいパステルグリーン (#ebfbee) に変更 */
+  --bg-primary: #f4f9f4; --bg-card: #ffffff; --text-primary: #143214; --text-secondary: #476b47;
+  --accent-color: #8ce99a; --accent-light: #ebfbee; --border-color: #d3f9d8; --border-thick: #8ce99a;
+  --today-bg: #ebfbee; --today-border: #8ce99a; --saturday-color: #4b6352; --sunday-color: #c25151;
+  --focus-week-bg: rgba(235, 251, 238, 0.3); --selected-day-border: #8ce99a;
 }
 
 /* Containers */
