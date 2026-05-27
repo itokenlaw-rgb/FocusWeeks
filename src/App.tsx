@@ -14,7 +14,7 @@ import {
   deleteGoogleEvent
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
-import { Search, Settings as SettingsIcon, Plus, ChevronDown } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, ChevronDown } from 'lucide-react';
 
 // Get ISO Date format string in Local Time zone (YYYY-MM-DD)
 const getFormattedDateString = (d: Date): string => {
