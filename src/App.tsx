@@ -75,69 +75,24 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
   return weeks;
 }
 
-// 1. Reactから「useEffect」に加えて「useState」がインポートされているか確認（既存）
-import { useState, useEffect, useCallback } from 'react';
-// ...他のインポートはそのまま
-
 export default function App() {
-  // --- 既存のState群の近くに「現在時刻」のStateを追加 ---
-  const [currentTime, setCurrentTime] = useState(new Date());
+  // Global Settings State
+  const [settings, setSettings] = useState<Settings>(() => {
+    const saved = localStorage.getItem('focusweeks_settings');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return {
+      textSize: 'medium',
+      focusSize: 3,
+      weekStart: 'monday',
+      themeColor: 'blue',
+    };
+  }); 
 
-  // --- 1秒ごとに時刻を更新するタイマーを設定 ---
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer); // クリーンアップ
-  }, []);
-
-  // 時・分を「00:00」の形式にするフォーマット関数
-  const formatTime = (date: Date) => {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-
-  // ...中略（他の既存ロジックはそのまま）...
-
-  return (
-    <div className="app-container">
-      {/* ...中略... */}
-      
-      <header className="app-header">
-        <div className="header-left">
-          <div className="header-title-container">
-            <span className="header-year">{currentYear}年</span>
-            
-            {/* ★ 表示部分の修正：横並びにするため div で包み、時刻を追加 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button 
-                className="header-month icon-btn" 
-                style={{ padding: '0 4px', borderRadius: '4px' }}
-                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-              >
-                {currentMonth + 1}月
-                <ChevronDown size={16} />
-              </button>
-              
-              {/* ココに現在時刻を表示 */}
-              <span 
-                style={{ 
-                  fontSize: 'var(--text-md)', 
-                  fontWeight: '500', 
-                  opacity: 0.9,
-                  marginLeft: '4px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '2px 6px',
-                  borderRadius: '4px'
-                }}
-              >
-                {formatTime(currentTime)}
-              </span>
-            </div>
-            
-            {/* ...ドロップダウンメニューなどの既存コードに続く... */}
+  // ----------------------------------------------------
+  // ★ 追加する useEffect（useState の外側に独立して配置します）
+  // ----------------------------------------------------
   useEffect(() => {
     // 一度関係するクラスをすべて削除
     document.body.classList.remove(
@@ -191,6 +146,24 @@ export default function App() {
     const saved = localStorage.getItem('focusweeks_events');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // ★ 現在時刻を管理するState
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // ★ 1秒ごとに時刻を更新するタイマー
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ★ 時刻を「00:00」形式にするフォーマット関数
+  const formatTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   // Re-generate weeks on weekStart configuration change & initial default focused week
   useEffect(() => {
@@ -261,18 +234,18 @@ export default function App() {
   }, [googleToken]);
 
   // Select a day (Month View)
-const handleSelectDay = (dateString: string, weekStartDate: string) => {
-  // 条件：ボトムパネルが既に開いていて、かつ「同じ日」または「同じフォーカス週」をタップした場合
-// 「完全に同じ日」をもう一度タップしたら閉じる場合の判定
-if (isBottomPanelOpen && selectedDate === dateString) {
-  setSelectedDate(null);
-  setIsBottomPanelOpen(false);
-} else {
-  setSelectedDate(dateString);
-  setFocusedWeekId(weekStartDate);
-  setIsBottomPanelOpen(true);
-}
-};
+  const handleSelectDay = (dateString: string, weekStartDate: string) => {
+    // 条件：ボトムパネルが既に開いていて、かつ「同じ日」または「同じフォーカス週」をタップした場合
+    // 「完全に同じ日」をもう一度タップしたら閉じる場合の判定
+    if (isBottomPanelOpen && selectedDate === dateString) {
+      setSelectedDate(null);
+      setIsBottomPanelOpen(false);
+    } else {
+      setSelectedDate(dateString);
+      setFocusedWeekId(weekStartDate);
+      setIsBottomPanelOpen(true);
+    }
+  };
 
   // Callback when month scrolls and header needs updating
   const handleVisibleMonthChange = (year: number, month: number) => {
@@ -455,7 +428,7 @@ if (isBottomPanelOpen && selectedDate === dateString) {
     return activeWeek || [];
   };
 
-return (
+  return (
     <div className="app-container">
       {/* Duplication Active Banner */}
       {duplicateEvent && (
@@ -473,19 +446,39 @@ return (
         </div>
       )}
 
-      {/* Header —— 【修正箇所】右側のボタン並び順を変更 */}
+      {/* Header —— 右側のボタン並び順を変更 */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
             <span className="header-year">{currentYear}年</span>
-            <button 
-              className="header-month icon-btn" 
-              style={{ padding: '0 4px', borderRadius: '4px' }}
-              onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-            >
-              {currentMonth + 1}月
-              <ChevronDown size={16} />
-            </button>
+            
+            {/* 「◯月」ボタンと「現在時刻」をきれいに横並びにするコンテナ構造 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                className="header-month icon-btn" 
+                style={{ padding: '0 4px', borderRadius: '4px' }}
+                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+              >
+                {currentMonth + 1}月
+                <ChevronDown size={16} />
+              </button>
+
+              {/* 現在時刻のデジタル時計表示を追加 */}
+              <span 
+                style={{ 
+                  fontSize: 'var(--text-md)', 
+                  fontWeight: '500', 
+                  opacity: 0.9,
+                  marginLeft: '4px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  letterSpacing: '0.02em'
+                }}
+              >
+                {formatTime(currentTime)}
+              </span>
+            </div>
             
             {showMonthDropdown && (
               <div 
@@ -541,7 +534,7 @@ return (
           </div>
         </div>
 
-{/* 【修正】検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
+        {/* 検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
         <div className="header-right">
           {/* 今日ボタン (背景を少し透過した白にして文字を反転) */}
           <button 
@@ -564,7 +557,7 @@ return (
                 }
               }
               
-              handleVisibleMonthChange(today.getFullYear(), today.toDateString() ? today.getMonth() : today.getMonth());
+              handleVisibleMonthChange(today.getFullYear(), today.getMonth());
             }}
           >
             今日
@@ -632,18 +625,17 @@ return (
       {/* Main Content Areas */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {view === 'month' ? (
-<MonthView
-  weeks={weeks}
-  events={events}
-  selectedDate={selectedDate}
-  focusedWeekId={focusedWeekId}
-  settings={settings}
-  onSelectDay={handleSelectDay}
-  onVisibleMonthChange={handleVisibleMonthChange}
-  // 【修正】onEventClick を削除
-  duplicateMode={!!duplicateEvent}
-  onPasteDuplicate={handlePasteDuplicate}
-/>
+          <MonthView
+            weeks={weeks}
+            events={events}
+            selectedDate={selectedDate}
+            focusedWeekId={focusedWeekId}
+            settings={settings}
+            onSelectDay={handleSelectDay}
+            onVisibleMonthChange={handleVisibleMonthChange}
+            duplicateMode={!!duplicateEvent}
+            onPasteDuplicate={handlePasteDuplicate}
+          />
         ) : (
           <WeekView
             weekDays={getWeekDaysForSelectedWeek()}
@@ -682,8 +674,6 @@ return (
           </div>
         )}
       </div>
-
-      {/* 【修正箇所】以前ここに配置されていた <footer className="app-navbar"> ... </footer> を完全に削除しました */}
 
       {/* Fullscreen Forms */}
       {activeForm && (
