@@ -40,10 +40,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, themeColor });
   };
 
-const handleThemeColorChange = (themeColor: Settings['themeColor']) => {
-    onUpdateSettings({ ...settings, themeColor });
-  };
-
   return (
     /* 背景のグレー部分をクリックしたら閉じるように onClick を追加 */
     <div className="fullscreen-overlay" onClick={onClose}>
