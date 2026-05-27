@@ -323,7 +323,18 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 .color-dot-btn.green::after { background-color: #557d55; }
 
 /* Navbar Bottom */
-.app-navbar { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; background-color: var(--accent-color); color: var(--bg-card); padding: 12px 16px; z-index: 10; }
+.app-navbar { 
+  display: grid; 
+  /* 【２】の対応で「今日」が中央に、右側に「設定」が来るため 1fr 1fr の2列に変更します */
+  grid-template-columns: 1fr 1fr; 
+  align-items: center; 
+  background-color: var(--accent-color); 
+  color: var(--bg-card); 
+  /* 上下パディングを 20px（またはお好みの広さ）に広げて、ボタンを押しやすくします */
+  padding: 20px 24px; 
+  z-index: 10; 
+}
+
 .nav-today-btn { font-weight: 600; font-size: var(--text-md); background: none; border: none; color: var(--bg-card); cursor: pointer; text-align: left; opacity: 0.9; transition: var(--transition-fast); }
 .nav-today-btn:hover { opacity: 1; }
 .nav-date-label { font-weight: 600; font-size: var(--text-md); text-align: center; }
