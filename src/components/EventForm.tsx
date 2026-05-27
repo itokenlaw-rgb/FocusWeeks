@@ -165,21 +165,10 @@ export const EventForm: React.FC<EventFormProps> = ({
 return (
     <div className="fullscreen-overlay active" onClick={onCancel}>
       {/* 内枠コンテナを追加し、横幅いっぱいのクラスを付与。内側のタップイベント伝播を防止 */}
-      <div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
-        
-        <div className="fullscreen-header">
-          <button type="button" onClick={onCancel} className="icon-btn" aria-label="キャンセル">
-            <X size={24} />
-          </button>
-          <span className="fullscreen-title">
-            {event ? '予定の編集' : '予定の追加'}
-          </span>
-          <button type="button" onClick={handleSubmit} className="icon-btn" aria-label="保存" style={{ color: 'var(--accent-color)' }}>
-            <Check size={24} />
-          </button>
-        </div>
-
-        <div className="fullscreen-body">
+<div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
+  
+  {/* ヘッダーを丸ごと削除 */}        
+<div className="fullscreen-body">
           <form onSubmit={handleSubmit}>
             {/* --- 既存のフォームの中身（MEMOフィールド、タイトル等）はそのまま --- */}
             <div className="form-group">
