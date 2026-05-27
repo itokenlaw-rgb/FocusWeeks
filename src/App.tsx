@@ -78,11 +78,20 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
 export default function App() {
   // Global Settings State
   const [settings, setSettings] = useState<Settings>(() => {
-    // ... 既存のコード
-  });
+    const saved = localStorage.getItem('focusweeks_settings');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return {
+      textSize: 'medium',
+      focusSize: 3,
+      weekStart: 'monday',
+      themeColor: 'blue',
+    };
+  }); 
 
   // ----------------------------------------------------
-  // ★ 追加：設定（テーマ色・文字サイズ）をbodyのクラスに反映する処理
+  // ★ 追加する useEffect（useState の外側に独立して配置します）
   // ----------------------------------------------------
   useEffect(() => {
     // 一度関係するクラスをすべて削除
@@ -96,6 +105,11 @@ export default function App() {
     document.body.classList.add(`size-${settings.textSize}`);
   }, [settings.themeColor, settings.textSize]);
   // ----------------------------------------------------
+
+  // Views and Dates States
+  const [view, setView] = useState<'month' | 'week'>('month');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
 
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
