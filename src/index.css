@@ -177,7 +177,6 @@ body.theme-green {
   padding: 2px 4px; 
   line-height: 1.2; 
 }
-//コメントアウト.month-divider-line + .calendar-week {  border-top: 2px solid var(--border-thick);}
 .month-divider-label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
 
 .calendar-week {
