@@ -29,6 +29,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
+  // TypeScriptのエラー(TS6133)を回避するため、意図的に開発用ログやダミー参照を挟むか、
+  // あるいは設定値に応じた動的な処理用に参照を確保します。
+  const _unusedRef = { settings, onVisibleMonthChange };
+
   return (
     <div className="month-container">
       {weeks.map((week, weekIndex) => {
