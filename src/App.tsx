@@ -109,11 +109,6 @@ export default function App() {
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-
-  // Views and Dates States
-  const [view, setView] = useState<'month' | 'week'>('month');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [focusedWeekId, setFocusedWeekId] = useState<string | null>(null);
   const [weeks, setWeeks] = useState<any[][]>([]);
   
