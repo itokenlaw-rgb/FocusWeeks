@@ -43,7 +43,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   return (
     /* 背景のグレー部分をクリックしたら閉じるように onClick を追加 */
     <div className="fullscreen-overlay" onClick={onClose}>
-      {/* 白いカード部分（コンテンツ）をクリックした時は閉じないように対策を追加 */}
+      {/* 【重要修正】
+        カレンダーを完全に隠すための「fullscreen-modal-content」の中に、
+        ヘッダー（fullscreen-header）と中身（fullscreen-body）を正しく包み込みました。
+        これにより、上部の余白やカレンダーの文字が透けるのを完全に防ぎます。
+      */}
       <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="fullscreen-header">
           <button onClick={onClose} className="icon-btn" aria-label="閉じる">
