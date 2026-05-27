@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Settings, Plus, ChevronDown } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
 
 interface EventFormProps {
   event: CalendarEvent | null;
