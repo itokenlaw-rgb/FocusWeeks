@@ -403,7 +403,7 @@ export default function App() {
     return activeWeek || [];
   };
 
-  return (
+return (
     <div className="app-container">
       {/* Duplication Active Banner */}
       {duplicateEvent && (
@@ -421,7 +421,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header —— 【修正箇所】右側のボタン並び順を変更 */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
@@ -489,11 +489,36 @@ export default function App() {
           </div>
         </div>
 
+        {/* 【ここを修正】検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
         <div className="header-right">
-          <button className="icon-btn" aria-label="検索" onClick={() => alert('検索機能は開発中です。')}>
-            <Search size={20} />
+          {/* 今日ボタン */}
+          <button 
+            className="switch-btn" 
+            style={{ backgroundColor: 'var(--bg-primary)', padding: '6px 12px' }}
+            onClick={() => {
+              const today = new Date();
+              const todayStr = getFormattedDateString(today);
+              setSelectedDate(null);
+              
+              const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
+              if (targetWeekEl) {
+                targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              }
+              
+              if (weeks.length > 0) {
+                const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
+                if (currentWeek) {
+                  setFocusedWeekId(currentWeek[0].dateString);
+                }
+              }
+              
+              handleVisibleMonthChange(today.getFullYear(), today.toDateString() ? today.getMonth() : today.getMonth());
+            }}
+          >
+            今日
           </button>
           
+          {/* 月週の切り替えスイッチ */}
           <div className="view-switch">
             <button 
               className={`switch-btn ${view === 'month' ? 'active' : ''}`}
@@ -508,6 +533,18 @@ export default function App() {
               週
             </button>
           </div>
+
+          {/* 設定ボタン */}
+          <button 
+            className="icon-btn" 
+            onClick={() => {
+              setShowSettings(true);
+              setIsBottomPanelOpen(false);
+            }}
+            aria-label="設定"
+          >
+            <SettingsIcon size={20} />
+          </button>
         </div>
       </header>
 
@@ -592,52 +629,7 @@ export default function App() {
         )}
       </div>
 
-      {/* Sticky Bottom Bar */}
-{/* Sticky Bottom Bar */}
-      <footer className="app-navbar">
-        {/* 左側のカラム（今日ボタンを中央寄りにするためのラッパー） */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '16px' }}>
-          <button 
-            className="nav-today-btn" 
-            style={{ textAlign: 'center' }} /* テキストを中央揃えに */
-            onClick={() => {
-              const today = new Date();
-              const todayStr = getFormattedDateString(today);
-              setSelectedDate(null);
-              
-              const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
-              if (targetWeekEl) {
-                targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-              }
-              
-              if (weeks.length > 0) {
-                const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
-                if (currentWeek) {
-                  setFocusedWeekId(currentWeek[0].dateString);
-                }
-              }
-              
-              handleVisibleMonthChange(today.getFullYear(), today.getMonth());
-            }}
-          >
-            今日
-          </button>
-        </div>
-
-        {/* 右側のカラム（設定ボタンを配置） */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', paddingLeft: '16px' }}>
-          <button 
-            className="nav-settings-btn" 
-            onClick={() => {
-              setShowSettings(true);
-              setIsBottomPanelOpen(false);
-            }}
-            aria-label="設定"
-          >
-            <SettingsIcon size={20} />
-          </button>
-        </div>
-      </footer>
+      {/* 【修正箇所】以前ここに配置されていた <footer className="app-navbar"> ... </footer> を完全に削除しました */}
 
       {/* Fullscreen Forms */}
       {activeForm && (
@@ -663,4 +655,3 @@ export default function App() {
       )}
     </div>
   );
-}
