@@ -40,15 +40,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, themeColor });
   };
 
-  return (
-    /* 背景のグレー部分をクリックしたら閉じるように onClick を追加 */
+return (
+    /* 1. 一番外側の背景グレー（半透明）の膜 */
     <div className="fullscreen-overlay" onClick={onClose}>
-      {/* 【重要修正】
-        カレンダーを完全に隠すための「fullscreen-modal-content」の中に、
-        ヘッダー（fullscreen-header）と中身（fullscreen-body）を正しく包み込みました。
-        これにより、上部の余白やカレンダーの文字が透けるのを完全に防ぎます。
-      */}
+      
+      {/* 2. 内側の白いカード（ここがすべてのコンテンツを包むことで透けなくなります） */}
       <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
+        
+        {/* 3. 白いカードの中のヘッダー（設定タイトルや閉じるボタン） */}
         <div className="fullscreen-header">
           <button onClick={onClose} className="icon-btn" aria-label="閉じる">
             <X size={24} />
@@ -57,8 +56,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div style={{ width: 40 }} /> {/* Spacer */}
         </div>
 
+        {/* 4. 白いカードの中のボディ（スクロールする設定項目たち） */}
         <div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Text Size */}
+          {/* 文字の大きさ */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>文字の大きさ</span>
             <div className="settings-option-list">
@@ -83,7 +83,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Focus Size */}
+          {/* フォーカスの大きさ */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>フォーカスの大きさ</span>
             <div className="settings-option-list">
@@ -102,7 +102,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Start of Week */}
+          {/* 週の開始日 */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>週の開始日</span>
             <div className="settings-option-list">
@@ -121,7 +121,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Theme Colors */}
+          {/* 表示カラー */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>表示カラー</span>
             <div className="color-dot-container">
@@ -153,7 +153,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Google Calendar Connection */}
+          {/* Google カレンダー連携 */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>Google カレンダー連携</span>
             {googleToken ? (
@@ -187,8 +187,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
           </div>
         </div>
+
       </div>
     </div>
   );
+
 };
 export type { Settings };

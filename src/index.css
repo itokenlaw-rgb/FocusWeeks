@@ -226,32 +226,29 @@ body.theme-green {
   left: 0; 
   right: 0; 
   bottom: 0; 
-  /* カレンダーの上に被さる半透明のグレー背景（シールド） */
-  background-color: rgba(0, 0, 0, 0.4); 
+  background-color: rgba(0, 0, 0, 0.4); /* 背景のグレー（半透明黒）の濃さ */
   z-index: 500; 
   
-  /* 【変更】右寄せから「画面の中央配置」に変更します */
   display: flex; 
-  align-items: center;     /* 上下中央 */
-  justify-content: center;  /* 左右中央 */
-  overflow: hidden;
   
-  /* 画面全体の余白（スマホなどで端にピタッとくっつかないように調整） */
-  padding: 16px; 
+  /* --- 【ここがポイント！】位置のコントロール --- */
+  align-items: center;     /* 上下の中央寄せ（上寄せにしたい場合は flex-start ） */
+  justify-content: center;  /* 左右の中央寄せ（右寄せにしたい場合は flex-end ） */
+  
+  padding: 16px;           /* 画面の端との隙間 */
+  overflow: hidden;
 }
 
-/* 設定コンテンツを保持するメインコンテナ */
+/* 設定の白いカード自体（コンテンツコンテナ） */
 .fullscreen-modal-content {
   width: 100%;
-  max-width: 480px;         /* PCでも広がりすぎない適切なサイズ */
-  max-height: 90vh;         /* 画面の高さの90%を上限とし、はみ出さないようにする */
-  background-color: var(--bg-card); /* カレンダーを完全に隠す不透明な白 */
+  max-width: 480px;         /* カードの横幅の最大値（お好みの太さに調整してください） */
+  max-height: 90vh;         /* カードの高さの最大値（画面の90%） */
+  background-color: var(--bg-card); /* 完全にカレンダーを隠す不透明な白背景 */
   display: flex;
   flex-direction: column;
-  
-  /* 【変更】右からのスライドではなく、中央にふわっと浮かび上がるように角を丸くします */
-  border-radius: var(--radius-lg); 
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-lg); /* 四隅の丸み */
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); /* 立体感を出す影 */
   overflow: hidden;
 }
 
@@ -270,15 +267,15 @@ body.theme-green {
   color: var(--text-primary);
 }
 
-/* 設定グループの下地スタイル */
+/* 設定グループの下地（グレーの部分） */
 .fullscreen-body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background-color: var(--bg-primary); /* 下地を柔らかいグレーに */
+  background-color: var(--bg-primary); 
 }
 
-/* 各設定項目を独立した白いカードにする */
+/* 各設定項目の白いカード */
 .fullscreen-body .form-group {
   background-color: var(--bg-card);   
   padding: 20px;
