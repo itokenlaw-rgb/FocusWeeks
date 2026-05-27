@@ -593,44 +593,50 @@ export default function App() {
       </div>
 
       {/* Sticky Bottom Bar */}
+{/* Sticky Bottom Bar */}
       <footer className="app-navbar">
-        <button 
-          className="nav-today-btn" 
-          onClick={() => {
-            const today = new Date();
-            const todayStr = getFormattedDateString(today);
-            setSelectedDate(null);
-            
-            const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
-            if (targetWeekEl) {
-              targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }
-            
-            if (weeks.length > 0) {
-              const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
-              if (currentWeek) {
-                setFocusedWeekId(currentWeek[0].dateString);
+        {/* 左側のカラム（今日ボタンを中央寄りにするためのラッパー） */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '16px' }}>
+          <button 
+            className="nav-today-btn" 
+            style={{ textAlign: 'center' }} /* テキストを中央揃えに */
+            onClick={() => {
+              const today = new Date();
+              const todayStr = getFormattedDateString(today);
+              setSelectedDate(null);
+              
+              const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
+              if (targetWeekEl) {
+                targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
               }
-            }
-            
-            handleVisibleMonthChange(today.getFullYear(), today.getMonth());
-          }}
-        >
-          今日
-        </button>
-        <span className="nav-date-label">
-          {view === 'month' ? 'FocusWeeks' : '週表示'}
-        </span>
-        <button 
-          className="nav-settings-btn" 
-          onClick={() => {
-            setShowSettings(true);
-            setIsBottomPanelOpen(false);
-          }}
-          aria-label="設定"
-        >
-          <SettingsIcon size={20} />
-        </button>
+              
+              if (weeks.length > 0) {
+                const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
+                if (currentWeek) {
+                  setFocusedWeekId(currentWeek[0].dateString);
+                }
+              }
+              
+              handleVisibleMonthChange(today.getFullYear(), today.getMonth());
+            }}
+          >
+            今日
+          </button>
+        </div>
+
+        {/* 右側のカラム（設定ボタンを配置） */}
+        <div style={{ display: 'flex', justifyContent: 'flex-start', paddingLeft: '16px' }}>
+          <button 
+            className="nav-settings-btn" 
+            onClick={() => {
+              setShowSettings(true);
+              setIsBottomPanelOpen(false);
+            }}
+            aria-label="設定"
+          >
+            <SettingsIcon size={20} />
+          </button>
+        </div>
       </footer>
 
       {/* Fullscreen Forms */}
