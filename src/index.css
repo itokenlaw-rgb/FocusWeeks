@@ -218,10 +218,17 @@ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px
   border-left: 3px solid var(--accent-color) !important; 
   border-radius: 4px; 
   margin: 1px 0; 
-  text-overflow: ellipsis; 
-  overflow: hidden; 
-  white-space: nowrap; 
-  flex: 1; /* イベント名が横幅いっぱいに広がるように */
+  flex: 1;
+
+  /* 縦方向に広がりすぎないように最大高さを指定（必要に応じて調整） */
+  max-height: 3.6em; /* line-height(1.2) × 3行分 */
+
+  /* 3行目以降を三点リーダー「...」にする設定 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; /* ここで最大の行数を「3」に指定 */
+  overflow: hidden;
+  white-space: normal;   /* 1行で折り返さない設定を解除して自動改行させる */
 }
 
 
