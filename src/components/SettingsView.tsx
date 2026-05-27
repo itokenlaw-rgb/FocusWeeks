@@ -57,7 +57,8 @@ return (
         </div>
 
         {/* 4. 白いカードの中のボディ（スクロールする設定項目たち） */}
-        <div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+<div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
           {/* 文字の大きさ */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>文字の大きさ</span>
@@ -85,7 +86,7 @@ return (
 
           {/* フォーカスの大きさ */}
           <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>フォーカスの大きさ</span>
+            <span className="form-label" style={{ marginBottom: 4 }}>フォーカスの大きさ</span>
             <div className="settings-option-list">
               <button
                 className={`settings-option-btn ${settings.focusSize === 3 ? 'active' : ''}`}

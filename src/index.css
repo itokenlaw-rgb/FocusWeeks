@@ -355,12 +355,11 @@ body.theme-green {
 /* 各設定項目の白いカード */
 .fullscreen-body .form-group {
   background-color: var(--bg-card);   
-  padding: 20px;
+  padding: 12px 16px;       /* 上下12px、左右16pxにして縦をコンパクトに */
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   margin-bottom: 0;
 }
-
 
 /* Forms */
 .form-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
