@@ -216,11 +216,18 @@ export default function App() {
   }, [googleToken]);
 
   // Select a day (Month View)
-  const handleSelectDay = (dateString: string, weekStartDate: string) => {
-    setSelectedDate(dateString);
-    setFocusedWeekId(weekStartDate);
-    setIsBottomPanelOpen(true);
-  };
+const handleSelectDay = (dateString: string, weekStartDate: string) => {
+  // 条件：ボトムパネルが既に開いていて、かつ「同じ日」または「同じフォーカス週」をタップした場合
+// 「完全に同じ日」をもう一度タップしたら閉じる場合の判定
+if (isBottomPanelOpen && selectedDate === dateString) {
+  setSelectedDate(null);
+  setIsBottomPanelOpen(false);
+} else {
+  setSelectedDate(dateString);
+  setFocusedWeekId(weekStartDate);
+  setIsBottomPanelOpen(true);
+}
+};
 
   // Callback when month scrolls and header needs updating
   const handleVisibleMonthChange = (year: number, month: number) => {

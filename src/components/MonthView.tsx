@@ -253,19 +253,20 @@ const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
                             
                             return (
                               <div key={slotIdx} className="day-time-slot">
-                                {slotEvents.slice(0, 1).map(event => (
-                                  <div 
-                                    key={event.id}
-                                    className="focused-event"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onEventClick(event);
-                                    }}
-                                    title={`${formatEventTime(event)} ${event.title}`}
-                                  >
-                                    {event.title}
-                                  </div>
-                                ))}
+
+{slotEvents.slice(0, 1).map(event => (
+  <div 
+    key={event.id}
+    className="focused-event"
+    onClick={(e) => {
+      // 【修正】e.stopPropagation() と onEventClick(event) を削除し、
+      // クリックしても親の day-cell (日の選択) が反応するようにします
+    }}
+    title={`${formatEventTime(event)} ${event.title}`}
+  >
+    {event.title}
+  </div>
+))}
                                 {slotEvents.length > 1 && (
                                   <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'center' }}>
                                     +{slotEvents.length - 1}
@@ -277,19 +278,18 @@ const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
                         </div>
                       ) : (
                         <div className="day-events-compact">
-                          {dayEvents.slice(0, 2).map((event) => (
-                            <div 
-                              key={event.id} 
-                              className="compact-event"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEventClick(event);
-                              }}
-                              title={`${formatEventTime(event)} ${event.title}`}
-                            >
-                              {event.title}
-                            </div>
-                          ))}
+{dayEvents.slice(0, 2).map((event) => (
+  <div 
+    key={event.id} 
+    className="compact-event"
+    onClick={(e) => {
+      // 【修正】ここも同様に中身を空にするか、onClick 自体を削除します
+    }}
+    title={`${formatEventTime(event)} ${event.title}`}
+  >
+    {event.title}
+  </div>
+))}
                           {dayEvents.length > 2 && (
                             <div className="compact-event-more">
                               他 {dayEvents.length - 2} 件
