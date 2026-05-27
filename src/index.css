@@ -177,9 +177,7 @@ body.theme-green {
   padding: 2px 4px; 
   line-height: 1.2; 
 }
-.month-divider-line + .calendar-week {
-  border-top: 2px solid var(--border-thick);
-}
+//コメントアウト.month-divider-line + .calendar-week {  border-top: 2px solid var(--border-thick);}
 .month-divider-label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
 
 .calendar-week {
@@ -508,4 +506,17 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
   overflow-y: auto;
   padding: 20px;
   background-color: var(--bg-card); /* 背景をグレーではなく白(カード色)にする */
+}
+
+/* 【１】特定のセル（マスの境界線）を太線にするスタイル */
+.day-cell.border-bottom-thick {
+  border-bottom: 2px solid var(--border-thick) !important;
+}
+
+.day-cell.border-left-thick {
+  border-left: 2px solid var(--border-thick) !important;
+}
+
+.day-cell.border-top-thick {
+  border-top: 2px solid var(--border-thick) !important;
 }
