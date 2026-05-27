@@ -221,7 +221,7 @@ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px
   flex: 1;
 
   /* 縦方向に広がりすぎないように最大高さを指定（必要に応じて調整） */
-  max-height: 3.6em; /* line-height(1.2) × 3行分 */
+  max-height: 4.68em; /* line-height(1.2) × 3行分 */
 
   /* 3行目以降を三点リーダー「...」にする設定 */
   display: -webkit-box;
