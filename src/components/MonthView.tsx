@@ -208,9 +208,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
                         {day.monthLabel ? day.monthLabel : day.dayOfMonth}
                       </span>
 
-                      {isFocused ? (
-                        <div className="day-events-focused">
-                          {Array.from({ length: 5 }).map((_, slotIdx) => {
+{isFocused ? (
+  <div className="day-events-focused" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 24px)' }}>
+    {Array.from({ length: 5 }).map((_, slotIdx) => {
+
                             const slotEvents = dayEvents.filter(
                               e => getEventSlotIndex(e) === slotIdx
                             );

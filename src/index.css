@@ -189,31 +189,41 @@ background-color: var(--accent-light) !important; /* パステルカラーを強
 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid var(--accent-color); }
 .compact-event-more { font-size: calc(var(--text-xs) * 0.85); color: var(--text-secondary); font-weight: 500; text-align: center; }
 
-/* Focused day view grid slots */
-.focused-day-grid {
-  display: grid; 
-  grid-template-rows: repeat(5, 1fr); 
-  flex: 1; 
-  gap: 0; 
+/* Focused day view slots */
+.day-events-focused {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .day-time-slot { 
-  /* border-top を 0 または none にして点線を削除します */
-  border-top: none; 
+  flex: 1; /* これにより5つの枠が完全に均等（5等分）になります */
   position: relative; 
   display: flex; 
-  flex-direction: column; 
-  justify-content: center; 
+  flex-direction: row; /* 横並びにして、右側に「+1」などを綺麗に配置 */
+  align-items: center;
+  justify-content: space-between; 
   overflow: hidden; 
+  border-top: none !important; /* 枠線や点線を完全に排除 */
+  border-bottom: none !important;
+  padding: 0 2px;
 }
-.day-time-slot::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background-color: transparent; }
 
-.focused-event { font-size: calc(var(--text-xs) * 0.95); line-height: 1.1; padding: 2px 4px; 
-background-color: var(--accent-light) !important; /* パステルカラーを強制適用 */
-  color: var(--text-primary) !important;            /* 文字色を読みやすい濃い色に */
-  border-left: 3px solid var(--accent-color) !important; /* 左側にアクセント線を復活 */
-border-radius: 4px; border-left: 3px solid var(--accent-color) !important;
- margin: 1px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.focused-event { 
+  font-size: calc(var(--text-xs) * 0.85); 
+  line-height: 1.2; 
+  padding: 2px 4px; 
+  background-color: var(--accent-light) !important; 
+  color: var(--text-primary) !important;            
+  border-left: 3px solid var(--accent-color) !important; 
+  border-radius: 4px; 
+  margin: 1px 0; 
+  text-overflow: ellipsis; 
+  overflow: hidden; 
+  white-space: nowrap; 
+  flex: 1; /* イベント名が横幅いっぱいに広がるように */
+}
+
 
 /* 【２】Bottom Panel - 重ねずに下部に配置するためのスタイル修正 */
 .bottom-panel-container {
