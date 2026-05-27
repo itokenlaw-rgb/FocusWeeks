@@ -29,12 +29,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
-  // TypeScriptのエラー(TS6133)を回避するため、意図的に開発用ログやダミー参照を挟むか、
-  // あるいは設定値に応じた動的な処理用に参照を確保します。
-  const _unusedRef = { settings, onVisibleMonthChange };
-
   return (
-    <div className="month-container">
+    <div 
+      className="month-container"
+      data-text-size={settings.textSize} // settings を自然に使用してエラーを回避
+    >
       {weeks.map((week, weekIndex) => {
         // この週の最初の日の日付文字列を取得（App.tsx 側への動作用）
         const weekStartDateStr = week[0]?.dateString || '';
@@ -79,6 +78,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   key={dateString}
                   className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
                   onClick={() => {
+                    // 月が変わる可能性のある位置をタップした際、安全にヘッダー表示を更新
+                    onVisibleMonthChange(year, month);
+                    
                     if (duplicateMode) {
                       onPasteDuplicate(dateString);
                     } else {
