@@ -587,18 +587,18 @@ return (
       {/* Main Content Areas */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {view === 'month' ? (
-          <MonthView
-            weeks={weeks}
-            events={events}
-            selectedDate={selectedDate}
-            focusedWeekId={focusedWeekId}
-            settings={settings}
-            onSelectDay={handleSelectDay}
-            onVisibleMonthChange={handleVisibleMonthChange}
-            onEventClick={handleOpenEditForm}
-            duplicateMode={!!duplicateEvent}
-            onPasteDuplicate={handlePasteDuplicate}
-          />
+<MonthView
+  weeks={weeks}
+  events={events}
+  selectedDate={selectedDate}
+  focusedWeekId={focusedWeekId}
+  settings={settings}
+  onSelectDay={handleSelectDay}
+  onVisibleMonthChange={handleVisibleMonthChange}
+  // 【修正】onEventClick を削除
+  duplicateMode={!!duplicateEvent}
+  onPasteDuplicate={handlePasteDuplicate}
+/>
         ) : (
           <WeekView
             weekDays={getWeekDaysForSelectedWeek()}
