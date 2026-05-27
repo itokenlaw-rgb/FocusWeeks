@@ -63,35 +63,35 @@ body.theme-monochrome {
   --accent-color: #27272a; --accent-light: #e4e4e7; --border-color: #e4e4e7; --border-thick: #27272a;
   --today-bg: #f4f4f5; --today-border: #27272a; --saturday-color: #4b5563; --sunday-color: #b91c1c;
   --focus-week-bg: rgba(228, 228, 231, 0.3); --selected-day-border: #18181b;
-  --event-bg: #a5f3fc; --event-border: #06b6d4; --event-text: #164e63;
+  --event-bg: #bbf7d0; --event-border: #22c55e; --event-text: #14532d;
 }
 body.theme-red {
   --bg-primary: #faf5f5; --bg-card: #ffffff; --text-primary: #3f2f2f; --text-secondary: #8a7a7a;
   --accent-color: #a85858; --accent-light: #f7e6e6; --border-color: #f0e2e2; --border-thick: #a85858;
   --today-bg: #faefef; --today-border: #a85858; --saturday-color: #556c82; --sunday-color: #b24747;
   --focus-week-bg: rgba(247, 230, 230, 0.3); --selected-day-border: #a85858;
-  --event-bg: #fde68a; --event-border: #f59e0b; --event-text: #78350f;
+  --event-bg: #fed7aa; --event-border: #f97316; --event-text: #7c2d12;
 }
 body.theme-blue {
   --bg-primary: #f2f5fa; --bg-card: #ffffff; --text-primary: #2d3540; --text-secondary: #727a87;
   --accent-color: #557297; --accent-light: #e6edf7; --border-color: #e0e6f0; --border-thick: #557297;
   --today-bg: #edf3fa; --today-border: #557297; --saturday-color: #3b82f6; --sunday-color: #ef4444;
   --focus-week-bg: rgba(230, 237, 247, 0.4); --selected-day-border: #557297;
-  --event-bg: #c7f7c2; --event-border: #22c55e; --event-text: #14532d;
+  --event-bg: #bbf7d0; --event-border: #22c55e; --event-text: #14532d;
 }
 body.theme-yellow {
   --bg-primary: #faf8f2; --bg-card: #ffffff; --text-primary: #3d3b35; --text-secondary: #878378;
   --accent-color: #9c8046; --accent-light: #faf2dc; --border-color: #ebdcc0; --border-thick: #9c8046;
   --today-bg: #faf6e6; --today-border: #9c8046; --saturday-color: #64748b; --sunday-color: #ca8a04;
   --focus-week-bg: rgba(250, 242, 220, 0.3); --selected-day-border: #9c8046;
-  --event-bg: #fbcfe8; --event-border: #ec4899; --event-text: #831843;
+  --event-bg: #fde68a; --event-border: #f59e0b; --event-text: #78350f;
 }
 body.theme-green {
   --bg-primary: #f3f6f3; --bg-card: #ffffff; --text-primary: #2e332e; --text-secondary: #727a72;
   --accent-color: #557d55; --accent-light: #e6ece6; --border-color: #dfe5df; --border-thick: #557d55;
   --today-bg: #edf3ed; --today-border: #557d55; --saturday-color: #4b6352; --sunday-color: #c25151;
   --focus-week-bg: rgba(230, 236, 230, 0.3); --selected-day-border: #557d55;
-  --event-bg: #fed7aa; --event-border: #f97316; --event-text: #7c2d12;
+  --event-bg: #bfdbfe; --event-border: #3b82f6; --event-text: #1e3a8a;
 }
 
 /* Containers */
@@ -362,8 +362,8 @@ body.theme-green {
 }
 
 /* Forms */
-.form-group { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
-.form-group-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 2px 0; }
+.form-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
+.form-group-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding: 4px 0; }
 .form-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); }
 
 
@@ -404,10 +404,10 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 
 .button-row { 
   display: flex; 
-  gap: 10px; 
-  margin-top: 10px;
+  gap: 12px; 
+  margin-top: 16px; /* 24px → 16px に縮小 */
 }
-.btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); font-size: var(--text-md); font-weight: 600; cursor: pointer; text-align: center; transition: var(--transition-fast); border: none; }
+.btn { flex: 1; padding: 12px; border-radius: var(--radius-sm); font-size: var(--text-md); font-weight: 600; cursor: pointer; text-align: center; transition: var(--transition-fast); border: none; }
 .btn-primary { background-color: var(--accent-color); color: var(--bg-card); }
 .btn-primary:hover { opacity: 0.9; }
 .btn-secondary { background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); }
@@ -490,6 +490,6 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
 .fullscreen-event-content .fullscreen-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  padding: 20px;
   background-color: var(--bg-card); /* 背景をグレーではなく白(カード色)にする */
 }
