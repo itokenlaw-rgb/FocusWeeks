@@ -399,3 +399,22 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
 .login-status-container { display: flex; flex-direction: column; gap: 12px; padding: 16px; background-color: var(--bg-primary); border-radius: var(--radius-md); margin-top: 10px; }
 .login-status-text { font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); }
 .login-status-subtext { font-size: var(--text-xs); color: var(--text-secondary); }
+
+/* 予定フォーム専用のフルスクリーンコンテンツ */
+.fullscreen-event-content {
+  width: 100%;
+  height: 100%;
+  max-width: 100%; /* 横幅を制限せずいっぱいに広げる */
+  background-color: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* フォーム内のインプットなどのサイズ調整 */
+.fullscreen-event-content .fullscreen-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: var(--bg-card); /* 背景をグレーではなく白(カード色)にする */
+}
