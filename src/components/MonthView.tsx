@@ -177,14 +177,18 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSelected = selectedDate === dateString;
 
                 // ── 6月→7月の境目を階段状太線で強調 ─────────────────────
-                let borderClasses = '';
-                if (dateString === '2026-06-29' || dateString === '2026-06-30') {
-                  borderClasses = ' border-bottom-thick';
-                } else if (dateString === '2026-07-01') {
-                  borderClasses = ' border-left-thick';
-                } else if (year === 2026 && month === 6 && dayOfMonth >= 2 && dayOfMonth <= 4) {
-                  borderClasses = ' border-top-thick';
-                }
+let borderClasses = '';
+const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+if (dayOfMonth === lastDayOfMonth - 1 || dayOfMonth === lastDayOfMonth) {
+  // 月末から2日：下線
+  borderClasses = ' border-bottom-thick';
+} else if (dayOfMonth === 1) {
+  // 1日：左線
+  borderClasses = ' border-left-thick';
+} else if (dayOfMonth >= 2 && dayOfMonth <= 4) {
+  // 2〜4日（土曜まで）：上線
+  borderClasses = ' border-top-thick';
+}
 
                 // この日のイベント一覧
                 const dayEvents = events.filter(
