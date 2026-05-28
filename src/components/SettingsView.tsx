@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { requestAccessToken } from '../utils/googleCalendar';
 
+// 1. Settings型を、3用と5用でそれぞれ before/after を持てるように拡張
 interface Settings {
   textSize: 'small' | 'medium' | 'large';
   focusSize: 3 | 5;
   weekStart: 'monday' | 'sunday';
   themeColor: 'monochrome' | 'red' | 'blue' | 'yellow' | 'green';
-  focusBefore: 0 | 1;
-  focusAfter: 0 | 1 | 2;
+  // それぞれ独立したオブジェクトとして管理
+  focusSize3: { before: 0 | 1; after: 0 | 1 | 2 };
+  focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
 }
 
 interface SettingsViewProps {
@@ -48,21 +50,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, themeColor });
   };
 
+// 2. 選択中のフォーカスサイズ（3または5）の値を書き換えるようにハンドラーを修正
   const handleFocusRangeChange = (type: 'before' | 'after', value: number) => {
     const nextSettings = { ...settings };
+    const currentSizeKey = settings.focusSize === 3 ? 'focusSize3' : 'focusSize5';
     
     if (type === 'before') {
-      nextSettings.focusBefore = value as 0 | 1;
+      nextSettings[currentSizeKey].before = value as 0 | 1;
     } else {
-      nextSettings.focusAfter = value as 0 | 1 | 2;
+      nextSettings[currentSizeKey].after = value as 0 | 1 | 2;
     }
 
-    const totalSelected = nextSettings.focusBefore + nextSettings.focusAfter;
+// 既存の合計3週間を超えない制限ロジックも、アクティブなサイズに合わせて適用
+    const totalSelected = nextSettings[currentSizeKey].before + nextSettings[currentSizeKey].after;
     if (totalSelected > 3) {
       if (type === 'before') {
-        nextSettings.focusAfter = 2;
+        nextSettings[currentSizeKey].after = 2;
       } else {
-        nextSettings.focusBefore = 1;
+        nextSettings[currentSizeKey].before = 1;
       }
     }
 
@@ -76,10 +81,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setNotificationPermission(permission);
     if (permission === 'granted') {
       new Notification('通知が有効になりました', {
-        body: '予定の時間になると、このようにデスクトップに通知が届きます。',
       });
     }
   };
+
+// 現在選ばれているフォーカスサイズ（3か5）の設定値を参照しやすくする
+  const currentRange = settings.focusSize === 3 ? settings.focusSize3 : settings.focusSize5;
 
   return (
     <div className="fullscreen-overlay" onClick={onClose}>
@@ -200,9 +207,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* フォーカスの対象 */}
+{/* フォーカスの対象（ここを書き換え：現在選ばれているサイズ名を表示し、値を連動させる） */}
           <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>フォーカスの対象</span>
+            <span className="form-label" style={{ marginBottom: 4 }}>
+              フォーカスの対象（フォーカス【{settings.focusSize === 3 ? '小' : '大'}】の設定）
+            </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', minWidth: '70px' }}>基準週より前</span>
@@ -210,7 +219,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {[0, 1].map((v) => (
                     <button
                       key={v}
-                      className={`settings-option-btn ${settings.focusBefore === v ? 'active' : ''}`}
+                      className={`settings-option-btn ${currentRange.before === v ? 'active' : ''}`}
                       onClick={() => handleFocusRangeChange('before', v)}
                     >
                       {v} 週間前
@@ -224,7 +233,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {[0, 1, 2].map((v) => (
                     <button
                       key={v}
-                      className={`settings-option-btn ${settings.focusAfter === v ? 'active' : ''}`}
+                      className={`settings-option-btn ${currentRange.after === v ? 'active' : ''}`}
                       onClick={() => handleFocusRangeChange('after', v)}
                     >
                       {v} 週間後

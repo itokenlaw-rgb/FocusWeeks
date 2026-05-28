@@ -76,44 +76,78 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
 }
 
 export default function App() {
+// --- MonthView.tsx の getFocusedWeekIndices 関数を修正 ---
+
+  // 現在フォーカスすべき週のインデックス一覧を計算する
+  const getFocusedWeekIndices = (): number[] => {
+    if (!focusedWeekId) return [];
+    
+    // 基準週のインデックスを探す
+    const baseIndex = weeks.findIndex(w => w[0]?.dateString === focusedWeekId);
+    if (baseIndex === -1) return [];
+
+    // 現在の focusSize に応じて、どの before/after 設定を使うか決定する
+    const currentRange = settings.focusSize === 3 ? (settings as any).focusSize3 : (settings as any).focusSize5;
+    
+    // 万が一、古いLocalStorageデータ等の理由で未定義だった場合のフォールバック
+    const focusBefore = currentRange ? currentRange.before : 0;
+    const focusAfter = currentRange ? currentRange.after : 0;
+
+    const indices: number[] = [];
+    const start = baseIndex - focusBefore;
+    const end = baseIndex + focusAfter;
+
+    for (let i = start; i <= end; i++) {
+      if (i >= 0 && i < weeks.length) {
+        indices.push(i);
+      }
+    }
+    return indices;
+  };
+
   // Global Settings State
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('focusweeks_settings');
+    
+    // デフォルト値オブジェクトの定義
+    const defaultSettings = {
+      textSize: 'medium' as const,
+      focusSize: 3 as const,
+      weekStart: 'monday' as const,
+      themeColor: 'blue' as const,
+      focusSize3: { before: 0 as const, after: 0 as const },
+      focusSize5: { before: 0 as const, after: 0 as const },
+    };
+
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (parsed.focusBefore === undefined) parsed.focusBefore = 0;
-        if (parsed.focusAfter === undefined) parsed.focusAfter = 0;
-        return parsed; 
-      } catch {}
+        
+        // 旧データ（focusBefore / focusAfter）が存在する場合の救済・移行ロジック
+        if (parsed.focusSize3 === undefined) {
+          parsed.focusSize3 = {
+            before: parsed.focusBefore !== undefined ? parsed.focusBefore : 0,
+            after: parsed.focusAfter !== undefined ? parsed.focusAfter : 0
+          };
+        }
+        if (parsed.focusSize5 === undefined) {
+          parsed.focusSize5 = {
+            before: parsed.focusBefore !== undefined ? parsed.focusBefore : 0,
+            after: parsed.focusAfter !== undefined ? parsed.focusAfter : 0
+          };
+        }
+
+        // 不要になった古いキーを削除
+        delete parsed.focusBefore;
+        delete parsed.focusAfter;
+
+        return { ...defaultSettings, ...parsed }; 
+      } catch {
+        return defaultSettings;
+      }
     }
-    return {
-      textSize: 'medium',
-      focusSize: 3,
-      weekStart: 'monday',
-      themeColor: 'blue',
-      focusBefore: 0,
-      focusAfter: 0,
-    };
+    return defaultSettings;
   });
-
-  // 設定項目（settings）が変更されたら自動で localStorage へ同期・保存する
-  useEffect(() => {
-    localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  // 同期中（ローディング）の状態を管理
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  useEffect(() => {
-    document.body.classList.remove(
-      'theme-monochrome', 'theme-red', 'theme-blue', 'theme-yellow', 'theme-green',
-      'size-small', 'size-medium', 'size-large'
-    );
-    
-    document.body.classList.add(`theme-${settings.themeColor}`);
-    document.body.classList.add(`size-${settings.textSize}`);
-  }, [settings.themeColor, settings.textSize]);
 
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');

@@ -102,7 +102,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
     }
   };
 
-  // 現在フォーカスすべき週のインデックス一覧を計算する
+// 現在フォーカスすべき週のインデックス一覧を計算する
   const getFocusedWeekIndices = (): number[] => {
     if (!focusedWeekId) return [];
     
@@ -110,9 +110,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const baseIndex = weeks.findIndex(w => w[0]?.dateString === focusedWeekId);
     if (baseIndex === -1) return [];
 
+    // 現在の focusSize に応じて、どの before/after 設定を使うか決定する
+    const currentRange = settings.focusSize === 3 ? (settings as any).focusSize3 : (settings as any).focusSize5;
+    
+    // 万が一、古いLocalStorageデータ等の理由で未定義だった場合のフォールバック
+    const focusBefore = currentRange ? currentRange.before : 0;
+    const focusAfter = currentRange ? currentRange.after : 0;
+
     const indices: number[] = [];
-    const start = baseIndex - settings.focusBefore;
-    const end = baseIndex + settings.focusAfter;
+    const start = baseIndex - focusBefore;
+    const end = baseIndex + focusAfter;
 
     for (let i = start; i <= end; i++) {
       if (i >= 0 && i < weeks.length) {
