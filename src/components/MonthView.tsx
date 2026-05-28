@@ -180,26 +180,25 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 let borderClasses = '';
                 
                 try {
-                  // 1. 下線の判定：明日になったら月が変わる（月末日）なら、セルの下に太線
+                  // ① 下線の判定：明日（dayOfMonth + 1）になると月が変わるなら、そこは月末日。セルの下側に太線を引く
                   const tomorrow = new Date(year, month, dayOfMonth + 1);
                   if (tomorrow.getMonth() !== month) {
                     borderClasses += ' border-bottom-thick';
                   }
 
-                  // 2. 左線の判定：1日（月初）の場合、左側に太線
-                  // ※ただし、1日が週の先頭（月曜）の場合はカレンダーの外枠とかぶるので引かない、とする場合は「&& dayOfWeek !== 1」を足してください
+                  // ② 左線の判定：その日自体が「1日」なら、そこは月初日。セルの左側に太線を引く
                   if (dayOfMonth === 1) {
                     borderClasses += ' border-left-thick';
                   }
 
-                  // 3. 上線の判定：自分が「新月（翌月）」のエリアに入っており、かつ「1日の曜日」に追いつくまでの間
-                  // つまり、1日より左側にある「翌月の数日間」の上側に太線を引く
-                  if (!isCurrentMonth && date > new Date(year, month, 1)) {
-                    // 月曜始まりの場合、1日の前日（月末）がその週のどこにあるかで上線を引く範囲が決まります
-                    // ここではシンプルに「今見ているセルの月」が、カレンダー上の当月より未来（翌月）であれば上線を引く
+                  // ③ 上線の判定：明日（dayOfMonth + 1）が「1日」のとき、その「1日」の曜日（位置）に追いつくまでの「翌月エリア」の上側に太線を引く
+                  // 画像でいうと「7月1日」の左隣にある「29日」「30日」の上側にだけ、ピンポイントで線を引きます
+                  // 「当月ではない（isOtherMonth / !isCurrentMonth）」かつ「日付の数字が20日以降（前月末エリア）」のセルの上側に線を引く
+                  if (!isCurrentMonth && dayOfMonth > 20) {
                     borderClasses += ' border-top-thick';
                   }
                 } catch (e) {
+                  // 万が一のエラー時もカレンダーの表示自体は維持する
                   console.error(e);
                 }
 
