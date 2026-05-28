@@ -176,7 +176,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
 
-// ── 月の境目を階段状太線で強調（月曜始まり・日曜始まり両対応） ──
+                // ── 月の境目を階段状太線で強調（月曜始まり・日曜始まり両対応） ──
                 let borderClasses = '';
 
                 try {
@@ -203,7 +203,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     }
                   }
                 } catch (e) {
-                  // 万が一のエラー時もカレンダーの表示自体は維持する
                   console.error(e);
                 }
 
@@ -234,64 +233,89 @@ export const MonthView: React.FC<MonthViewProps> = ({
                       })()}
                     </div>
 
-{/* ── フォーカス週：時間スロット5分割で表示 ── */}
-{isWeekFocused ? (
-  <div
-    className="day-events-focused"
-    style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 24px)' }}
-  >
-    {Array.from({ length: 5 }).map((_, slotIdx) => {
-      const slotEvents = dayEvents.filter(
-        e => getEventSlotIndex(e) === slotIdx
-      );
+                    {/* ── フォーカス週：時間スロット5分割で表示 ── */}
+                    {isWeekFocused ? (
+                      <div
+                        className="day-events-focused"
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 24px)' }}
+                      >
+                        {Array.from({ length: 5 }).map((_, slotIdx) => {
+                          const slotEvents = dayEvents.filter(
+                            e => getEventSlotIndex(e) === slotIdx
+                          );
 
-      // フォーカス5倍時の条件に応じた行数(line-clamp)と、表示する予定の最大数を割り出す
-      let lineClamp = 3; // デフォルト（3倍のときは3行）
-      let maxVisibleEvents = 1; // デフォルトは1つだけ表示
+                          let lineClamp = 3; 
+                          let maxVisibleEvents = 1; 
 
-      if (settings.focusSize === 5) {
-        maxVisibleEvents = slotEvents.length; // 5倍のときは複数表示を許容
-        
-        if (slotEvents.length === 1) {
-          lineClamp = 4; // 【１】予定が1つなら4行
-        } else if (slotEvents.length === 2) {
-          lineClamp = 2; // 【２】予定が2つならそれぞれ2行
-        } else if (slotEvents.length >= 3) {
-          lineClamp = 1; // 【３】予定が3つ以上ならそれぞれ1行
-        }
-      }
+                          if (settings.focusSize === 5) {
+                            maxVisibleEvents = slotEvents.length; 
+                            
+                            if (slotEvents.length === 1) {
+                              lineClamp = 4; 
+                            } else if (slotEvents.length === 2) {
+                              lineClamp = 2; 
+                            } else if (slotEvents.length >= 3) {
+                              lineClamp = 1; 
+                            }
+                          }
 
-      // 実際に画面に描画するイベント配列
-      const visibleEvents = slotEvents.slice(0, maxVisibleEvents);
+                          const visibleEvents = slotEvents.slice(0, maxVisibleEvents);
 
-      return (
-        <div 
-          key={slotIdx} 
-          className="day-time-slot"
-          style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
-        >
-          {visibleEvents.map(event => (
-            <div
-              key={event.id}
-              className="focused-event"
-              title={`${formatEventTime(event)} ${event.title}`}
-              style={{
-                WebkitLineClamp: lineClamp,
-                maxHeight: `${lineClamp * 1.2}em`, // line-height: 1.2 に追従
-              }}
-            >
-              {event.title}
+                          return (
+                            <div 
+                              key={slotIdx} 
+                              className="day-time-slot"
+                              style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
+                            >
+                              {visibleEvents.map(event => (
+                                <div
+                                  key={event.id}
+                                  className="focused-event"
+                                  title={`${formatEventTime(event)} ${event.title}`}
+                                  style={{
+                                    WebkitLineClamp: lineClamp,
+                                    maxHeight: `${lineClamp * 1.2}em`, 
+                                  }}
+                                >
+                                  {event.title}
+                                </div>
+                              ))}
+                              
+                              {settings.focusSize === 3 && slotEvents.length > 1 && (
+                                <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'flex-end', position: 'absolute', right: 2, bottom: 2 }}>
+                                  +{slotEvents.length - 1}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* ── 通常週（未フォーカス）：コンパクトに2件まで表示 ── */
+                      <div className="day-events-compact">
+                        {dayEvents.slice(0, 2).map((event: any) => (
+                          <div
+                            key={event.id}
+                            className="compact-event"
+                            title={event.title}
+                          >
+                            {event.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 2 && (
+                          <div className="compact-event-more">
+                            他 {dayEvents.length - 2} 件
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-          
-          {/* 3倍表示の時、または5倍表示でも何らかの理由で溢れた場合のバッジ (任意) */}
-          {settings.focusSize === 3 && slotEvents.length > 1 && (
-            <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'flex-end', position: 'absolute', right: 2, bottom: 2 }}>
-              +{slotEvents.length - 1}
-            </span>
-          )}
-        </div>
-      );
-    })}
-  </div>
-) : (
+          );
+        })}
+      </div>
+    </div>
+  );
+};
