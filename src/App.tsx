@@ -164,11 +164,18 @@ export default function App() {
     return `${hours}:${minutes}`;
   };
 
-  // Re-generate weeks on weekStart configuration change & initial default focused week
+// Re-generate weeks on weekStart configuration change & initial default focused week
   useEffect(() => {
     const base = new Date();
     const list = generateWeeksList(base, settings.weekStart, 10, 40);
     setWeeks(list);
+
+    // ★ 起動時、カレンダーの第1週（インデックス0）の最初の日の年月をヘッダーに反映
+    if (list.length > 0 && list[0].length > 0) {
+      const firstDayOfFirstWeek = list[0][0].date;
+      setCurrentYear(firstDayOfFirstWeek.getFullYear());
+      setCurrentMonth(firstDayOfFirstWeek.getMonth());
+    }
 
     const todayStr = getFormattedDateString(base);
     const defaultFocusedWeek = list.find(week => 
