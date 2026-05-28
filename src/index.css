@@ -230,7 +230,7 @@ body.theme-green {
 .focused-event { 
   font-size: calc(var(--text-xs) * 0.85); 
   line-height: 1.2; 
-  padding: 2px 4px; 
+  padding: 1px 4px; /* 縦に並ぶので上下パディングを少しだけスリムに */
   background-color: var(--event-bg) !important;
   color: var(--event-text) !important;
   border-left: 3px solid var(--event-border) !important;
@@ -238,15 +238,14 @@ body.theme-green {
   margin: 1px 0; 
   flex: 1;
 
-  /* 縦方向に広がりすぎないように最大高さを指定（必要に応じて調整） */
-  max-height: 4.68em; /* line-height(1.2) × 3行分 */
+  /* インラインスタイルで動的に指定するため、CSS側での一律固定を解除 */
+  /* max-height: 4.68em; を削除、または以下に変更 */
+  max-height: none; 
 
-  /* 3行目以降を三点リーダー「...」にする設定 */
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3; /* ここで最大の行数を「3」に指定 */
   overflow: hidden;
-  white-space: normal;   /* 1行で折り返さない設定を解除して自動改行させる */
+  white-space: normal;
 }
 
 
