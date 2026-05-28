@@ -1,23 +1,51 @@
-// ─── MonthView.tsx ───
+import React, { useRef, useEffect } from 'react';
+import type { CalendarEvent } from '../utils/googleCalendar';
 
 interface MonthViewProps {
   weeks: any[][];
-  events: any[];
+  events: CalendarEvent[];
   selectedDate: string | null;
-  focusedWeekId: string | null; // これを「基準となる週のID」として扱います
+  focusedWeekId: string | null; 
   settings: {
     textSize: string;
     focusSize: number;
     weekStart: 'monday' | 'sunday';
     themeColor: string;
-    focusBefore: number; // 追加
-    focusAfter: number;  // 追加
+    focusBefore: number; 
+    focusAfter: number;  
   };
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
+
+// 予定の時間からどのスロットに配置するかを決定するヘルパー関数
+const getEventSlotIndex = (event: CalendarEvent): number => {
+  if (event.allDay) return 0;
+  try {
+    const date = new Date(event.start);
+    const hour = date.getHours();
+    if (hour < 9) return 0;       // 9時前
+    if (hour < 12) return 1;      // 9時〜12時
+    if (hour < 15) return 2;      // 12時〜15時
+    if (hour < 18) return 3;      // 15時〜18時
+    return 4;                     // 18時以降
+  } catch {
+    return 0;
+  }
+};
+
+// 予定の時間をフォーマットするヘルパー関数
+const formatEventTime = (event: CalendarEvent): string => {
+  if (event.allDay) return '終日';
+  try {
+    const d = new Date(event.start);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch {
+    return '';
+  }
+};
 
 export const MonthView: React.FC<MonthViewProps> = ({
   weeks,
@@ -30,10 +58,51 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
-  
-  // ── 既存の ref や useEffect、handleScroll はそのまま ──
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // ★ 追加：現在フォーカスすべき週のインデックス一覧を計算する
+  // 起動時、またはfocusedWeekIdが変化した時にフォーカス週をスクロール表示する処理
+  useEffect(() => {
+    if (focusedWeekId && containerRef.current) {
+      const targetEl = containerRef.current.querySelector(`[data-week-id="${focusedWeekId}"]`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }, [focusedWeekId]);
+
+  // スクロール時に見えている年月のラベルを親コンポーネントへ伝える処理
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const container = containerRef.current;
+    const containerCenter = container.getBoundingClientRect().top + container.clientHeight / 2;
+
+    // 画面中央に位置する週の要素を見つける
+    const weekElements = container.querySelectorAll('.calendar-week');
+    let currentWeekEl: Element | null = null;
+
+    for (let i = 0; i < weekElements.length; i++) {
+      const rect = weekElements[i].getBoundingClientRect();
+      if (rect.top <= containerCenter && rect.bottom >= containerCenter) {
+        currentWeekEl = weekElements[i];
+        break;
+      }
+    }
+
+    if (currentWeekEl) {
+      const containsDatesAttr = currentWeekEl.getAttribute('data-contains-date');
+      if (containsDatesAttr) {
+        const dates = containsDatesAttr.split(',');
+        // その週の真ん中の日(4番目の要素)を基準にする
+        const midDateStr = dates[3] || dates[0];
+        const midDate = new Date(midDateStr);
+        if (!isNaN(midDate.getTime())) {
+          onVisibleMonthChange(midDate.getFullYear(), midDate.getMonth());
+        }
+      }
+    }
+  };
+
+  // 現在フォーカスすべき週のインデックス一覧を計算する
   const getFocusedWeekIndices = (): number[] => {
     if (!focusedWeekId) return [];
     
@@ -61,15 +130,14 @@ export const MonthView: React.FC<MonthViewProps> = ({
         {weeks.map((week, weekIndex) => {
           const weekStartDateStr = week[0]?.dateString || '';
           
-          // ★ 修正：現在の週インデックスが、フォーカス範囲に含まれているか判定
+          // 現在の週インデックスが、フォーカス範囲に含まれているか判定
           const isWeekFocused = focusedWeekIndices.includes(weekIndex);
-          
           const containsDates = week.map((d: any) => d.dateString).join(',');
 
           return (
             <div
               key={weekIndex}
-              className={`calendar-week ${isWeekFocused ? 'focused' : ''}`} // 範囲内なら focused になる
+              className={`calendar-week ${isWeekFocused ? 'focused' : ''}`}
               data-week-id={weekStartDateStr}
               data-week-index={weekIndex}
               data-contains-date={containsDates}
@@ -77,28 +145,21 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 '--focus-height-multiplier': settings.focusSize,
               } as React.CSSProperties}
             >
-              {/* 週の中身（day.map...）の処理は1行も変えずにそのままで動作します */}
-              {week.map((dayObj: any) => {
-
               {week.map((dayObj: any) => {
                 const { date, dateString, isCurrentMonth, isToday } = dayObj;
                 const isOtherMonth = !isCurrentMonth;
 
                 const year       = date.getFullYear();
-                const month      = date.getMonth(); // 0-11
+                const month      = date.getMonth(); 
                 const dayOfMonth = date.getDate();
                 const dayOfWeek  = date.getDay();
                 const isSat      = dayOfWeek === 6;
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
 
-                // ── 月の境目を階段状太線で強調（月曜始まり・日曜始まり両対応） ──
+                // 月の境目を階段状太線で強調
                 let borderClasses = '';
-
                 try {
-                  // ① 上線の判定：
-                  //    a) 1日のセル → 確実に上側が別月なので上線を引く
-                  //    b) 7日前（真上のセル）が別月 → 上線を引く
                   if (dayOfMonth === 1) {
                     borderClasses += ' border-top-thick';
                   } else {
@@ -108,8 +169,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     }
                   }
 
-                  // ② 左線の判定：
-                  //    1日のセルが週の途中（週始まり曜日でない位置）にある場合のみ左線を引く
                   if (dayOfMonth === 1) {
                     const isWeekStart =
                       (settings.weekStart === 'sunday' && dayOfWeek === 0) ||
@@ -149,7 +208,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                       })()}
                     </div>
 
-                    {/* ── フォーカス週：時間スロット5分割で表示 ── */}
+                    {/* フォーカス週：時間スロット5分割で表示 */}
                     {isWeekFocused ? (
                       <div
                         className="day-events-focused"
@@ -207,7 +266,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                         })}
                       </div>
                     ) : (
-                      /* ── 通常週（未フォーカス）：コンパクトに2件まで表示 ── */
+                      /* 通常週（未フォーカス）：コンパクトに2件まで表示 */
                       <div className="day-events-compact">
                         {dayEvents.slice(0, 2).map((event: any) => (
                           <div
