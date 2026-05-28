@@ -178,24 +178,29 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
 // ── 月の境目を階段状太線で強調（月曜始まり・日曜始まり両対応） ──
                 let borderClasses = '';
-                
+
                 try {
-                  // ① 下線の判定：明日（dayOfMonth + 1）になると月が変わるなら、そこは月末日。セルの下側に太線を引く
-                  const tomorrow = new Date(year, month, dayOfMonth + 1);
-                  if (tomorrow.getMonth() !== month) {
-                    borderClasses += ' border-bottom-thick';
-                  }
-
-                  // ② 左線の判定：その日自体が「1日」なら、そこは月初日。セルの左側に太線を引く
+                  // ① 上線の判定：
+                  //    a) 1日のセル → 確実に上側が別月なので上線を引く
+                  //    b) 7日前（真上のセル）が別月 → 上線を引く
                   if (dayOfMonth === 1) {
-                    borderClasses += ' border-left-thick';
+                    borderClasses += ' border-top-thick';
+                  } else {
+                    const sevenDaysAgo = new Date(year, month, dayOfMonth - 7);
+                    if (sevenDaysAgo.getMonth() !== month) {
+                      borderClasses += ' border-top-thick';
+                    }
                   }
 
-                  // ③ 上線の判定：明日（dayOfMonth + 1）が「1日」のとき、その「1日」の曜日（位置）に追いつくまでの「翌月エリア」の上側に太線を引く
-                  // 画像でいうと「7月1日」の左隣にある「29日」「30日」の上側にだけ、ピンポイントで線を引きます
-                  // 「当月ではない（isOtherMonth / !isCurrentMonth）」かつ「日付の数字が20日以降（前月末エリア）」のセルの上側に線を引く
-                  if (!isCurrentMonth && dayOfMonth > 20) {
-                    borderClasses += ' border-top-thick';
+                  // ② 左線の判定：
+                  //    1日のセルが週の途中（週始まり曜日でない位置）にある場合のみ左線を引く
+                  if (dayOfMonth === 1) {
+                    const isWeekStart =
+                      (settings.weekStart === 'sunday' && dayOfWeek === 0) ||
+                      (settings.weekStart === 'monday' && dayOfWeek === 1);
+                    if (!isWeekStart) {
+                      borderClasses += ' border-left-thick';
+                    }
                   }
                 } catch (e) {
                   // 万が一のエラー時もカレンダーの表示自体は維持する
