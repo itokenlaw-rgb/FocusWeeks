@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MonthView } from './components/MonthView';
 import { WeekView } from './components/WeekView';
 import { BottomPanel } from './components/BottomPanel';
@@ -77,12 +77,11 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
 
 export default function App() {
   // Global Settings State
-const [settings, setSettings] = useState<Settings>(() => {
+  const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('focusweeks_settings');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        // 過去の古いセーブデータに新しい設定項目がない場合は、デフォルト値を補完する
         if (parsed.focusBefore === undefined) parsed.focusBefore = 0;
         if (parsed.focusAfter === undefined) parsed.focusAfter = 0;
         return parsed; 
@@ -93,8 +92,8 @@ const [settings, setSettings] = useState<Settings>(() => {
       focusSize: 3,
       weekStart: 'monday',
       themeColor: 'blue',
-      focusBefore: 0, // デフォルト：前の週は広げない
-      focusAfter: 0,  // デフォルト：後の週は広げない
+      focusBefore: 0,
+      focusAfter: 0,
     };
   });
 
@@ -103,18 +102,15 @@ const [settings, setSettings] = useState<Settings>(() => {
     localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
   }, [settings]);
 
-
   // 同期中（ローディング）の状態を管理
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
-    // 一度関係するクラスをすべて削除
     document.body.classList.remove(
       'theme-monochrome', 'theme-red', 'theme-blue', 'theme-yellow', 'theme-green',
       'size-small', 'size-medium', 'size-large'
     );
     
-    // 現在の設定値をクラスとして追加
     document.body.classList.add(`theme-${settings.themeColor}`);
     document.body.classList.add(`size-${settings.textSize}`);
   }, [settings.themeColor, settings.textSize]);
@@ -163,6 +159,9 @@ const [settings, setSettings] = useState<Settings>(() => {
   // 現在時刻を管理するState
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // 重複通知を防ぐため、最後に通知をチェックした「時:分」を保持するRef
+  const lastCheckedMinute = useRef<string>('');
+
   // 1秒ごとに時刻を更新するタイマー
   useEffect(() => {
     const timer = setInterval(() => {
@@ -178,13 +177,52 @@ const [settings, setSettings] = useState<Settings>(() => {
     return `${hours}:${minutes}`;
   };
 
-// Re-generate weeks on weekStart configuration change & initial default focused week
+  // --- 【新規実装】予定の通知チェックロジック ---
+  useEffect(() => {
+    const currentHM = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+    
+    // 同じ分に2回以上処理が走らないようにガード
+    if (lastCheckedMinute.current === currentHM) return;
+    lastCheckedMinute.current = currentHM;
+
+    const todayStr = getFormattedDateString(currentTime);
+
+    events.forEach((event) => {
+      // 終日予定は通知対象外
+      if (event.allDay) return;
+
+      try {
+        const eventDate = new Date(event.start);
+        const eventDateStr = getFormattedDateString(eventDate);
+        const eventHM = `${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`;
+
+        // 日付と「時:分」が現在時刻と完全に一致した場合に通知
+        if (eventDateStr === todayStr && eventHM === currentHM) {
+          triggerNotification(event.title, `予定の時間になりました（${eventHM}〜）`);
+        }
+      } catch (e) {
+        console.error('Failed to parse event date for notification:', e);
+      }
+    });
+  }, [currentTime, events]);
+
+  // 通知を実際にトリガーする関数
+  const triggerNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    } else {
+      // ブラウザ通知が不許可、もしくは未対応の場合はフォールバックとしてアラートを出す
+      alert(`【通知】\n${title}\n${body}`);
+    }
+  };
+  // --------------------------------------------
+
+  // Re-generate weeks on weekStart configuration change & initial default focused week
   useEffect(() => {
     const base = new Date();
     const list = generateWeeksList(base, settings.weekStart, 10, 40);
     setWeeks(list);
 
-    // ★ 起動時、カレンダーの第1週（インデックス0）の最初の日の年月をヘッダーに反映
     if (list.length > 0 && list[0].length > 0) {
       const firstDayOfFirstWeek = list[0][0].date;
       setCurrentYear(firstDayOfFirstWeek.getFullYear());
@@ -206,7 +244,6 @@ const [settings, setSettings] = useState<Settings>(() => {
     setGoogleToken(token);
     localStorage.setItem('google_access_token', token);
     localStorage.setItem('google_token_expires_at', String(expiresAt));
-    // ログイン直後のみ最新の状態にするため自動同期を走らせます
     syncEvents(token);
   }, []);
 
@@ -228,7 +265,7 @@ const [settings, setSettings] = useState<Settings>(() => {
 
   // Sync Google Events
   const syncEvents = async (token: string) => {
-    setIsSyncing(true); // 同期開始
+    setIsSyncing(true);
     try {
       const today = new Date();
       const start = new Date(today);
@@ -246,12 +283,9 @@ const [settings, setSettings] = useState<Settings>(() => {
         console.error('Error syncing events:', error);
       }
     } finally {
-      setIsSyncing(false); // 同期終了
+      setIsSyncing(false);
     }
   };
-
-  // 【通信節約】アプリ起動時やトークン変更時の「自動同期トリガー」のuseEffectは完全に削除しました。
-  // これにより、手動で更新ボタンを押さない限り自動で通信が走ることはありません。
 
   // 手動同期ボタンのハンドラー
   const handleManualSync = () => {
@@ -280,10 +314,9 @@ const [settings, setSettings] = useState<Settings>(() => {
     setCurrentMonth(month);
   };
 
-const handleNavigateWeek = (direction: 'prev' | 'next') => {
+  const handleNavigateWeek = (direction: 'prev' | 'next') => {
     if (!focusedWeekId || weeks.length === 0) return;
 
-    // 現在表示している週のインデックスを探す
     const currentWeekIdx = weeks.findIndex(w => w[0].dateString === focusedWeekId);
     if (currentWeekIdx === -1) return;
 
@@ -297,8 +330,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
     if (targetWeekIdx !== currentWeekIdx) {
       const targetWeek = weeks[targetWeekIdx];
       setFocusedWeekId(targetWeek[0].dateString);
-      
-      // ヘッダーの年月表示も、移動先の週の最初の日に合わせて更新
       handleVisibleMonthChange(targetWeek[0].date.getFullYear(), targetWeek[0].date.getMonth());
     }
   };
@@ -480,7 +511,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
 
   return (
     <div className="app-container">
-      {/* Duplication Active Banner */}
       {duplicateEvent && (
         <div className="duplicate-banner">
           <span>予定の複製中: 「{duplicateEvent.title}」</span>
@@ -512,7 +542,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
                 <ChevronDown size={16} />
               </button>
 
-              {/* 現在時刻のデジタル時計表示 */}
               <span 
                 style={{ 
                   fontSize: 'var(--text-md)', 
@@ -583,9 +612,7 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
           </div>
         </div>
 
-        {/* ヘッダー右側コントロール */}
         <div className="header-right">
-          {/* 今日ボタン */}
           <button 
             className="switch-btn" 
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'var(--bg-card)', padding: '6px 12px' }}
@@ -612,7 +639,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
             今日
           </button>
           
-          {/* 月週の切り替えスイッチ */}
           <div className="view-switch" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <button 
               className={`switch-btn ${view === 'month' ? 'active' : ''}`}
@@ -630,7 +656,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
             </button>
           </div>
 
-          {/* 同期更新ボタン */}
           <button 
             className={`icon-btn sync-btn ${isSyncing ? 'spinning' : ''}`}
             onClick={handleManualSync}
@@ -641,7 +666,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
             <RefreshCw size={18} />
           </button>
 
-          {/* 設定ボタン */}
           <button 
             className="icon-btn" 
             onClick={() => {
@@ -655,7 +679,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
         </div>
       </header>
 
-      {/* Weekday labels row for Month view */}
       {view === 'month' && (
         <div className="weekday-header">
           {settings.weekStart === 'sunday' ? (
@@ -682,7 +705,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
         </div>
       )}
 
-      {/* Main Content Areas */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {view === 'month' ? (
           <MonthView
@@ -703,11 +725,10 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
             onEventClick={handleOpenEditForm}
             onAddEventClick={(date, hour) => handleOpenAddForm(date, hour)}
             onMoveEvent={handleMoveEvent}
-            onNavigateWeek={handleNavigateWeek} // 追加
+            onNavigateWeek={handleNavigateWeek}
           />
         )}
 
-        {/* Floating Add Event Button in Month View */}
         {view === 'month' && !selectedDate && (
           <button 
             className="floating-add-btn" 
@@ -718,7 +739,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
           </button>
         )}
 
-        {/* Bottom Panel Wrapper */}
         {view === 'month' && (
           <div className={`bottom-panel-container ${isBottomPanelOpen ? 'active' : ''}`}>
             <BottomPanel
@@ -736,7 +756,6 @@ const handleNavigateWeek = (direction: 'prev' | 'next') => {
         )}
       </div>
 
-      {/* Fullscreen Forms */}
       {activeForm && (
         <EventForm
           event={activeForm.event}

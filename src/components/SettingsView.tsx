@@ -1,5 +1,5 @@
-import React from 'react';
-import { X } from 'lucide-react'; // 未使用の LogIn, LogOut を削除
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { requestAccessToken } from '../utils/googleCalendar';
 
 interface Settings {
@@ -26,6 +26,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   googleToken,
   onLogout,
 }) => {
+  // 通知の許可状態をローカルステートで管理 ('default' | 'granted' | 'denied' | 'unsupported')
+  const [notificationPermission, setNotificationPermission] = useState<string>(() => {
+    if (!('Notification' in window)) return 'unsupported';
+    return Notification.permission;
+  });
+
   const handleTextSizeChange = (textSize: Settings['textSize']) => {
     onUpdateSettings({ ...settings, textSize });
   };
@@ -63,6 +69,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings(nextSettings);
   };
 
+  // 通知の権限をリクエストする関数
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === 'granted') {
+      new Notification('通知が有効になりました', {
+        body: '予定の時間になると、このようにデスクトップに通知が届きます。',
+      });
+    }
+  };
+
   return (
     <div className="fullscreen-overlay" onClick={onClose}>
       <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -79,7 +97,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* スクロール可能な設定項目エリア */}
         <div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           
-          {/* 文字の大きさ（1行でスッキリ化） */}
+          {/* システム通知設定（新規追加項目） */}
+          <div className="form-group">
+            <span className="form-label" style={{ marginBottom: 8 }}>アプリ通知機能</span>
+            <div className="login-status-container" style={{ marginTop: 0 }}>
+              {notificationPermission === 'granted' && (
+                <>
+                  <div className="login-status-text" style={{ color: 'var(--event-text)' }}>通知設定: オン</div>
+                  <div className="login-status-subtext">予定の開始時刻になると、ブラウザまたは端末にデスクトップ通知が届きます。</div>
+                </>
+              )}
+              {notificationPermission === 'default' && (
+                <>
+                  <div className="login-status-text">通知設定: 未設定</div>
+                  <div className="login-status-subtext">予定の時間になったら画面外でもプッシュ通知を受け取ることができます。</div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: 8 }}
+                    onClick={requestNotificationPermission}
+                  >
+                    通知を有効にする
+                  </button>
+                </>
+              )}
+              {notificationPermission === 'denied' && (
+                <>
+                  <div className="login-status-text" style={{ color: '#b91c1c' }}>通知設定: ブロック中</div>
+                  <div className="login-status-subtext">ブラウザの設定で通知が禁止されています。通知を受け取るには、アドレスバーの鍵マーク等から通知を許可してください。</div>
+                </>
+              )}
+              {notificationPermission === 'unsupported' && (
+                <>
+                  <div className="login-status-text">通知設定: 非対応</div>
+                  <div className="login-status-subtext">お使いのブラウザはWeb通知機能に対応していません。</div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 文字の大きさ */}
           <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
             <span className="form-label" style={{ margin: 0 }}>文字の大きさ</span>
             <div style={{ display: 'inline-flex', gap: 16 }}>
@@ -116,7 +173,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* フォーカスの大きさ（1行でスッキリ化） */}
+          {/* フォーカスの大きさ */}
           <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
             <span className="form-label" style={{ margin: 0 }}>フォーカスの大きさ</span>
             <div style={{ display: 'inline-flex', gap: 16 }}>
@@ -178,7 +235,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* 週の開始日（1行でスッキリ化） */}
+          {/* 週の開始日 */}
           <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
             <span className="form-label" style={{ margin: 0 }}>週の開始日</span>
             <div style={{ display: 'inline-flex', gap: 16 }}>
