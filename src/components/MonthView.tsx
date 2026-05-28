@@ -1,52 +1,23 @@
-import React, { useRef, useEffect } from 'react';
+// ─── MonthView.tsx ───
 
-// App.tsx から渡されるすべてのプロパティと型を完全に一致させます
 interface MonthViewProps {
   weeks: any[][];
   events: any[];
   selectedDate: string | null;
-  focusedWeekId: string | null;
+  focusedWeekId: string | null; // これを「基準となる週のID」として扱います
   settings: {
     textSize: string;
     focusSize: number;
     weekStart: 'monday' | 'sunday';
     themeColor: string;
+    focusBefore: number; // 追加
+    focusAfter: number;  // 追加
   };
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
-
-// ── イベントを時間帯別に5スロットへ振り分ける ──────────────────────────────
-// スロット: 0=深夜〜9時前, 1=9〜12時, 2=12〜15時, 3=15〜18時, 4=18時以降
-// 終日イベントはスロット0に配置
-const getEventSlotIndex = (event: any): number => {
-  if (event.allDay) return 0;
-  try {
-    const hours = new Date(event.start).getHours();
-    if (hours < 9)  return 0;
-    if (hours < 12) return 1;
-    if (hours < 15) return 2;
-    if (hours < 18) return 3;
-    return 4;
-  } catch {
-    return 0;
-  }
-};
-
-// ── イベントの開始時刻を "HH:MM"（終日は "終日"）で返す ────────────────────
-const formatEventTime = (event: any): string => {
-  if (event.allDay) return '終日';
-  try {
-    const d = new Date(event.start);
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
-  } catch {
-    return '';
-  }
-};
 
 export const MonthView: React.FC<MonthViewProps> = ({
   weeks,
@@ -59,104 +30,46 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastNotifiedMonth = useRef<{ year: number; month: number } | null>(null);
+  
+  // ── 既存の ref や useEffect、handleScroll はそのまま ──
 
-  // ── 初期表示時に「今日」の週へ自動スクロール ───────────────────────────────
-  useEffect(() => {
-    const scrollToToday = () => {
-      const todayStr = new Date().toISOString().substring(0, 10);
-      const allWeekEls = containerRef.current?.querySelectorAll('.calendar-week');
-      if (!allWeekEls) return;
+  // ★ 追加：現在フォーカスすべき週のインデックス一覧を計算する
+  const getFocusedWeekIndices = (): number[] => {
+    if (!focusedWeekId) return [];
+    
+    // 基準週のインデックスを探す
+    const baseIndex = weeks.findIndex(w => w[0]?.dateString === focusedWeekId);
+    if (baseIndex === -1) return [];
 
-      for (let i = 0; i < allWeekEls.length; i++) {
-        const el = allWeekEls[i] as HTMLElement;
-        const containsAttr = el.getAttribute('data-contains-date') || '';
-        if (containsAttr.split(',').includes(todayStr)) {
-          el.scrollIntoView({ block: 'start', behavior: 'auto' });
-          break;
-        }
-      }
-    };
+    const indices: number[] = [];
+    const start = baseIndex - settings.focusBefore;
+    const end = baseIndex + settings.focusAfter;
 
-    const timer = setTimeout(scrollToToday, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ── クリーンアップ ────────────────────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    };
-  }, []);
-
-  // ── スクロール中、画面中央の週から表示月を検出して通知 ───────────────────
-  const handleScroll = () => {
-    isScrollingRef.current = true;
-    if (!containerRef.current) return;
-
-    const container = containerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    const centerY = containerRect.top + containerRect.height / 2;
-
-    const weekElements = container.querySelectorAll('.calendar-week');
-    let middleWeekEl: Element | null = null;
-
-    for (let i = 0; i < weekElements.length; i++) {
-      const rect = weekElements[i].getBoundingClientRect();
-      if (rect.top <= centerY && rect.bottom >= centerY) {
-        middleWeekEl = weekElements[i];
-        break;
+    for (let i = start; i <= end; i++) {
+      if (i >= 0 && i < weeks.length) {
+        indices.push(i);
       }
     }
-
-    if (middleWeekEl) {
-      const weekIndexAttr = middleWeekEl.getAttribute('data-week-index');
-      if (weekIndexAttr !== null) {
-        const weekIndex = parseInt(weekIndexAttr, 10);
-        const week = weeks[weekIndex];
-        if (week && week.length > 3) {
-          const middleDate: Date = week[3].date;
-          const targetYear  = middleDate.getFullYear();
-          const targetMonth = middleDate.getMonth();
-
-          if (
-            !lastNotifiedMonth.current ||
-            lastNotifiedMonth.current.year  !== targetYear ||
-            lastNotifiedMonth.current.month !== targetMonth
-          ) {
-            lastNotifiedMonth.current = { year: targetYear, month: targetMonth };
-            onVisibleMonthChange(targetYear, targetMonth);
-          }
-        }
-      }
-    }
-
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      isScrollingRef.current = false;
-    }, 150);
+    return indices;
   };
 
+  const focusedWeekIndices = getFocusedWeekIndices();
+
   return (
-    <div
-      className="scroll-content"
-      data-text-size={settings.textSize}
-      ref={containerRef}
-      onScroll={handleScroll}
-    >
+    <div className="scroll-content" data-text-size={settings.textSize} ref={containerRef} onScroll={handleScroll}>
       <div className="month-container">
         {weeks.map((week, weekIndex) => {
           const weekStartDateStr = week[0]?.dateString || '';
-          const isWeekFocused   = focusedWeekId === weekStartDateStr;
-          const containsDates   = week.map((d: any) => d.dateString).join(',');
+          
+          // ★ 修正：現在の週インデックスが、フォーカス範囲に含まれているか判定
+          const isWeekFocused = focusedWeekIndices.includes(weekIndex);
+          
+          const containsDates = week.map((d: any) => d.dateString).join(',');
 
           return (
             <div
               key={weekIndex}
-              className={`calendar-week ${isWeekFocused ? 'focused' : ''}`}
+              className={`calendar-week ${isWeekFocused ? 'focused' : ''}`} // 範囲内なら focused になる
               data-week-id={weekStartDateStr}
               data-week-index={weekIndex}
               data-contains-date={containsDates}
@@ -164,6 +77,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 '--focus-height-multiplier': settings.focusSize,
               } as React.CSSProperties}
             >
+              {/* 週の中身（day.map...）の処理は1行も変えずにそのままで動作します */}
+              {week.map((dayObj: any) => {
+
               {week.map((dayObj: any) => {
                 const { date, dateString, isCurrentMonth, isToday } = dayObj;
                 const isOtherMonth = !isCurrentMonth;

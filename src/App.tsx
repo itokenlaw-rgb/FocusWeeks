@@ -77,18 +77,32 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
 
 export default function App() {
   // Global Settings State
-  const [settings, setSettings] = useState<Settings>(() => {
+const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('focusweeks_settings');
     if (saved) {
-      try { return JSON.parse(saved); } catch {}
+      try { 
+        const parsed = JSON.parse(saved);
+        // 過去の古いセーブデータに新しい設定項目がない場合は、デフォルト値を補完する
+        if (parsed.focusBefore === undefined) parsed.focusBefore = 0;
+        if (parsed.focusAfter === undefined) parsed.focusAfter = 0;
+        return parsed; 
+      } catch {}
     }
     return {
       textSize: 'medium',
       focusSize: 3,
       weekStart: 'monday',
       themeColor: 'blue',
+      focusBefore: 0, // デフォルト：前の週は広げない
+      focusAfter: 0,  // デフォルト：後の週は広げない
     };
-  }); 
+  });
+
+  // 設定項目（settings）が変更されたら自動で localStorage へ同期・保存する
+  useEffect(() => {
+    localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
+  }, [settings]);
+
 
   // 同期中（ローディング）の状態を管理
   const [isSyncing, setIsSyncing] = useState(false);
