@@ -185,7 +185,7 @@ if (dayOfMonth === lastDayOfMonth - 1 || dayOfMonth === lastDayOfMonth) {
 } else if (dayOfMonth === 1) {
   // 1日：左線
   borderClasses = ' border-left-thick';
-} else if (dayOfMonth >= 2 && dayOfMonth <= 4) {
+} else if (dayOfMonth >= 1 && dayOfMonth <= 5) {
   // 2〜4日（土曜まで）：上線
   borderClasses = ' border-top-thick';
 }

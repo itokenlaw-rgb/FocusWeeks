@@ -278,10 +278,10 @@ body.theme-green {
   height: 4px; 
   background-color: var(--border-color); 
   border-radius: 2px; 
-  margin: 8px auto 2px; /* ← 上下のマージンを詰めました */
+  margin: 4px auto 1px; /* ← 上下のマージンを詰めました */
 }
 .panel-header { 
-  padding: 2px 16px 6px; /* ← 上下のパディングをギュッと狭くしました */
+  padding: 1px 16px 2px; /* ← 上下のパディングをギュッと狭くしました */
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
