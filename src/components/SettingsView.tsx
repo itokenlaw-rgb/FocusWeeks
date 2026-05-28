@@ -210,7 +210,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 {/* フォーカスの対象（ここを書き換え：現在選ばれているサイズ名を表示し、値を連動させる） */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 4 }}>
-              フォーカスの対象（フォーカス【{settings.focusSize === 3 ? '小' : '大'}】の設定）
+              フォーカスの対象
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
