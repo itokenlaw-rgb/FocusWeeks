@@ -47,12 +47,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const isSwipingRef = useRef(false);
 
-// ★ アニメーション制御用のStateを追加
+  // ★ アニメーション制御用のStateを追加
   const [slideDirection, setSlideDirection] = useState<'none' | 'slide-out-left' | 'slide-out-right' | 'slide-in-left' | 'slide-in-right'>('none');
   // 連続スワイプによるバグを防ぐフラグ
   const isAnimatingRef = useRef(false);
 
-// 最外殻（week-container）または全体のタッチ開始処理
+  // 最外殻（week-container）または全体のタッチ開始処理
   const handleContainerTouchStart = (e: React.TouchEvent) => {
     // アニメーション中、またはドラッグ中はスワイプさせない
     if (isAnimatingRef.current || isDraggingActiveRef.current || (e.target as HTMLElement).closest('.week-event-card')) {
@@ -83,7 +83,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
     }
   };
 
-// ★ アニメーションを伴う週移動の共通処理
+  // ★ アニメーションを伴う週移動の共通処理
   const triggerWeekNavigation = (direction: 'prev' | 'next') => {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
@@ -125,8 +125,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
     const SWIPE_THRESHOLD = 40; // 判定しきい値(px)
     
-
-if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY))) {
+    if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY))) {
       // ★ 共通のアニメーション付き関数を呼ぶように変更
       if (diffX > 0) {
         triggerWeekNavigation('prev');
@@ -287,7 +286,6 @@ if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX
   };
 
   const handleTouchStart = (e: React.TouchEvent, event: CalendarEvent) => {
-    // スワイプと被らないように、カードのタッチではバブリング（親への伝播）を止める
     e.stopPropagation();
     const touch = e.touches[0];
     handleDragStart(touch.clientX, touch.clientY, event);
@@ -317,11 +315,18 @@ if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX
 
     return { x: snapX, y: snapY };
   };
-{/* ★ ヘッダーとコンテンツを包むメイン部分（またはコンテンツのみ）に 
-        アニメーション用のクラス名 `slide-direction` を付与します。
-        今回はカレンダー部分（ヘッダーとグリッド）を連動してスライドさせます。
-      */}
+
+  return (
+    <div 
+      className="week-container"
+      onTouchStart={handleContainerTouchStart}
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={handleContainerTouchEnd}
+      style={{ touchAction: 'pan-y' }} 
+    >
+      {/* アニメーション用のコンテナ wrapper */}
       <div className={`week-animate-wrapper ${slideDirection}`}>
+        {/* 曜日ヘッダー */}
         <div 
           className="weekday-header"
           style={{
@@ -371,6 +376,7 @@ if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX
           })}
         </div>
 
+        {/* スクロールコンテンツエリア */}
         <div 
           className="scroll-content" 
           ref={scrollRef}
@@ -379,120 +385,115 @@ if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX
             position: 'relative',
           }}
         >
-      <div 
-        className="scroll-content" 
-        ref={scrollRef}
-        style={{
-          borderTop: 'none',
-          position: 'relative',
-        }}
-      >
-        <div 
-          className="week-grid" 
-          ref={gridRef}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleMouseUp}
-        >
-          <div className="week-time-col">
-            {Array.from({ length: 24 }).map((_, h) => (
-              <div key={h} className="week-time-label">
-                {String(h).padStart(2, '0')}:00
-              </div>
-            ))}
-          </div>
+          <div 
+            className="week-grid" 
+            ref={gridRef}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleMouseUp}
+          >
+            {/* 時間軸ラベル */}
+            <div className="week-time-col">
+              {Array.from({ length: 24 }).map((_, h) => (
+                <div key={h} className="week-time-label">
+                  {String(h).padStart(2, '0')}:00
+                </div>
+              ))}
+            </div>
 
-          {weekDays.map((day) => {
-            const dayEvents = getEventsForDate(day.dateString);
-            const allDayEvents = dayEvents.filter(e => e.allDay);
-            const timedEvents = dayEvents.filter(e => !e.allDay);
+            {/* 日ごと・時間スロット・イベントカードのレンダリング */}
+            {weekDays.map((day) => {
+              const dayEvents = getEventsForDate(day.dateString);
+              const allDayEvents = dayEvents.filter(e => e.allDay);
+              const timedEvents = dayEvents.filter(e => !e.allDay);
 
-            return (
-              <div 
-                key={day.dateString} 
-                className="week-day-col"
-                style={{
-                  backgroundColor: day.isToday ? 'rgba(var(--accent-color), 0.02)' : 'transparent',
-                }}
-              >
-                {Array.from({ length: 24 }).map((_, h) => (
-                  <div 
-                    key={h} 
-                    className="week-day-hour-slot" 
-                    onClick={() => {
-                      if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
-                        onAddEventClick(day.dateString, h);
-                      }
-                    }}
-                  />
-                ))}
+              return (
+                <div 
+                  key={day.dateString} 
+                  className="week-day-col"
+                  style={{
+                    backgroundColor: day.isToday ? 'rgba(var(--accent-color), 0.02)' : 'transparent',
+                  }}
+                >
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <div 
+                      key={h} 
+                      className="week-day-hour-slot" 
+                      onClick={() => {
+                        if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
+                          onAddEventClick(day.dateString, h);
+                        }
+                      }}
+                    />
+                  ))}
 
-                {timedEvents.map((event) => {
-                  const layout = getEventLayout(event);
-                  if (!layout) return null;
+                  {timedEvents.map((event) => {
+                    const layout = getEventLayout(event);
+                    if (!layout) return null;
 
-                  const isDragging = dragState?.event.id === event.id;
-                  const translation = getDragTranslation(event);
+                    const isDragging = dragState?.event.id === event.id;
+                    const translation = getDragTranslation(event);
 
-                  return (
+                    return (
+                      <div
+                        key={event.id}
+                        className={`week-event-card ${isDragging ? 'dragging' : ''}`}
+                        style={{
+                          top: layout.top,
+                          height: layout.height,
+                          transform: translation 
+                            ? `translate(${translation.x}px, ${translation.y}px)` 
+                            : 'none',
+                          zIndex: isDragging ? 100 : 10,
+                          touchAction: 'none',
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, event)}
+                        onTouchStart={(e) => handleTouchStart(e, event)}
+                        onTouchMove={handleTouchMove}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
+                            onEventClick(event);
+                          }
+                        }}
+                      >
+                        <div className="week-event-card-title">{event.title}</div>
+                        <div className="week-event-card-time">{layout.timeLabel}</div>
+                      </div>
+                    );
+                  })}
+
+                  {allDayEvents.map((event, idx) => (
                     <div
                       key={event.id}
-                      className={`week-event-card ${isDragging ? 'dragging' : ''}`}
+                      className="week-event-card"
                       style={{
-                        top: layout.top,
-                        height: layout.height,
-                        transform: translation 
-                          ? `translate(${translation.x}px, ${translation.y}px)` 
-                          : 'none',
-                        zIndex: isDragging ? 100 : 10,
-                        touchAction: 'none',
+                        top: idx * 24 + 2,
+                        height: 22,
+                        backgroundColor: 'var(--accent-color)',
+                        color: 'var(--bg-card)',
+                        fontSize: '9px',
+                        padding: '2px 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 15,
                       }}
-                      onMouseDown={(e) => handleMouseDown(e, event)}
-                      onTouchStart={(e) => handleTouchStart(e, event)}
-                      onTouchMove={handleTouchMove}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
+                        if (!isSwipingRef.current) {
                           onEventClick(event);
                         }
                       }}
                     >
                       <div className="week-event-card-title">{event.title}</div>
-                      <div className="week-event-card-time">{layout.timeLabel}</div>
                     </div>
-                  );
-                })}
-
-                {allDayEvents.map((event, idx) => (
-                  <div
-                    key={event.id}
-                    className="week-event-card"
-                    style={{
-                      top: idx * 24 + 2,
-                      height: 22,
-                      backgroundColor: 'var(--accent-color)',
-                      color: 'var(--bg-card)',
-                      fontSize: '9px',
-                      padding: '2px 4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 15,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isSwipingRef.current) {
-                        onEventClick(event);
-                      }
-                    }}
-                  >
-                    <div className="week-event-card-title">{event.title}</div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
