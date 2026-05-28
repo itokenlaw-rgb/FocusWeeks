@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Trash2, Copy, X } from 'lucide-react'; // ★ X アイコンを追加
+import { Trash2, Copy, X, Check } from 'lucide-react'; // ★ Check アイコンを追加
 
 interface EventFormProps {
   event: CalendarEvent | null;
@@ -97,8 +97,8 @@ export const EventForm: React.FC<EventFormProps> = ({
     return `${h}:${m}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // 共通のバリデーション・保存ロジックを関数化
+  const executeSave = () => {
     if (!title.trim()) {
       alert('タイトルを入力してください。');
       return;
@@ -131,6 +131,11 @@ export const EventForm: React.FC<EventFormProps> = ({
     });
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSave();
+  };
+
   const handleDuplicateClick = () => {
     if (event) {
       onDuplicate(event);
@@ -159,7 +164,7 @@ export const EventForm: React.FC<EventFormProps> = ({
     <div className="fullscreen-overlay active" onClick={onCancel}>
       <div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
         
-        {/* ★ 右上に「×」ボタンを配置するヘッダー領域を新設 */}
+        {/* ヘッダー領域：右上のアイコンを ☑ ボタン（保存）に変更 */}
         <div 
           className="fullscreen-header" 
           style={{ 
@@ -176,12 +181,12 @@ export const EventForm: React.FC<EventFormProps> = ({
           </span>
           <button 
             type="button" 
-            onClick={onCancel} 
+            onClick={executeSave} // ★ クリック時に保存を実行
             className="icon-btn" 
-            aria-label="閉じる"
-            style={{ color: 'var(--text-primary)' }}
+            aria-label="保存する"
+            style={{ color: 'var(--accent-color)' }} // アクセントカラーで目立たせる
           >
-            <X size={24} />
+            <Check size={24} />
           </button>
         </div>
 
@@ -210,7 +215,6 @@ export const EventForm: React.FC<EventFormProps> = ({
               />
             </div>
             
-            {/* 日時設定などの項目（必要に応じて既存のコードをそのまま配置してください） */}
             <div className="form-group-row">
               <span className="form-label">終日</span>
               <label className="toggle-switch">
@@ -263,6 +267,7 @@ export const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
             
+            {/* ボタン配置：既存の保存を残しつつ、右端に閉じるボタンを追加 */}
             <div className="button-row">
               {event && (
                 <button
@@ -286,6 +291,16 @@ export const EventForm: React.FC<EventFormProps> = ({
 
               <button type="submit" className="btn btn-primary">
                 保存
+              </button>
+
+              {/* ★ 新設：右下の「× 閉じる」ボタン */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-close-footer"
+                onClick={onCancel}
+              >
+                <X size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                閉じる
               </button>
             </div>
           </form>
