@@ -273,8 +273,21 @@ body.theme-green {
   height: 100%;
 }
 
-.panel-drag-handle { width: 40px; height: 4px; background-color: var(--border-color); border-radius: 2px; margin: 12px auto 6px; }
-.panel-header { padding: 4px 16px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+.panel-drag-handle { 
+  width: 40px; 
+  height: 4px; 
+  background-color: var(--border-color); 
+  border-radius: 2px; 
+  margin: 8px auto 2px; /* ← 上下のマージンを詰めました */
+}
+.panel-header { 
+  padding: 2px 16px 6px; /* ← 上下のパディングをギュッと狭くしました */
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  border-bottom: 1px solid var(--border-color); 
+}
+
 .panel-date-title { font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }
 .panel-body { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
 
