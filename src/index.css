@@ -546,3 +546,11 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
     transform: rotate(360deg);
   }
 }
+
+.week-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* 横スワイプ中にブラウザの「戻る・進む」ジェスチャーが暴発するのを防ぐ */
+  touch-action: pan-y; 
+}

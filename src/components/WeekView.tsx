@@ -15,6 +15,7 @@ interface WeekViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onAddEventClick: (date: string, hour: number) => void;
   onMoveEvent: (eventId: string, newStart: string, newEnd: string) => void;
+onNavigateWeek: (direction: 'prev' | 'next') => void; // 追加
 }
 
 interface DragState {
@@ -32,6 +33,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onEventClick,
   onAddEventClick,
   onMoveEvent,
+onNavigateWeek, // 追加
 }) => {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -40,7 +42,34 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingActiveRef = useRef(false);
   const dragDistanceRef = useRef(0);
+const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
 
+  const handleGridTouchStart = (e: React.TouchEvent) => {
+    // タッチされた要素がイベントカード内（week-event-card）でない場合のみスワイプ判定を開始
+    if ((e.target as HTMLElement).closest('.week-event-card')) return;
+
+    const touch = e.touches[0];
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleGridTouchEnd = (e: React.TouchEvent) => {
+    if (!swipeStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - swipeStartRef.current.x;
+    const diffY = touch.clientY - swipeStartRef.current.y;
+
+    // 誤作動を防ぐための閾値設定（横に50px以上動き、かつ縦の動きの方が小さかった場合）
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) {
+        onNavigateWeek('prev'); // 右スワイプ ＝ 前の週へ
+      } else {
+        onNavigateWeek('next'); // 左スワイプ ＝ 次の週へ
+      }
+    }
+    swipeStartRef.current = null;
+  };
   // Scroll to 8:00 AM on initial load so the user sees business hours first
   useEffect(() => {
     if (scrollRef.current) {
@@ -257,6 +286,28 @@ export const WeekView: React.FC<WeekViewProps> = ({
         }}
       >
         <div /> {/* Time column spacer */}
+
+{/* 24時間グリッドのコンテナ */}
+      <div 
+        className="scroll-content" 
+        ref={scrollRef}
+        style={{ borderTop: 'none', position: 'relative' }}
+        // ここにグリッド全体用のタッチイベントを追加します
+        onTouchStart={handleGridTouchStart}
+        onTouchEnd={handleGridTouchEnd}
+      >
+        <div 
+          className="week-grid" 
+          ref={gridRef}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => {
+            // 既存のドラッグ終了処理を呼び出しつつ、スワイプ側の処理と干渉させない
+            handleMouseUp();
+          }}
+        >
+
         {weekDays.map((day) => {
           const isSat = day.date.getDay() === 6;
           const isSun = day.date.getDay() === 0;

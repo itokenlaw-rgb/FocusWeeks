@@ -266,6 +266,29 @@ export default function App() {
     setCurrentMonth(month);
   };
 
+const handleNavigateWeek = (direction: 'prev' | 'next') => {
+    if (!focusedWeekId || weeks.length === 0) return;
+
+    // 現在表示している週のインデックスを探す
+    const currentWeekIdx = weeks.findIndex(w => w[0].dateString === focusedWeekId);
+    if (currentWeekIdx === -1) return;
+
+    let targetWeekIdx = currentWeekIdx;
+    if (direction === 'prev' && currentWeekIdx > 0) {
+      targetWeekIdx = currentWeekIdx - 1;
+    } else if (direction === 'next' && currentWeekIdx < weeks.length - 1) {
+      targetWeekIdx = currentWeekIdx + 1;
+    }
+
+    if (targetWeekIdx !== currentWeekIdx) {
+      const targetWeek = weeks[targetWeekIdx];
+      setFocusedWeekId(targetWeek[0].dateString);
+      
+      // ヘッダーの年月表示も、移動先の週の最初の日に合わせて更新
+      handleVisibleMonthChange(targetWeek[0].date.getFullYear(), targetWeek[0].date.getMonth());
+    }
+  };
+
   // Save Event Action (Insert or Update)
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
@@ -666,6 +689,7 @@ export default function App() {
             onEventClick={handleOpenEditForm}
             onAddEventClick={(date, hour) => handleOpenAddForm(date, hour)}
             onMoveEvent={handleMoveEvent}
+            onNavigateWeek={handleNavigateWeek} // 追加
           />
         )}
 
