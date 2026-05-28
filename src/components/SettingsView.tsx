@@ -7,8 +7,8 @@ interface Settings {
   focusSize: 3 | 5;
   weekStart: 'monday' | 'sunday';
   themeColor: 'monochrome' | 'red' | 'blue' | 'yellow' | 'green';
-  focusBefore: 0 | 1;      // 追加: フォーカスする前の週数
-  focusAfter: 0 | 1 | 2;   // 追加: フォーカスする後の週数
+  focusBefore: 0 | 1;
+  focusAfter: 0 | 1 | 2;
 }
 
 interface SettingsViewProps {
@@ -42,7 +42,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, themeColor });
   };
 
-  // フォーカス範囲変更用のハンドラー（合計最大4週間分のバリデーション付き）
   const handleFocusRangeChange = (type: 'before' | 'after', value: number) => {
     const nextSettings = { ...settings };
     
@@ -52,14 +51,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       nextSettings.focusAfter = value as 0 | 1 | 2;
     }
 
-    // 「前」+「現在の週(1)」+「後」の合計が 4 を超える場合
-    // 最大4週間(選択値としては前1 + 後2 = 3)に収まるようにもう片方を自動で補正
     const totalSelected = nextSettings.focusBefore + nextSettings.focusAfter;
     if (totalSelected > 3) {
       if (type === 'before') {
-        nextSettings.focusAfter = 2; // 前を1にするなら、後は自動的に最大値の2に固定
+        nextSettings.focusAfter = 2;
       } else {
-        nextSettings.focusBefore = 1; // 後を2にするなら、前は自動的に最大値の1に固定
+        nextSettings.focusBefore = 1;
       }
     }
 
@@ -67,10 +64,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    /* 1. 一番外側の背景グレー（半透明）の膜 */
     <div className="fullscreen-overlay" onClick={onClose}>
-      
-      {/* 2. 中央に配置される白いカード領域 */}
       <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
         
         {/* ヘッダー領域 */}
@@ -79,62 +73,80 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <X size={24} />
           </button>
           <span className="fullscreen-title">設定</span>
-          <div style={{ width: 40 }} /> {/* 右側の余白調整用 */}
+          <div style={{ width: 40 }} />
         </div>
 
         {/* スクロール可能な設定項目エリア */}
         <div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           
-          {/* 文字の大きさ */}
-          <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>文字の大きさ</span>
-            <div className="settings-option-list">
-              <button
-                className={`settings-option-btn ${settings.textSize === 'small' ? 'active' : ''}`}
-                onClick={() => handleTextSizeChange('small')}
-              >
-                小さめ
-              </button>
-              <button
-                className={`settings-option-btn ${settings.textSize === 'medium' ? 'active' : ''}`}
-                onClick={() => handleTextSizeChange('medium')}
-              >
-                標準
-              </button>
-              <button
-                className={`settings-option-btn ${settings.textSize === 'large' ? 'active' : ''}`}
-                onClick={() => handleTextSizeChange('large')}
-              >
-                大きめ
-              </button>
+          {/* 文字の大きさ（1行でスッキリ化） */}
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+            <span className="form-label" style={{ margin: 0 }}>文字の大きさ</span>
+            <div style={{ display: 'inline-flex', gap: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="textSize"
+                  checked={settings.textSize === 'small'}
+                  onChange={() => handleTextSizeChange('small')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                小
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="textSize"
+                  checked={settings.textSize === 'medium'}
+                  onChange={() => handleTextSizeChange('medium')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                中
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="textSize"
+                  checked={settings.textSize === 'large'}
+                  onChange={() => handleTextSizeChange('large')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                大
+              </label>
             </div>
           </div>
 
-          {/* フォーカスの大きさ */}
-          <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>フォーカスの大きさ</span>
-            <div className="settings-option-list">
-              <button
-                className={`settings-option-btn ${settings.focusSize === 3 ? 'active' : ''}`}
-                onClick={() => handleFocusSizeChange(3)}
-              >
-                3倍
-              </button>
-              <button
-                className={`settings-option-btn ${settings.focusSize === 5 ? 'active' : ''}`}
-                onClick={() => handleFocusSizeChange(5)}
-              >
-                5倍
-              </button>
+          {/* フォーカスの大きさ（1行でスッキリ化） */}
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+            <span className="form-label" style={{ margin: 0 }}>フォーカスの大きさ</span>
+            <div style={{ display: 'inline-flex', gap: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="focusSize"
+                  checked={settings.focusSize === 3}
+                  onChange={() => handleFocusSizeChange(3)}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                小
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="focusSize"
+                  checked={settings.focusSize === 5}
+                  onChange={() => handleFocusSizeChange(5)}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                大
+              </label>
             </div>
           </div>
 
-          {/* 新設：フォーカスの対象（範囲設定） */}
+          {/* フォーカスの対象 */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>フォーカスの対象</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              
-              {/* ●週前の選択 */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', minWidth: '70px' }}>基準週より前</span>
                 <div className="settings-option-list" style={{ flex: 1, margin: 0 }}>
@@ -149,8 +161,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   ))}
                 </div>
               </div>
-
-              {/* ●週後の選択 */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', minWidth: '70px' }}>基準週より後</span>
                 <div className="settings-option-list" style={{ flex: 1, margin: 0 }}>
@@ -165,63 +175,65 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* 週の開始日 */}
-          <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>週の開始日</span>
-            <div className="settings-option-list">
-              <button
-                className={`settings-option-btn ${settings.weekStart === 'monday' ? 'active' : ''}`}
-                onClick={() => handleWeekStartChange('monday')}
-              >
-                月曜日
-              </button>
-              <button
-                className={`settings-option-btn ${settings.weekStart === 'sunday' ? 'active' : ''}`}
-                onClick={() => handleWeekStartChange('sunday')}
-              >
-                日曜日
-              </button>
+          {/* 週の開始日（1行でスッキリ化） */}
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+            <span className="form-label" style={{ margin: 0 }}>週の開始日</span>
+            <div style={{ display: 'inline-flex', gap: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="weekStart"
+                  checked={settings.weekStart === 'sunday'}
+                  onChange={() => handleWeekStartChange('sunday')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                日曜
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="weekStart"
+                  checked={settings.weekStart === 'monday'}
+                  onChange={() => handleWeekStartChange('monday')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                月曜
+              </label>
             </div>
           </div>
 
           {/* 表示カラー */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>表示カラー</span>
-            <div className="settings-option-list">
+            <div className="color-dot-container">
               <button
-                className={`settings-option-btn ${settings.themeColor === 'blue' ? 'active' : ''}`}
-                onClick={() => handleThemeColorChange('blue')}
-              >
-                ブルー
-              </button>
-              <button
-                className={`settings-option-btn ${settings.themeColor === 'green' ? 'active' : ''}`}
-                onClick={() => handleThemeColorChange('green')}
-              >
-                グリーン
-              </button>
-              <button
-                className={`settings-option-btn ${settings.themeColor === 'red' ? 'active' : ''}`}
-                onClick={() => handleThemeColorChange('red')}
-              >
-                レッド
-              </button>
-              <button
-                className={`settings-option-btn ${settings.themeColor === 'yellow' ? 'active' : ''}`}
-                onClick={() => handleThemeColorChange('yellow')}
-              >
-                イエロー
-              </button>
-              <button
-                className={`settings-option-btn ${settings.themeColor === 'monochrome' ? 'active' : ''}`}
+                className={`color-dot-btn monochrome ${settings.themeColor === 'monochrome' ? 'active' : ''}`}
                 onClick={() => handleThemeColorChange('monochrome')}
-              >
-                モノクロ
-              </button>
+                title="モノクロ"
+              />
+              <button
+                className={`color-dot-btn red ${settings.themeColor === 'red' ? 'active' : ''}`}
+                onClick={() => handleThemeColorChange('red')}
+                title="赤系"
+              />
+              <button
+                className={`color-dot-btn blue ${settings.themeColor === 'blue' ? 'active' : ''}`}
+                onClick={() => handleThemeColorChange('blue')}
+                title="青系"
+              />
+              <button
+                className={`color-dot-btn yellow ${settings.themeColor === 'yellow' ? 'active' : ''}`}
+                onClick={() => handleThemeColorChange('yellow')}
+                title="黄系"
+              />
+              <button
+                className={`color-dot-btn green ${settings.themeColor === 'green' ? 'active' : ''}`}
+                onClick={() => handleThemeColorChange('green')}
+                title="緑系"
+              />
             </div>
           </div>
 
@@ -238,7 +250,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   style={{ width: '100%', marginTop: 8 }}
                   onClick={onLogout}
                 >
-                  <LogOut size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                   連携解除
                 </button>
               </div>
@@ -252,7 +263,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   style={{ width: '100%', marginTop: 8 }}
                   onClick={requestAccessToken}
                 >
-                  <LogIn size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                   Googleでログイン
                 </button>
               </div>
