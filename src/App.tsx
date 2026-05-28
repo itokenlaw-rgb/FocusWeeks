@@ -14,7 +14,6 @@ import {
   deleteGoogleEvent
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
-import { Settings as SettingsIcon, Plus, ChevronDown } from 'lucide-react';
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw } from 'lucide-react';
 
 // Get ISO Date format string in Local Time zone (YYYY-MM-DD)
@@ -91,12 +90,9 @@ export default function App() {
     };
   }); 
 
-// 2. 同期中（ローディング）の状態を管理
-const [isSyncing, setIsSyncing] = useState(false);
+  // 同期中（ローディング）の状態を管理
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // ----------------------------------------------------
-  // ★ 追加する useEffect（useState の外側に独立して配置します）
-  // ----------------------------------------------------
   useEffect(() => {
     // 一度関係するクラスをすべて削除
     document.body.classList.remove(
@@ -108,7 +104,6 @@ const [isSyncing, setIsSyncing] = useState(false);
     document.body.classList.add(`theme-${settings.themeColor}`);
     document.body.classList.add(`size-${settings.textSize}`);
   }, [settings.themeColor, settings.textSize]);
-  // ----------------------------------------------------
 
   // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -151,10 +146,10 @@ const [isSyncing, setIsSyncing] = useState(false);
     return saved ? JSON.parse(saved) : [];
   });
 
-  // ★ 現在時刻を管理するState
+  // 現在時刻を管理するState
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // ★ 1秒ごとに時刻を更新するタイマー
+  // 1秒ごとに時刻を更新するタイマー
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -162,7 +157,7 @@ const [isSyncing, setIsSyncing] = useState(false);
     return () => clearInterval(timer);
   }, []);
 
-  // ★ 時刻を「00:00」形式にするフォーマット関数
+  // 時刻を「00:00」形式にするフォーマット関数
   const formatTime = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -190,6 +185,7 @@ const [isSyncing, setIsSyncing] = useState(false);
     setGoogleToken(token);
     localStorage.setItem('google_access_token', token);
     localStorage.setItem('google_token_expires_at', String(expiresAt));
+    // ログイン直後のみ最新の状態にするため自動同期を走らせます
     syncEvents(token);
   }, []);
 
@@ -211,48 +207,6 @@ const [isSyncing, setIsSyncing] = useState(false);
 
   // Sync Google Events
   const syncEvents = async (token: string) => {
-    try {
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(today.getDate() - 12 * 7);
-      const end = new Date(today);
-      end.setDate(today.getDate() + 42 * 7);
-
-      const items = await fetchGoogleEvents(token, start.toISOString(), end.toISOString());
-      setEvents(items);
-      localStorage.setItem('focusweeks_events', JSON.stringify(items));
-    } catch (error: any) {
-      if (error.message === 'UNAUTHORIZED') {
-        handleLogout();
-      } else {
-        console.error('Error syncing events:', error);
-      }
-    }
-  };
-
-  // Sync periodic check
-  useEffect(() => {
-    if (googleToken) {
-      syncEvents(googleToken);
-    }
-  }, [googleToken]);
-
-  // Select a day (Month View)
-  const handleSelectDay = (dateString: string, weekStartDate: string) => {
-    // 条件：ボトムパネルが既に開いていて、かつ「同じ日」または「同じフォーカス週」をタップした場合
-    // 「完全に同じ日」をもう一度タップしたら閉じる場合の判定
-    if (isBottomPanelOpen && selectedDate === dateString) {
-      setSelectedDate(null);
-      setIsBottomPanelOpen(false);
-    } else {
-      setSelectedDate(dateString);
-      setFocusedWeekId(weekStartDate);
-      setIsBottomPanelOpen(true);
-    }
-  };
-
-
-const syncEvents = async (token: string) => {
     setIsSyncing(true); // 同期開始
     try {
       const today = new Date();
@@ -271,14 +225,31 @@ const syncEvents = async (token: string) => {
         console.error('Error syncing events:', error);
       }
     } finally {
-      setIsSyncing(false); // 同期終了（成否に関わらず完了）
+      setIsSyncing(false); // 同期終了
     }
   };
-const handleManualSync = () => {
+
+  // 【通信節約】アプリ起動時やトークン変更時の「自動同期トリガー」のuseEffectは完全に削除しました。
+  // これにより、手動で更新ボタンを押さない限り自動で通信が走ることはありません。
+
+  // 手動同期ボタンのハンドラー
+  const handleManualSync = () => {
     if (googleToken) {
       syncEvents(googleToken);
     } else {
       alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
+    }
+  };
+
+  // Select a day (Month View)
+  const handleSelectDay = (dateString: string, weekStartDate: string) => {
+    if (isBottomPanelOpen && selectedDate === dateString) {
+      setSelectedDate(null);
+      setIsBottomPanelOpen(false);
+    } else {
+      setSelectedDate(dateString);
+      setFocusedWeekId(weekStartDate);
+      setIsBottomPanelOpen(true);
     }
   };
 
@@ -481,13 +452,12 @@ const handleManualSync = () => {
         </div>
       )}
 
-      {/* Header —— 右側のボタン並び順を変更 */}
+      {/* Header */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
             <span className="header-year">{currentYear}年</span>
             
-            {/* 「◯月」ボタンと「現在時刻」をきれいに横並びにするコンテナ構造 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button 
                 className="header-month icon-btn" 
@@ -498,7 +468,7 @@ const handleManualSync = () => {
                 <ChevronDown size={16} />
               </button>
 
-              {/* 現在時刻のデジタル時計表示を追加 */}
+              {/* 現在時刻のデジタル時計表示 */}
               <span 
                 style={{ 
                   fontSize: 'var(--text-md)', 
@@ -569,9 +539,9 @@ const handleManualSync = () => {
           </div>
         </div>
 
-        {/* 検索を削除し、「今日」・「月週切り替え」・「設定」の順に配置 */}
+        {/* ヘッダー右側コントロール */}
         <div className="header-right">
-          {/* 今日ボタン (背景を少し透過した白にして文字を反転) */}
+          {/* 今日ボタン */}
           <button 
             className="switch-btn" 
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'var(--bg-card)', padding: '6px 12px' }}
@@ -598,7 +568,7 @@ const handleManualSync = () => {
             今日
           </button>
           
-          {/* 月週の切り替えスイッチ (外枠を少し明るく調整) */}
+          {/* 月週の切り替えスイッチ */}
           <div className="view-switch" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <button 
               className={`switch-btn ${view === 'month' ? 'active' : ''}`}
@@ -616,13 +586,13 @@ const handleManualSync = () => {
             </button>
           </div>
 
-{/* 同期更新ボタン（「月・週」ボタンと「設定」ボタンの間） */}
+          {/* 同期更新ボタン */}
           <button 
             className={`icon-btn sync-btn ${isSyncing ? 'spinning' : ''}`}
             onClick={handleManualSync}
             disabled={isSyncing}
             aria-label="Googleカレンダーと同期"
-            style={{ opacity: googleToken ? 1 : 0.4 }} // ログインしていない時は薄くする
+            style={{ opacity: googleToken ? 1 : 0.4 }}
           >
             <RefreshCw size={18} />
           </button>
