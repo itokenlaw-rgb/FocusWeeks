@@ -79,15 +79,18 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   // 【修正】タッチ終了時に安全に週移動をトリガー
-  const handleContainerTouchEnd = (e: React.TouchEvent) => {
-    if (!swipeStartRef.current) return;
-
-    // 予定の長押しドラッグ中だった場合はスワイプを無視
-    if (isDraggingActiveRef.current) {
-      swipeStartRef.current = null;
-      isSwipingRef.current = false;
+// 最外殻（week-container）または全体のタッチ開始処理
+  const handleContainerTouchStart = (e: React.TouchEvent) => {
+    // 予定カードのドラッグ（長押し）がすでにアクティブな場合はスワイプさせない
+    // 【修正】 (e.target as HTMLElement) の括弧の組み方を修正
+    if (isDraggingActiveRef.current || (e.target as HTMLElement).closest('.week-event-card')) {
       return;
     }
+
+    const touch = e.touches[0];
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+    isSwipingRef.current = false;
+  };
 
     const touch = e.changedTouches[0];
     const diffX = touch.clientX - swipeStartRef.current.x;
