@@ -176,19 +176,32 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
 
-                // ── 6月→7月の境目を階段状太線で強調 ─────────────────────
-let borderClasses = '';
-const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-if (dayOfMonth === lastDayOfMonth - 1 || dayOfMonth === lastDayOfMonth) {
-  // 月末から2日：下線
-  borderClasses = ' border-bottom-thick';
-} else if (dayOfMonth === 1) {
-  // 1日：左線
-  borderClasses = ' border-left-thick';
-} else if (dayOfMonth >= 1 && dayOfMonth <= 5) {
-  // 2〜4日（土曜まで）：上線
-  borderClasses = ' border-top-thick';
-}
+// ── 月の境目を階段状太線で強調（月曜始まり・日曜始まり両対応） ──
+                let borderClasses = '';
+                
+                try {
+                  // 1. 下線の判定：明日になったら月が変わる（月末日）なら、セルの下に太線
+                  const tomorrow = new Date(year, month, dayOfMonth + 1);
+                  if (tomorrow.getMonth() !== month) {
+                    borderClasses += ' border-bottom-thick';
+                  }
+
+                  // 2. 左線の判定：1日（月初）の場合、左側に太線
+                  // ※ただし、1日が週の先頭（月曜）の場合はカレンダーの外枠とかぶるので引かない、とする場合は「&& dayOfWeek !== 1」を足してください
+                  if (dayOfMonth === 1) {
+                    borderClasses += ' border-left-thick';
+                  }
+
+                  // 3. 上線の判定：自分が「新月（翌月）」のエリアに入っており、かつ「1日の曜日」に追いつくまでの間
+                  // つまり、1日より左側にある「翌月の数日間」の上側に太線を引く
+                  if (!isCurrentMonth && date > new Date(year, month, 1)) {
+                    // 月曜始まりの場合、1日の前日（月末）がその週のどこにあるかで上線を引く範囲が決まります
+                    // ここではシンプルに「今見ているセルの月」が、カレンダー上の当月より未来（翌月）であれば上線を引く
+                    borderClasses += ' border-top-thick';
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
 
                 // この日のイベント一覧
                 const dayEvents = events.filter(
