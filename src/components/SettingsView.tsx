@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, LogIn, LogOut } from 'lucide-react';
+import { X } from 'lucide-react'; // 未使用の LogIn, LogOut を削除
 import { requestAccessToken } from '../utils/googleCalendar';
 
 interface Settings {
