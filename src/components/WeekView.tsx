@@ -47,10 +47,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const isSwipingRef = useRef(false);
 
-  // 【修正】最外殻（week-container）または全体のタッチ開始処理
+  // 最外殻（week-container）または全体のタッチ開始処理
   const handleContainerTouchStart = (e: React.TouchEvent) => {
     // 予定カードのドラッグ（長押し）がすでにアクティブな場合はスワイプさせない
-    if (isDraggingActiveRef.current || e.target as HTMLElement).closest('.week-event-card')) {
+    if (isDraggingActiveRef.current || (e.target as HTMLElement).closest('.week-event-card')) {
       return;
     }
 
@@ -59,7 +59,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
     isSwipingRef.current = false;
   };
 
-  // 【修正】タッチ移動時の制御（縦スクロールと横スワイプの競合を防ぐ）
+  // タッチ移動時の制御（縦スクロールと横スワイプの競合を防ぐ）
   const handleContainerTouchMove = (e: React.TouchEvent) => {
     if (!swipeStartRef.current || isDraggingActiveRef.current) return;
 
@@ -78,19 +78,16 @@ export const WeekView: React.FC<WeekViewProps> = ({
     }
   };
 
-  // 【修正】タッチ終了時に安全に週移動をトリガー
-// 最外殻（week-container）または全体のタッチ開始処理
-  const handleContainerTouchStart = (e: React.TouchEvent) => {
-    // 予定カードのドラッグ（長押し）がすでにアクティブな場合はスワイプさせない
-    // 【修正】 (e.target as HTMLElement) の括弧の組み方を修正
-    if (isDraggingActiveRef.current || (e.target as HTMLElement).closest('.week-event-card')) {
+  // タッチ終了時に安全に週移動をトリガー
+  const handleContainerTouchEnd = (e: React.TouchEvent) => {
+    if (!swipeStartRef.current) return;
+
+    // 予定の長押しドラッグ中だった場合はスワイプを無視
+    if (isDraggingActiveRef.current) {
+      swipeStartRef.current = null;
+      isSwipingRef.current = false;
       return;
     }
-
-    const touch = e.touches[0];
-    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
-    isSwipingRef.current = false;
-  };
 
     const touch = e.changedTouches[0];
     const diffX = touch.clientX - swipeStartRef.current.x;
@@ -292,8 +289,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   return (
-    // 【修正箇所】最外枠の container でスワイプイベントを一括検知。
-    // かつ、CSSでの意図しないブラウザジェスチャー暴発を防ぐ。
     <div 
       className="week-container"
       onTouchStart={handleContainerTouchStart}
@@ -350,7 +345,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         })}
       </div>
 
-      {/* 【修正箇所】scroll-content の onTouchStart / onTouchEnd は不要になったため削除 */}
       <div 
         className="scroll-content" 
         ref={scrollRef}
@@ -365,7 +359,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onTouchMove={handleTouchMove}
-          onTouchEnd={handleMouseUp} // ドラッグ終了処理に統一
+          onTouchEnd={handleMouseUp}
         >
           <div className="week-time-col">
             {Array.from({ length: 24 }).map((_, h) => (
