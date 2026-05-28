@@ -6,13 +6,14 @@ interface MonthViewProps {
   events: CalendarEvent[];
   selectedDate: string | null;
   focusedWeekId: string | null; 
+  // 👇 ここを新構造の Settings 型（あるいはSettingsViewからimport）に合わせます
   settings: {
     textSize: string;
     focusSize: number;
     weekStart: 'monday' | 'sunday';
     themeColor: string;
-    focusBefore: number; 
-    focusAfter: number;  
+    focusSize3: { before: number; after: number }; // 追加
+    focusSize5: { before: number; after: number }; // 追加
   };
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
