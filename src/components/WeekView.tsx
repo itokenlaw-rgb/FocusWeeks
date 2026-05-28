@@ -45,7 +45,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleGridTouchStart = (e: React.TouchEvent) => {
-    // タッチされた要素がイベントカード内（week-event-card）でない場合のみスワイプ判定を開始
     if ((e.target as HTMLElement).closest('.week-event-card')) return;
 
     const touch = e.touches[0];
@@ -59,19 +58,17 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const diffX = touch.clientX - swipeStartRef.current.x;
     const diffY = touch.clientY - swipeStartRef.current.y;
 
-    // 誤作動を防ぐための閾値設定（横に50px以上動き、かつ縦の動きの方が小さかった場合）
     const SWIPE_THRESHOLD = 50;
     if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX > 0) {
-        onNavigateWeek('prev'); // 右スワイプ ＝ 前の週へ
+        onNavigateWeek('prev');
       } else {
-        onNavigateWeek('next'); // 左スワイプ ＝ 次の週へ
+        onNavigateWeek('next');
       }
     }
     swipeStartRef.current = null;
   };
 
-  // Scroll to 8:00 AM on initial load so the user sees business hours first
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 8 * 60 - 20;
@@ -87,7 +84,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
     return days[date.getDay()];
   };
 
-  // Calculate top & height for event cards in the 24h view
   const getEventLayout = (event: CalendarEvent) => {
     if (event.allDay) {
       return {
@@ -122,13 +118,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
     }
   };
 
-  // Drag and Drop Logic
   const handleDragStart = (clientX: number, clientY: number, event: CalendarEvent) => {
     dragDistanceRef.current = 0;
     isDraggingActiveRef.current = false;
     touchStartPosRef.current = { x: clientX, y: clientY };
 
-    // Set long press timer (350ms)
     longPressTimerRef.current = setTimeout(() => {
       isDraggingActiveRef.current = true;
       setDragState({
@@ -213,7 +207,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
     touchStartPosRef.current = null;
   };
 
-  // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent, event: CalendarEvent) => {
     if (e.button !== 0) return;
     handleDragStart(e.clientX, e.clientY, event);
@@ -227,7 +220,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
     handleDragEnd();
   };
 
-  // Touch Handlers
   const handleTouchStart = (e: React.TouchEvent, event: CalendarEvent) => {
     const touch = e.touches[0];
     handleDragStart(touch.clientX, touch.clientY, event);
@@ -241,11 +233,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
     handleDragMove(touch.clientX, touch.clientY);
   };
 
-  const handleTouchEnd = () => {
-    handleDragEnd();
-  };
-
-  // Calculate visual translation for active dragging
   const getDragTranslation = (event: CalendarEvent) => {
     if (!dragState || dragState.event.id !== event.id || !gridRef.current) return null;
 
@@ -267,7 +254,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   return (
     <div className="week-container">
-      {/* Sticky header showing day names and dates */}
       <div 
         className="weekday-header"
         style={{
@@ -278,7 +264,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
           zIndex: 10,
         }}
       >
-        <div /> {/* Time column spacer */}
+        <div />
         {weekDays.map((day) => {
           const isSat = day.date.getDay() === 6;
           const isSun = day.date.getDay() === 0;
@@ -317,7 +303,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         })}
       </div>
 
-      {/* Scrollable 24-hour grid */}
       <div 
         className="scroll-content" 
         ref={scrollRef}
@@ -334,11 +319,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onTouchMove={handleTouchMove}
-          onTouchEnd={(e) => {
+          onTouchEnd={() => {
             handleMouseUp();
           }}
         >
-          {/* Time Sidebar */}
           <div className="week-time-col">
             {Array.from({ length: 24 }).map((_, h) => (
               <div key={h} className="week-time-label">
@@ -347,7 +331,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
             ))}
           </div>
 
-          {/* 7 Columns */}
           {weekDays.map((day) => {
             const dayEvents = getEventsForDate(day.dateString);
             const allDayEvents = dayEvents.filter(e => e.allDay);
@@ -361,7 +344,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   backgroundColor: day.isToday ? 'rgba(var(--accent-color), 0.02)' : 'transparent',
                 }}
               >
-                {/* 24 slots for direct clicking to add */}
                 {Array.from({ length: 24 }).map((_, h) => (
                   <div 
                     key={h} 
@@ -374,7 +356,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   />
                 ))}
 
-                {/* Render Timed Events */}
                 {timedEvents.map((event) => {
                   const layout = getEventLayout(event);
                   if (!layout) return null;
@@ -410,7 +391,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   );
                 })}
 
-                {/* Render All Day Events stacked at the very top (first slot) */}
                 {allDayEvents.map((event, idx) => (
                   <div
                     key={event.id}
