@@ -532,3 +532,18 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
 .day-cell.border-top-thick {
   border-top: 2px solid var(--border-thick) !important;
 }
+
+/* 同期ボタンの回転アニメーション設定 */
+.sync-btn.spinning {
+  animation: spin 1s linear infinite;
+  pointer-events: none; /* 連打防止 */
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

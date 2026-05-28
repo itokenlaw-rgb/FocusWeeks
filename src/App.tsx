@@ -15,6 +15,7 @@ import {
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
 import { Settings as SettingsIcon, Plus, ChevronDown } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw } from 'lucide-react';
 
 // Get ISO Date format string in Local Time zone (YYYY-MM-DD)
 const getFormattedDateString = (d: Date): string => {
@@ -89,6 +90,9 @@ export default function App() {
       themeColor: 'blue',
     };
   }); 
+
+// 2. 同期中（ローディング）の状態を管理
+const [isSyncing, setIsSyncing] = useState(false);
 
   // ----------------------------------------------------
   // ★ 追加する useEffect（useState の外側に独立して配置します）
@@ -244,6 +248,37 @@ export default function App() {
       setSelectedDate(dateString);
       setFocusedWeekId(weekStartDate);
       setIsBottomPanelOpen(true);
+    }
+  };
+
+
+const syncEvents = async (token: string) => {
+    setIsSyncing(true); // 同期開始
+    try {
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - 12 * 7);
+      const end = new Date(today);
+      end.setDate(today.getDate() + 42 * 7);
+
+      const items = await fetchGoogleEvents(token, start.toISOString(), end.toISOString());
+      setEvents(items);
+      localStorage.setItem('focusweeks_events', JSON.stringify(items));
+    } catch (error: any) {
+      if (error.message === 'UNAUTHORIZED') {
+        handleLogout();
+      } else {
+        console.error('Error syncing events:', error);
+      }
+    } finally {
+      setIsSyncing(false); // 同期終了（成否に関わらず完了）
+    }
+  };
+const handleManualSync = () => {
+    if (googleToken) {
+      syncEvents(googleToken);
+    } else {
+      alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
     }
   };
 
@@ -580,6 +615,17 @@ export default function App() {
               週
             </button>
           </div>
+
+{/* 同期更新ボタン（「月・週」ボタンと「設定」ボタンの間） */}
+          <button 
+            className={`icon-btn sync-btn ${isSyncing ? 'spinning' : ''}`}
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            aria-label="Googleカレンダーと同期"
+            style={{ opacity: googleToken ? 1 : 0.4 }} // ログインしていない時は薄くする
+          >
+            <RefreshCw size={18} />
+          </button>
 
           {/* 設定ボタン */}
           <button 
