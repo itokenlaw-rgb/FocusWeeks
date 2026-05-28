@@ -166,7 +166,7 @@ export const EventForm: React.FC<EventFormProps> = ({
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            padding: '16px 20px',
+            padding: '10px 16px',
             borderBottom: '1px solid var(--border-color)',
             backgroundColor: 'var(--bg-card)'
           }}
