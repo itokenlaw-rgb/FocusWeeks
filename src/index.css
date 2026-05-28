@@ -554,3 +554,49 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
   /* 横スワイプ中にブラウザの「戻る・進む」ジェスチャーが暴発するのを防ぐ */
   touch-action: pan-y; 
 }
+
+/* --- 週表示のスライドアニメーション --- */
+
+/* カレンダー全体を包むラッパーの基本スタイル */
+.week-animate-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+/* 通常（静止時）またはアニメーション完了時 */
+.week-animate-wrapper.none {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* 次の週へ（左へフェードアウト） */
+.week-animate-wrapper.slide-out-left {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+/* 前の週へ（右へフェードアウト） */
+.week-animate-wrapper.slide-out-right {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+/* 右側から入ってくる（アニメーションなしで一瞬で右外に配置） */
+.week-animate-wrapper.slide-in-right {
+  transition: none;
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+/* 左側から入ってくる（アニメーションなしで一瞬で左外に配置） */
+.week-animate-wrapper.slide-in-left {
+  transition: none;
+  transform: translateX(-30px);
+  opacity: 0;
+}
