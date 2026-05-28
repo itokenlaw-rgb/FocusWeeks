@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 // App.tsx から渡されるすべてのプロパティと型を完全に一致させます
 interface MonthViewProps {
@@ -18,6 +18,36 @@ interface MonthViewProps {
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
 
+// ── イベントを時間帯別に5スロットへ振り分ける ──────────────────────────────
+// スロット: 0=深夜〜9時前, 1=9〜12時, 2=12〜15時, 3=15〜18時, 4=18時以降
+// 終日イベントはスロット0に配置
+const getEventSlotIndex = (event: any): number => {
+  if (event.allDay) return 0;
+  try {
+    const hours = new Date(event.start).getHours();
+    if (hours < 9)  return 0;
+    if (hours < 12) return 1;
+    if (hours < 15) return 2;
+    if (hours < 18) return 3;
+    return 4;
+  } catch {
+    return 0;
+  }
+};
+
+// ── イベントの開始時刻を "HH:MM"（終日は "終日"）で返す ────────────────────
+const formatEventTime = (event: any): string => {
+  if (event.allDay) return '終日';
+  try {
+    const d = new Date(event.start);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  } catch {
+    return '';
+  }
+};
+
 export const MonthView: React.FC<MonthViewProps> = ({
   weeks,
   events,
@@ -29,104 +59,216 @@ export const MonthView: React.FC<MonthViewProps> = ({
   duplicateMode,
   onPasteDuplicate,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastNotifiedMonth = useRef<{ year: number; month: number } | null>(null);
+
+  // ── 初期表示時に「今日」の週へ自動スクロール ───────────────────────────────
+  useEffect(() => {
+    const scrollToToday = () => {
+      const todayStr = new Date().toISOString().substring(0, 10);
+      const allWeekEls = containerRef.current?.querySelectorAll('.calendar-week');
+      if (!allWeekEls) return;
+
+      for (let i = 0; i < allWeekEls.length; i++) {
+        const el = allWeekEls[i] as HTMLElement;
+        const containsAttr = el.getAttribute('data-contains-date') || '';
+        if (containsAttr.split(',').includes(todayStr)) {
+          el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          break;
+        }
+      }
+    };
+
+    const timer = setTimeout(scrollToToday, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ── クリーンアップ ────────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
+
+  // ── スクロール中、画面中央の週から表示月を検出して通知 ───────────────────
+  const handleScroll = () => {
+    isScrollingRef.current = true;
+    if (!containerRef.current) return;
+
+    const container = containerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const centerY = containerRect.top + containerRect.height / 2;
+
+    const weekElements = container.querySelectorAll('.calendar-week');
+    let middleWeekEl: Element | null = null;
+
+    for (let i = 0; i < weekElements.length; i++) {
+      const rect = weekElements[i].getBoundingClientRect();
+      if (rect.top <= centerY && rect.bottom >= centerY) {
+        middleWeekEl = weekElements[i];
+        break;
+      }
+    }
+
+    if (middleWeekEl) {
+      const weekIndexAttr = middleWeekEl.getAttribute('data-week-index');
+      if (weekIndexAttr !== null) {
+        const weekIndex = parseInt(weekIndexAttr, 10);
+        const week = weeks[weekIndex];
+        if (week && week.length > 3) {
+          const middleDate: Date = week[3].date;
+          const targetYear  = middleDate.getFullYear();
+          const targetMonth = middleDate.getMonth();
+
+          if (
+            !lastNotifiedMonth.current ||
+            lastNotifiedMonth.current.year  !== targetYear ||
+            lastNotifiedMonth.current.month !== targetMonth
+          ) {
+            lastNotifiedMonth.current = { year: targetYear, month: targetMonth };
+            onVisibleMonthChange(targetYear, targetMonth);
+          }
+        }
+      }
+    }
+
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+    }, 150);
+  };
+
   return (
-    <div 
-      className="month-container"
-      data-text-size={settings.textSize} // settings を自然に使用してエラーを回避
+    <div
+      className="scroll-content"
+      data-text-size={settings.textSize}
+      ref={containerRef}
+      onScroll={handleScroll}
     >
-      {weeks.map((week, weekIndex) => {
-        // この週の最初の日の日付文字列を取得（App.tsx 側への動作用）
-        const weekStartDateStr = week[0]?.dateString || '';
-        const isWeekFocused = focusedWeekId === weekStartDateStr;
+      <div className="month-container">
+        {weeks.map((week, weekIndex) => {
+          const weekStartDateStr = week[0]?.dateString || '';
+          const isWeekFocused   = focusedWeekId === weekStartDateStr;
+          const containsDates   = week.map((d: any) => d.dateString).join(',');
 
-        return (
-          <div 
-            key={weekIndex} 
-            className={`calendar-week ${isWeekFocused ? 'focused' : ''}`}
-            data-contains-date={week.map(d => d.dateString).join(',')}
-          >
-            {week.map((dayObj) => {
-              const { date, dateString, isCurrentMonth, isToday } = dayObj;
-              const isOtherMonth = !isCurrentMonth;
-              
-              // dayObj.date から年・月・日を取得
-              const year = date.getFullYear();
-              const month = date.getMonth(); // 0-11
-              const dayOfMonth = date.getDate();
+          return (
+            <div
+              key={weekIndex}
+              className={`calendar-week ${isWeekFocused ? 'focused' : ''}`}
+              data-week-id={weekStartDateStr}
+              data-week-index={weekIndex}
+              data-contains-date={containsDates}
+              style={{
+                '--focus-height-multiplier': settings.focusSize,
+              } as React.CSSProperties}
+            >
+              {week.map((dayObj: any) => {
+                const { date, dateString, isCurrentMonth, isToday } = dayObj;
+                const isOtherMonth = !isCurrentMonth;
 
-              // 土日の判定（曜日: 0=日, 6=土）
-              const dayOfWeek = date.getDay();
-              const isSat = dayOfWeek === 6;
-              const isSun = dayOfWeek === 0;
+                const year       = date.getFullYear();
+                const month      = date.getMonth(); // 0-11
+                const dayOfMonth = date.getDate();
+                const dayOfWeek  = date.getDay();
+                const isSat      = dayOfWeek === 6;
+                const isSun      = dayOfWeek === 0;
+                const isSelected = selectedDate === dateString;
 
-              // --- 【１】６月と７月の境目を階段状に太線にする判定 ---
-              let borderClasses = '';
-              if (dateString === '2026-06-29' || dateString === '2026-06-30') {
-                borderClasses = ' border-bottom-thick';
-              } else if (dateString === '2026-07-01') {
-                borderClasses = ' border-left-thick';
-              } else if (year === 2026 && month === 6 && dayOfMonth >= 2 && dayOfMonth <= 4) {
-                // 7月2日〜7月4日（土曜日まで）のセルには上線を引く
-                borderClasses = ' border-top-thick';
-              }
+                // ── 6月→7月の境目を階段状太線で強調 ─────────────────────
+                let borderClasses = '';
+                if (dateString === '2026-06-29' || dateString === '2026-06-30') {
+                  borderClasses = ' border-bottom-thick';
+                } else if (dateString === '2026-07-01') {
+                  borderClasses = ' border-left-thick';
+                } else if (year === 2026 && month === 6 && dayOfMonth >= 2 && dayOfMonth <= 4) {
+                  borderClasses = ' border-top-thick';
+                }
 
-              // セルの選択状態クラス
-              const isSelected = selectedDate === dateString;
+                // この日のイベント一覧
+                const dayEvents = events.filter(
+                  e => e.start.substring(0, 10) === dateString
+                );
 
-              return (
-                <div
-                  key={dateString}
-                  className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
-                  onClick={() => {
-                    // 月が変わる可能性のある位置をタップした際、安全にヘッダー表示を更新
-                    onVisibleMonthChange(year, month);
-                    
-                    if (duplicateMode) {
-                      onPasteDuplicate(dateString);
-                    } else {
-                      onSelectDay(dateString, weekStartDateStr);
-                    }
-                  }}
-                >
-                  <div className="day-num">
-                    {(() => {
-                      // 【２】29日の上の「7月」を消す（2026-06-29の場合は「29」だけ表示）
-                      if (dateString === '2026-06-29') {
-                        return '29';
+                return (
+                  <div
+                    key={dateString}
+                    className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
+                    onClick={() => {
+                      onVisibleMonthChange(year, month);
+                      if (duplicateMode) {
+                        onPasteDuplicate(dateString);
+                      } else {
+                        onSelectDay(dateString, weekStartDateStr);
                       }
+                    }}
+                  >
+                    {/* 日付数字 */}
+                    <div className="day-num">
+                      {(() => {
+                        if (dateString === '2026-06-29') return '29';
+                        if (dayOfMonth === 1) return `${month + 1}月1日`;
+                        return dayOfMonth;
+                      })()}
+                    </div>
 
-                      // 【３】7月1日の場合は改行せず「7月1日」と横並びで表示
-                      if (dayOfMonth === 1) {
-                        return `${month + 1}月1日`;
-                      }
-
-                      // 通常の日は日にちのみ表示
-                      return dayOfMonth;
-                    })()}
-                  </div>
-                  
-                  {/* 予定（イベント）の表示エリア（App.tsx の構造に追従） */}
-                  <div className={isWeekFocused ? "day-events-focused" : "day-events-compact"}>
-                    {events
-                      .filter(e => e.start.substring(0, 10) === dateString)
-                      .slice(0, isWeekFocused ? 5 : 3)
-                      .map((event, idx) => (
-                        <div 
-                          key={event.id || idx} 
-                          className={isWeekFocused ? "day-time-slot" : "compact-event"}
-                        >
-                          <div className={isWeekFocused ? "focused-event" : ""}>
+                    {/* ── フォーカス週：時間スロット5分割で表示 ── */}
+                    {isWeekFocused ? (
+                      <div
+                        className="day-events-focused"
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 24px)' }}
+                      >
+                        {Array.from({ length: 5 }).map((_, slotIdx) => {
+                          const slotEvents = dayEvents.filter(
+                            e => getEventSlotIndex(e) === slotIdx
+                          );
+                          return (
+                            <div key={slotIdx} className="day-time-slot">
+                              {slotEvents.slice(0, 1).map(event => (
+                                <div
+                                  key={event.id}
+                                  className="focused-event"
+                                  title={`${formatEventTime(event)} ${event.title}`}
+                                >
+                                  {event.title}
+                                </div>
+                              ))}
+                              {slotEvents.length > 1 && (
+                                <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'center' }}>
+                                  +{slotEvents.length - 1}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* ── 通常週：コンパクト表示（最大3件） ── */
+                      <div className="day-events-compact">
+                        {dayEvents.slice(0, 3).map((event, idx) => (
+                          <div
+                            key={event.id || idx}
+                            className="compact-event"
+                            title={`${formatEventTime(event)} ${event.title}`}
+                          >
                             {event.title}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="compact-event-more">
+                            他 {dayEvents.length - 3} 件
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
