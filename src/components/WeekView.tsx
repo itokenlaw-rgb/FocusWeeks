@@ -42,31 +42,72 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingActiveRef = useRef(false);
   const dragDistanceRef = useRef(0);
+  
+  // スワイプ管理用のRef
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isSwipingRef = useRef(false);
 
-  const handleGridTouchStart = (e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).closest('.week-event-card')) return;
+  // 【修正】最外殻（week-container）または全体のタッチ開始処理
+  const handleContainerTouchStart = (e: React.TouchEvent) => {
+    // 予定カードのドラッグ（長押し）がすでにアクティブな場合はスワイプさせない
+    if (isDraggingActiveRef.current || e.target as HTMLElement).closest('.week-event-card')) {
+      return;
+    }
 
     const touch = e.touches[0];
     swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+    isSwipingRef.current = false;
   };
 
-  const handleGridTouchEnd = (e: React.TouchEvent) => {
+  // 【修正】タッチ移動時の制御（縦スクロールと横スワイプの競合を防ぐ）
+  const handleContainerTouchMove = (e: React.TouchEvent) => {
+    if (!swipeStartRef.current || isDraggingActiveRef.current) return;
+
+    const touch = e.touches[0];
+    const diffX = touch.clientX - swipeStartRef.current.x;
+    const diffY = touch.clientY - swipeStartRef.current.y;
+
+    // 左右の動きの方が上下より大きい場合、スワイプモードとしてロックする
+    if (!isSwipingRef.current && Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
+      isSwipingRef.current = true;
+    }
+
+    // 横スワイプ中であれば、ブラウザの縦スクロール挙動を無効化する
+    if (isSwipingRef.current) {
+      if (e.cancelable) e.preventDefault();
+    }
+  };
+
+  // 【修正】タッチ終了時に安全に週移動をトリガー
+  const handleContainerTouchEnd = (e: React.TouchEvent) => {
     if (!swipeStartRef.current) return;
+
+    // 予定の長押しドラッグ中だった場合はスワイプを無視
+    if (isDraggingActiveRef.current) {
+      swipeStartRef.current = null;
+      isSwipingRef.current = false;
+      return;
+    }
 
     const touch = e.changedTouches[0];
     const diffX = touch.clientX - swipeStartRef.current.x;
     const diffY = touch.clientY - swipeStartRef.current.y;
 
-    const SWIPE_THRESHOLD = 50;
-    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
+    const SWIPE_THRESHOLD = 40; // 判定しきい値(px)
+    
+    // 横移動が十分大きく、かつ縦移動より横移動が勝っている場合
+    if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY))) {
       if (diffX > 0) {
         onNavigateWeek('prev');
       } else {
         onNavigateWeek('next');
       }
+      // スワイプが成立した場合はイベントの伝播を止め、誤クリック等を防ぐ
+      e.stopPropagation();
     }
+
     swipeStartRef.current = null;
+    isSwipingRef.current = false;
   };
 
   useEffect(() => {
@@ -86,12 +127,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   const getEventLayout = (event: CalendarEvent) => {
     if (event.allDay) {
-      return {
-        top: 0,
-        height: 45,
-        timeLabel: '終日',
-        isAllDay: true,
-      };
+      return { top: 0, height: 45, timeLabel: '終日', isAllDay: true };
     }
 
     try {
@@ -221,6 +257,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent, event: CalendarEvent) => {
+    // スワイプと被らないように、カードのタッチではバブリング（親への伝播）を止める
+    e.stopPropagation();
     const touch = e.touches[0];
     handleDragStart(touch.clientX, touch.clientY, event);
   };
@@ -228,6 +266,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (isDraggingActiveRef.current) {
       e.preventDefault();
+      e.stopPropagation();
     }
     const touch = e.touches[0];
     handleDragMove(touch.clientX, touch.clientY);
@@ -246,14 +285,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const snapX = Math.round(dx / dayColWidth) * dayColWidth;
     const snapY = Math.round(dy / 30) * 30;
 
-    return {
-      x: snapX,
-      y: snapY,
-    };
+    return { x: snapX, y: snapY };
   };
 
   return (
-    <div className="week-container">
+    // 【修正箇所】最外枠の container でスワイプイベントを一括検知。
+    // かつ、CSSでの意図しないブラウザジェスチャー暴発を防ぐ。
+    <div 
+      className="week-container"
+      onTouchStart={handleContainerTouchStart}
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={handleContainerTouchEnd}
+      style={{ touchAction: 'pan-y' }} 
+    >
       <div 
         className="weekday-header"
         style={{
@@ -303,6 +347,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
         })}
       </div>
 
+      {/* 【修正箇所】scroll-content の onTouchStart / onTouchEnd は不要になったため削除 */}
       <div 
         className="scroll-content" 
         ref={scrollRef}
@@ -310,8 +355,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
           borderTop: 'none',
           position: 'relative',
         }}
-        onTouchStart={handleGridTouchStart}
-        onTouchEnd={handleGridTouchEnd}
       >
         <div 
           className="week-grid" 
@@ -319,9 +362,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onTouchMove={handleTouchMove}
-          onTouchEnd={() => {
-            handleMouseUp();
-          }}
+          onTouchEnd={handleMouseUp} // ドラッグ終了処理に統一
         >
           <div className="week-time-col">
             {Array.from({ length: 24 }).map((_, h) => (
@@ -349,7 +390,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     key={h} 
                     className="week-day-hour-slot" 
                     onClick={() => {
-                      if (dragDistanceRef.current < 5) {
+                      if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
                         onAddEventClick(day.dateString, h);
                       }
                     }}
@@ -378,9 +419,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       }}
                       onMouseDown={(e) => handleMouseDown(e, event)}
                       onTouchStart={(e) => handleTouchStart(e, event)}
+                      onTouchMove={handleTouchMove}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (dragDistanceRef.current < 5) {
+                        if (dragDistanceRef.current < 5 && !isSwipingRef.current) {
                           onEventClick(event);
                         }
                       }}
@@ -409,7 +451,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onEventClick(event);
+                      if (!isSwipingRef.current) {
+                        onEventClick(event);
+                      }
                     }}
                   >
                     <div className="week-event-card-title">{event.title}</div>
