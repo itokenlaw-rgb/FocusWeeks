@@ -311,3 +311,137 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 }}
               >
                 {day.dayOfMonth}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scrollable 24-hour grid */}
+      <div 
+        className="scroll-content" 
+        ref={scrollRef}
+        style={{
+          borderTop: 'none',
+          position: 'relative',
+        }}
+        onTouchStart={handleGridTouchStart}
+        onTouchEnd={handleGridTouchEnd}
+      >
+        <div 
+          className="week-grid" 
+          ref={gridRef}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => {
+            handleMouseUp();
+          }}
+        >
+          {/* Time Sidebar */}
+          <div className="week-time-col">
+            {Array.from({ length: 24 }).map((_, h) => (
+              <div key={h} className="week-time-label">
+                {String(h).padStart(2, '0')}:00
+              </div>
+            ))}
+          </div>
+
+          {/* 7 Columns */}
+          {weekDays.map((day) => {
+            const dayEvents = getEventsForDate(day.dateString);
+            const allDayEvents = dayEvents.filter(e => e.allDay);
+            const timedEvents = dayEvents.filter(e => !e.allDay);
+
+            return (
+              <div 
+                key={day.dateString} 
+                className="week-day-col"
+                style={{
+                  backgroundColor: day.isToday ? 'rgba(var(--accent-color), 0.02)' : 'transparent',
+                }}
+              >
+                {/* 24 slots for direct clicking to add */}
+                {Array.from({ length: 24 }).map((_, h) => (
+                  <div 
+                    key={h} 
+                    className="week-day-hour-slot" 
+                    onClick={() => {
+                      if (dragDistanceRef.current < 5) {
+                        onAddEventClick(day.dateString, h);
+                      }
+                    }}
+                  />
+                ))}
+
+                {/* Render Timed Events */}
+                {timedEvents.map((event) => {
+                  const layout = getEventLayout(event);
+                  if (!layout) return null;
+
+                  const isDragging = dragState?.event.id === event.id;
+                  const translation = getDragTranslation(event);
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={`week-event-card ${isDragging ? 'dragging' : ''}`}
+                      style={{
+                        top: layout.top,
+                        height: layout.height,
+                        transform: translation 
+                          ? `translate(${translation.x}px, ${translation.y}px)` 
+                          : 'none',
+                        zIndex: isDragging ? 100 : 10,
+                        touchAction: 'none',
+                      }}
+                      onMouseDown={(e) => handleMouseDown(e, event)}
+                      onTouchStart={(e) => handleTouchStart(e, event)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (dragDistanceRef.current < 5) {
+                          onEventClick(event);
+                        }
+                      }}
+                    >
+                      <div className="week-event-card-title">{event.title}</div>
+                      <div className="week-event-card-time">{layout.timeLabel}</div>
+                    </div>
+                  );
+                })}
+
+                {/* Render All Day Events stacked at the very top (first slot) */}
+                {allDayEvents.map((event, idx) => (
+                  <div
+                    key={event.id}
+                    className="week-event-card"
+                    style={{
+                      top: idx * 24 + 2,
+                      height: 22,
+                      backgroundColor: 'var(--accent-color)',
+                      color: 'var(--bg-card)',
+                      fontSize: '9px',
+                      padding: '2px 4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 15,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}
+                  >
+                    <div className="week-event-card-title">{event.title}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export type { DayData as WeekDayData };
