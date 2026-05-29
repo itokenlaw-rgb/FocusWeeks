@@ -61,9 +61,8 @@ function App() {
     // 本来はここでGoogleの `userinfo` API等を叩いて実際のメアドを取得するのが理想ですが、
     // 方法1の段階では、ログインが成功したという実績作りのため仮の識別子（または固定値）を保存します。
     // ※Googleカレンダーの予定が取得できるアカウントであれば、実用上動作します。
-    if (!localStorage.getItem('google_user_email')) {
-      // 実際の運用では認証後に取得したユーザーのメールアドレスをセットしてください
-      const detectedEmail = 'default_user@gmail.com'; 
+if (!localStorage.getItem('google_user_email')) {
+      const detectedEmail = "default_user@gmail.com";
       setUserEmail(detectedEmail);
       localStorage.setItem('google_user_email', detectedEmail);
     }
