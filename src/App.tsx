@@ -14,7 +14,7 @@ import {
   deleteGoogleEvent
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
-import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
 // Get ISO Date format string in Local Time zone (YYYY-MM-DD)
 const getFormattedDateString = (d: Date): string => {
@@ -553,18 +553,30 @@ export default function App() {
               </button>
 
 {/* 【修正箇所】時計表示を削除し、フォーカスサイズ切り替えボタンを配置 */}
-        <button
-          className="header-focus-toggle-btn"
-          onClick={() => {
-            setSettings(prev => ({
-              ...prev,
-              focusSize: prev.focusSize === 3 ? 5 : 3
-            }));
-          }}
-          title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
-        >
-          フォーカス: {settings.focusSize === 3 ? '小' : '大'}
-        </button>
+<button
+  className="header-focus-toggle-btn icon-btn" // 既存の icon-btn クラスがあれば馴染みやすいです
+  onClick={() => {
+    setSettings(prev => ({
+      ...prev,
+      focusSize: prev.focusSize === 3 ? 5 : 3
+    }));
+  }}
+  title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
+  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+>
+  {/* アイコンと、補足として小さな文字を添える（文字なしでアイコンだけでもOK） */}
+  {settings.focusSize === 3 ? (
+    <>
+      <Minimize2 size={14} />
+      <span style={{ fontSize: '11px' }}>小</span>
+    </>
+  ) : (
+    <>
+      <Maximize2 size={14} />
+      <span style={{ fontSize: '11px' }}>大</span>
+    </>
+  )}
+</button>
       </div>
             
             {showMonthDropdown && (
