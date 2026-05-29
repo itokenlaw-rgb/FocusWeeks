@@ -559,21 +559,20 @@ export default function App() {
                 <ChevronDown size={16} />
               </button>
 
-              <span 
-                style={{ 
-                  fontSize: 'var(--text-md)', 
-                  fontWeight: '500', 
-                  opacity: 0.9,
-                  marginLeft: '4px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  letterSpacing: '0.02em'
-                }}
-              >
-                {formatTime(currentTime)}
-              </span>
-            </div>
+{/* 【修正箇所】時計表示を削除し、フォーカスサイズ切り替えボタンを配置 */}
+        <button
+          className="header-focus-toggle-btn"
+          onClick={() => {
+            setSettings(prev => ({
+              ...prev,
+              focusSize: prev.focusSize === 3 ? 5 : 3
+            }));
+          }}
+          title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
+        >
+          フォーカス: {settings.focusSize === 3 ? '小' : '大'}
+        </button>
+      </div>
             
             {showMonthDropdown && (
               <div 
