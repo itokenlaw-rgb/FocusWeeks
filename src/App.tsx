@@ -2,19 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   initOAuthClient, 
   requestAccessToken, 
-  requestAccessTokenSilent, // ★追加：サイレント再取得関数をインポート
-  listEvents, 
-  createEvent, 
-  deleteEvent, 
-  updateEvent 
+  requestAccessTokenSilent, 
+  fetchGoogleEvents, 
+  createGoogleEvent, 
+  deleteGoogleEvent, 
+  updateGoogleEvent 
 } from './utils/googleCalendar';
-import { CalendarEvent } from './types/calendar';
-import MonthView from './components/MonthView';
-import WeekView from './components/WeekView';
-import DayView from './components/DayView';
-import EventModal from './components/EventModal';
-import Sidebar from './components/Sidebar';
-import { Calendar, ChevronLeft, ChevronRight, Menu, Plus, RefreshCw, Sun, Moon, LogOut } from 'lucide-react';
+import { CalendarEvent } from './utils/googleCalendar';
 
 function App() {
   // --- 認証関連のステート ---
@@ -27,10 +21,10 @@ function App() {
     return null;
   });
 
-  // ★追加：裏で自動ログインのチェックを行っている最中かどうかを管理するステート
+  // 裏で自動ログインのチェックを行っている最中かどうかを管理するステート
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
 
-  // ★追加：サイレント認証のために、ユーザーのメールアドレスを保存・管理するステート
+  // サイレント認証のために、ユーザーのメールアドレスを保存・管理するステート
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     return localStorage.getItem('google_user_email');
   });
@@ -39,11 +33,7 @@ function App() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>(undefined);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
@@ -52,16 +42,13 @@ function App() {
     return false;
   });
 
-  // ★追加：トークンやユーザー情報を受信したときの共通保存ロジック
+  // トークンやユーザー情報を受信したときの共通保存ロジック
   const handleTokenReceived = (token: string, expiresAt: number) => {
     setGoogleToken(token);
     localStorage.setItem('google_access_token', token);
     localStorage.setItem('google_token_expires_at', expiresAt.toString());
 
-    // 本来はここでGoogleの `userinfo` API等を叩いて実際のメアドを取得するのが理想ですが、
-    // 方法1の段階では、ログインが成功したという実績作りのため仮の識別子（または固定値）を保存します。
-    // ※Googleカレンダーの予定が取得できるアカウントであれば、実用上動作します。
-if (!localStorage.getItem('google_user_email')) {
+    if (!localStorage.getItem('google_user_email')) {
       const detectedEmail = "default_user@gmail.com";
       setUserEmail(detectedEmail);
       localStorage.setItem('google_user_email', detectedEmail);
@@ -72,11 +59,12 @@ if (!localStorage.getItem('google_user_email')) {
 
   // --- テーマ切り替えの初期化 ---
   useEffect(() => {
+    const body = document.body;
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      body.classList.add('theme-monochrome'); // CSSの仕様に合わせて調整してください
       localStorage.setItem('theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      body.classList.remove('theme-monochrome');
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
@@ -91,8 +79,146 @@ if (!localStorage.getItem('google_user_email')) {
 
     // 2. 自動ログイン（サイレント再取得）のチェックロジック
     if (googleToken) {
-      // すでに有効なトークンがlocalStorageにあれば、チェックをスキップして即表示
       setIsCheckingAuth(false);
     } else if (userEmail) {
-      // トークンは切れているが、過去にログインしたメールアドレスの記録がある場合
-      console.log('トークン期限
+      console.log('トークン期限切れのため、裏で自動再取得を試みます...');
+      requestAccessTokenSilent(userEmail, (token, expiresAt) => {
+        if (token && expiresAt) {
+          console.log('自動ログインに成功しました');
+          setGoogleToken(token);
+          localStorage.setItem('google_access_token', token);
+          localStorage.setItem('google_token_expires_at', expiresAt.toString());
+          setIsCheckingAuth(false);
+        } else {
+          console.log('自動ログインに失敗しました');
+          setIsCheckingAuth(false);
+        }
+      });
+    } else {
+      setIsCheckingAuth(false);
+    }
+  }, [googleToken, userEmail]);
+
+  // --- トークンがある場合にイベント一覧を取得するuseEffect ---
+  useEffect(() => {
+    if (googleToken) {
+      fetchEvents();
+    }
+  }, [googleToken, currentDate]);
+
+  const fetchEvents = async () => {
+    if (!googleToken) return;
+    setIsLoading(true);
+    try {
+      // 簡易的に今月の前後1ヶ月を取得する指定
+      const timeMin = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1).toISOString();
+      const timeMax = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0).toISOString();
+      const fetchedEvents = await fetchGoogleEvents(googleToken, timeMin, timeMax);
+      setEvents(fetchedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      if ((error as any).message === 'UNAUTHORIZED') {
+        handleLogout();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setGoogleToken(null);
+    setUserEmail(null);
+    localStorage.removeItem('google_access_token');
+    localStorage.removeItem('google_token_expires_at');
+    localStorage.removeItem('google_user_email');
+    setEvents([]);
+  };
+
+  // --- ナビゲーション処理 ---
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  // --- レンダリング分岐 ---
+  if (isCheckingAuth) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f4f5' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#71717a', fontWeight: 500 }}>同期情報を確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!googleToken) {
+    return (
+      <div className="app-container" style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ padding: '32px', borderRadius: '14px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>Googleカレンダー連携</h1>
+          <p style={{ color: '#71717a', marginBottom: '24px', fontSize: '14px' }}>
+            サインインすることで、いつでも自動同期・スケジュール管理ができるようになります。
+          </p>
+          <button
+            onClick={requestAccessToken}
+            style={{ width: '100%', backgroundColor: '#27272a', color: '#ffffff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Googleアカウントでログイン
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-container">
+      {/* アプリケーションヘッダー */}
+      <header className="app-header">
+        <div className="header-left">
+          <div className="header-title-container">
+            <span className="header-year">{currentDate.getFullYear()}年</span>
+            <span className="header-month">
+              {currentDate.getMonth() + 1}月
+            </span>
+          </div>
+          <button className="header-focus-toggle-btn" onClick={prevMonth}>前月</button>
+          <button className="header-focus-toggle-btn" onClick={nextMonth}>次月</button>
+        </div>
+        <div className="header-right">
+          <button className="header-focus-toggle-btn" style={{ backgroundColor: '#b91c1c' }} onClick={handleLogout}>
+            ログアウト
+          </button>
+        </div>
+      </header>
+
+      {/* メインコンテンツエリア */}
+      <div className="scroll-content" style={{ padding: '16px' }}>
+        {isLoading ? (
+          <p style={{ textAlign: 'center', color: '#71717a' }}>同期中...</p>
+        ) : (
+          <div className="month-container">
+            <h3>予定一覧 ({events.length} 件)</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              {events.map((event) => (
+                <div key={event.id} className="panel-event-row" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #e4e4e7', background: '#fff' }}>
+                  <div className="panel-event-title" style={{ fontWeight: 600 }}>{event.title}</div>
+                  <div className="panel-event-time" style={{ fontSize: '12px', color: '#71717a' }}>
+                    {event.start.substring(0, 16).replace('T', ' ')} 〜 {event.end.substring(0, 16).replace('T', ' ')}
+                  </div>
+                </div>
+              ))}
+              {events.length === 0 && (
+                <p className="panel-no-events-text">この期間に予定はありません。</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
