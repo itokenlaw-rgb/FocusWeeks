@@ -192,13 +192,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 時刻を「00:00」形式にするフォーマット関数
-  const formatTime = (date: Date) => {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-
   // 予定の通知チェックロジック
   useEffect(() => {
     const currentHM = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
