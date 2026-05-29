@@ -56,13 +56,13 @@ export const MonthView: React.FC<MonthViewProps> = ({
   settings,
   onSelectDay,
   onVisibleMonthChange,
-  duplicateMode, // TS6133回避のため、下部でダミー利用
-  duplicateTargetDate, // 👈【修正】引数への追加が漏れていたのを修正
-  onPasteDuplicate, // TS6133回避のため、下部でダミー利用
+  duplicateMode, // TS6133回避用
+  duplicateTargetDate, // 仮押さえ中の日付
+  onPasteDuplicate, // TS6133回避用
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // TypeScriptの「宣言されているが使用されていない」エラー(TS6133)を防ぐためのダミー処理
+  // TypeScriptの未使用変数エラー(TS6133)対策
   const _unusedChecks = () => {
     if (duplicateMode) onPasteDuplicate('');
   };
@@ -83,7 +83,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const container = containerRef.current;
     const containerCenter = container.getBoundingClientRect().top + container.clientHeight / 2;
 
-    // 画面中央に位置する週の要素を見つける
     const weekElements = container.querySelectorAll('.calendar-week');
     let currentWeekEl: Element | null = null;
 
@@ -99,7 +98,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
       const containsDatesAttr = currentWeekEl.getAttribute('data-contains-date');
       if (containsDatesAttr) {
         const dates = containsDatesAttr.split(',');
-        // その週の真ん中の日(4番目の要素)を基準にする
         const midDateStr = dates[3] || dates[0];
         const midDate = new Date(midDateStr);
         if (!isNaN(midDate.getTime())) {
@@ -113,14 +111,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
   const getFocusedWeekIndices = (): number[] => {
     if (!focusedWeekId) return [];
     
-    // 基準週のインデックスを探す
     const baseIndex = weeks.findIndex(w => w[0]?.dateString === focusedWeekId);
     if (baseIndex === -1) return [];
 
-    // 現在の focusSize に応じて、どの before/after 設定を使うか決定する
     const currentRange = settings.focusSize === 3 ? (settings as any).focusSize3 : (settings as any).focusSize5;
     
-    // 万が一、古いLocalStorageデータ等の理由で未定義だった場合のフォールバック
     const focusBefore = currentRange ? currentRange.before : 0;
     const focusAfter = currentRange ? currentRange.after : 0;
 
@@ -143,8 +138,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
       <div className="month-container">
         {weeks.map((week, weekIndex) => {
           const weekStartDateStr = week[0]?.dateString || '';
-          
-          // 現在の週インデックスが、フォーカス範囲に含まれているか判定
           const isWeekFocused = focusedWeekIndices.includes(weekIndex);
           const containsDates = week.map((d: any) => d.dateString).join(',');
 
@@ -170,9 +163,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSat      = dayOfWeek === 6;
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
-                const isDuplicateTarget = duplicateTargetDate === dateString; // 仮押さえ判定
+                const isDuplicateTarget = duplicateTargetDate === dateString;
 
-                // 月の境目を階段状太線で強調
+                // 月の境目を強調する太線設定
                 let borderClasses = '';
                 try {
                   if (dayOfMonth === 1) {
@@ -193,4 +186,110 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     }
                   }
                 } catch (e) {
-                  console.
+                  console.error(e);
+                }
+
+                const dayEvents = events.filter(
+                  e => e.start.substring(0, 10) === dateString
+                );
+
+                return (
+                  <div
+                    key={dateString}
+                    className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isDuplicateTarget ? 'duplicate-selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
+                    onClick={() => {
+                      onVisibleMonthChange(year, month);
+                      onSelectDay(dateString, weekStartDateStr);
+                    }}
+                  >
+                    {/* 日付数字 */}
+                    <div className="day-num">
+                      {dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
+                    </div>
+
+                    {/* フォーカス週：時間スロット5分割で表示 */}
+                    {isWeekFocused ? (
+                      <div
+                        className="day-events-focused"
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 24px)' }}
+                      >
+                        {Array.from({ length: 5 }).map((_, slotIdx) => {
+                          const slotEvents = dayEvents.filter(
+                            e => getEventSlotIndex(e) === slotIdx
+                          );
+
+                          let lineClamp = 3; 
+                          let maxVisibleEvents = 1; 
+
+                          if (settings.focusSize === 5) {
+                            maxVisibleEvents = slotEvents.length; 
+                            
+                            if (slotEvents.length === 1) {
+                              lineClamp = 4; 
+                            } else if (slotEvents.length === 2) {
+                              lineClamp = 2; 
+                            } else if (slotEvents.length >= 3) {
+                              lineClamp = 1; 
+                            }
+                          }
+
+                          const visibleEvents = slotEvents.slice(0, maxVisibleEvents);
+
+                          return (
+                            <div 
+                              key={slotIdx} 
+                              className="day-time-slot"
+                              style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
+                            >
+                              {visibleEvents.map(event => (
+                                <div
+                                  key={event.id}
+                                  className="focused-event"
+                                  title={`${formatEventTime(event)} ${event.title}`}
+                                  style={{
+                                    WebkitLineClamp: lineClamp,
+                                    maxHeight: `${lineClamp * 1.2}em`, 
+                                  }}
+                                >
+                                  {event.title}
+                                </div>
+                              ))}
+                              
+                              {settings.focusSize === 3 && slotEvents.length > 1 && (
+                                <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'flex-end', position: 'absolute', right: 2, bottom: 2 }}>
+                                  +{slotEvents.length - 1}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* 通常週（未フォーカス）：コンパクト表示 */
+                      <div className="day-events-compact">
+                        {dayEvents.slice(0, 2).map((event: any) => (
+                          <div
+                            key={event.id}
+                            className="compact-event"
+                            title={event.title}
+                          >
+                            {event.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 2 && (
+                          <div className="compact-event-more">
+                            他 {dayEvents.length - 2} 件
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
