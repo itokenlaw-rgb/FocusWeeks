@@ -33,6 +33,61 @@ export function loadGoogleScript(): Promise<void> {
 
 let tokenClient: any = null;
 
+// 自動ログイン（サイレント再取得）の成功・失敗を扱うためのコールバックの型を定義しておくと便利です
+type TokenCallback = (token: string | null, expiresAt?: number) => void;
+
+export const initOAuthClient = (onTokenReceived: (token: string, expiresAt: number) => void) => {
+  if (typeof window !== 'undefined' && (window as any).google) {
+    // 既存の通常のボタンクリック用クライアント
+    tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse: any) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          const expiresAt = Date.now() + parseInt(tokenResponse.expires_in, 10) * 1000;
+          onTokenReceived(tokenResponse.access_token, expiresAt);
+        }
+      },
+    });
+  }
+};
+
+export const requestAccessTokenSilent = (userEmail: string, callback: TokenCallback) => {
+  if (typeof window !== 'undefined' && (window as any).google) {
+    const silentClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      prompt: 'none', // ★ここが肝！ポップアップ画面を出さない設定
+      hint: userEmail, // ★誰のトークンを裏で取り直すかのヒントを指定
+      callback: (tokenResponse: any) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          const expiresAt = Date.now() + parseInt(tokenResponse.expires_in, 10) * 1000;
+          callback(tokenResponse.access_token, expiresAt);
+        } else {
+          // サイレント取得に失敗した場合（Google側のログインセッションも切れている等）
+          callback(null);
+        }
+      },
+      error_callback: (err: any) => {
+        console.error('Silent token fetching failed:', err);
+        callback(null);
+      }
+    });
+
+    silentClient.requestAccessToken();
+  } else {
+    callback(null);
+  }
+};
+
+export const requestAccessToken = () => {
+  if (tokenClient) {
+    tokenClient.requestAccessToken({ prompt: '' }); // 通常のポップアップを表示
+  } else {
+    console.error('OAuth client not initialized');
+  }
+};
+
 export function initOAuthClient(onTokenReceived: (token: string, expiresAt: number) => void) {
   if (typeof window === 'undefined' || !(window as any).google) {
     console.warn('Google SDK not loaded yet.');
