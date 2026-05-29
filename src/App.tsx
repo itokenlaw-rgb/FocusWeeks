@@ -445,6 +445,7 @@ export default function App() {
     setDuplicateTargetDate(null); 
     setActiveForm(null); 
     setIsBottomPanelOpen(false); 
+setView('month'); // 【２】複製ボタンが押されたら、強制的に月表示カレンダーに切り替える
   };
 
   // 完了ボタンが押された時に実際に複製を作成する関数

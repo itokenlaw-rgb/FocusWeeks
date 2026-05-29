@@ -107,9 +107,26 @@ export const EventForm: React.FC<EventFormProps> = ({
     });
   };
 
-  const handleDuplicateClick = () => {
-    if (!event) return;
-    onDuplicate(event);
+const handleDuplicateClick = () => {
+    // 新規追加でも編集でも、現在フォームに入力されている最新のデータで複製用オブジェクトを作る
+    let startIso = `${startDate}T00:00:00`;
+    let endIso = `${endDate}T23:59:59`;
+
+    if (!allDay) {
+      startIso = `${startDate}T${startTime}:00`;
+      endIso = `${endDate}T${endTime}:00`;
+    }
+
+const currentEventData: CalendarEvent = {
+      id: event?.id || 'temp-local-' + Date.now(), // 新規の場合は一時的なIDを付与
+      title: title.trim() || '無題の予定',
+      memo,
+      start: startIso,
+      end: endIso,
+      allDay,
+    };
+
+    onDuplicate(currentEventData);
   };
 
   return (
