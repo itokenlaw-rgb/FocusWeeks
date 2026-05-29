@@ -17,7 +17,7 @@ interface MonthViewProps {
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
-  duplicateTargetDate?: string | null; // 仮おさえ中の日付
+duplicateTargetDates: string[]; // 【変更】string[] に変更
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
 
@@ -57,7 +57,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   onSelectDay,
   onVisibleMonthChange,
   duplicateMode, // TS6133回避用
-  duplicateTargetDate, // 仮押さえ中の日付
+duplicateTargetDates, // 【変更】
   onPasteDuplicate, // TS6133回避用
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -163,7 +163,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSat      = dayOfWeek === 6;
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
-                const isDuplicateTarget = duplicateTargetDate === dateString;
+           const isDuplicateTarget = duplicateTargetDates.includes(dateString);
 
                 // 月の境目を強調する太線設定
                 let borderClasses = '';

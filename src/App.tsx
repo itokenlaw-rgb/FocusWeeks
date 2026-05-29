@@ -159,9 +159,9 @@ export default function App() {
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Duplicate Mode State
+  // Duplicate Mode State (複数仮押さえ対応版)
   const [duplicateEvent, setDuplicateEvent] = useState<CalendarEvent | null>(null);
-  const [duplicateTargetDate, setDuplicateTargetDate] = useState<string | null>(null); // 仮おさえ先の日付
+  const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); // 配列で複数管理
 
   // Google OAuth States
   const [googleToken, setGoogleToken] = useState<string | null>(() => {
@@ -307,10 +307,15 @@ export default function App() {
     }
   };
 
-  // Select a day (Month View)
+  // Select a day (Month View) - 複数日複製トグルロジック適用
   const handleSelectDay = (dateString: string, weekStartDate: string) => {
     if (duplicateEvent) {
-      setDuplicateTargetDate(dateString);
+      // 複製モード時はタップされた日付を配列からトグル（追加/削除）する
+      setDuplicateTargetDates(prev => 
+        prev.includes(dateString)
+          ? prev.filter(d => d !== dateString)
+          : [...prev, dateString]
+      );
       return;
     }
 
@@ -442,66 +447,77 @@ export default function App() {
   // Duplicate Mode Triggers
   const handleTriggerDuplicate = (event: CalendarEvent) => {
     setDuplicateEvent(event);
-    setDuplicateTargetDate(null); 
+    setDuplicateTargetDates([]); // 配列を空で初期化
     setActiveForm(null); 
     setIsBottomPanelOpen(false); 
-setView('month'); // 【２】複製ボタンが押されたら、強制的に月表示カレンダーに切り替える
+    setView('month'); // 複製ボタンが押されたら、強制的に月表示カレンダーに切り替える
   };
 
-  // 完了ボタンが押された時に実際に複製を作成する関数
+  // 完了ボタンが押された時に選択されたすべての日付に対して一括複製を作成する関数
   const handleConfirmDuplicate = async () => {
-    if (!duplicateEvent || !duplicateTargetDate) return;
+    if (!duplicateEvent || duplicateTargetDates.length === 0) return;
 
     const originalStart = new Date(duplicateEvent.start);
     const originalEnd = new Date(duplicateEvent.end);
     const duration = originalEnd.getTime() - originalStart.getTime();
 
-    const newStart = new Date(duplicateTargetDate);
-    if (!duplicateEvent.allDay) {
-      newStart.setHours(originalStart.getHours());
-      newStart.setMinutes(originalStart.getMinutes());
-      newStart.setSeconds(0);
-      newStart.setMilliseconds(0);
-    }
+    const createdEvents: CalendarEvent[] = [];
 
-    const newEnd = duplicateEvent.allDay
-      ? duplicateTargetDate
-      : new Date(newStart.getTime() + duration).toISOString();
+    // 選択されたすべての日付に対して複製をループ処理
+    for (const targetDate of duplicateTargetDates) {
+      const newStart = new Date(targetDate);
+      if (!duplicateEvent.allDay) {
+        newStart.setHours(originalStart.getHours());
+        newStart.setMinutes(originalStart.getMinutes());
+        newStart.setSeconds(0);
+        newStart.setMilliseconds(0);
+      }
 
-    const duplicatedData: Omit<CalendarEvent, 'id'> = {
-      title: duplicateEvent.title,
-      start: duplicateEvent.allDay ? duplicateTargetDate : newStart.toISOString(),
-      end: newEnd,
-      allDay: duplicateEvent.allDay,
-      memo: duplicateEvent.memo,
-    };
+      const newEnd = duplicateEvent.allDay
+        ? targetDate
+        : new Date(newStart.getTime() + duration).toISOString();
 
-    let finalEvent: CalendarEvent;
+      const duplicatedData: Omit<CalendarEvent, 'id'> = {
+        title: duplicateEvent.title,
+        start: duplicateEvent.allDay ? targetDate : newStart.toISOString(),
+        end: newEnd,
+        allDay: duplicateEvent.allDay,
+        memo: duplicateEvent.memo,
+      };
 
-    if (googleToken) {
-      try {
-        const created = await createGoogleEvent(googleToken, duplicatedData);
-        finalEvent = created;
-        syncEvents(googleToken);
-      } catch {
+      let finalEvent: CalendarEvent;
+
+      if (googleToken) {
+        try {
+          const created = await createGoogleEvent(googleToken, duplicatedData);
+          finalEvent = created;
+        } catch {
+          finalEvent = {
+            ...duplicatedData,
+            id: 'local-' + Date.now() + '-' + Math.random(),
+          };
+        }
+      } else {
         finalEvent = {
           ...duplicatedData,
-          id: 'local-' + Date.now(),
+          id: 'local-' + Date.now() + '-' + Math.random(),
         };
       }
-    } else {
-      finalEvent = {
-        ...duplicatedData,
-        id: 'local-' + Date.now(),
-      };
+      createdEvents.push(finalEvent);
     }
 
-    const newEvents = [...events, finalEvent];
+    // Google認証時のみ、最後に1回だけ全同期をかける
+    if (googleToken) {
+      syncEvents(googleToken);
+    }
+
+    const newEvents = [...events, ...createdEvents];
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
     
+    // モードのリセット
     setDuplicateEvent(null);
-    setDuplicateTargetDate(null);
+    setDuplicateTargetDates([]);
   };
 
   // Open Add Dialog from empty slots
@@ -536,9 +552,9 @@ setView('month'); // 【２】複製ボタンが押されたら、強制的に�
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span>予定の複製中: 「{duplicateEvent.title}」</span>
             <span style={{ fontSize: '11px', opacity: 0.8 }}>
-              {duplicateTargetDate 
-                ? `選択中: ${duplicateTargetDate.replace(/-/g, '/')} (仮押さえ)` 
-                : 'カレンダーから複製先を選択してください'}
+              {duplicateTargetDates.length > 0 
+                ? `選択中: ${duplicateTargetDates.length} 日分 (仮押さえ)` 
+                : 'カレンダーから複製先（複数選択可）を選択してください'}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -547,7 +563,7 @@ setView('month'); // 【２】複製ボタンが押されたら、強制的に�
               style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', width: 'auto' }}
               onClick={() => {
                 setDuplicateEvent(null);
-                setDuplicateTargetDate(null);
+                setDuplicateTargetDates([]);
               }}
             >
               キャンセル
@@ -558,10 +574,10 @@ setView('month'); // 【２】複製ボタンが押されたら、強制的に�
                 padding: '4px 14px', 
                 fontSize: 'var(--text-xs)', 
                 width: 'auto',
-                backgroundColor: duplicateTargetDate ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
-                color: duplicateTargetDate ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
+                backgroundColor: duplicateTargetDates.length > 0 ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
+                color: duplicateTargetDates.length > 0 ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
               }}
-              disabled={!duplicateTargetDate}
+              disabled={duplicateTargetDates.length === 0}
               onClick={handleConfirmDuplicate}
             >
               完了
@@ -769,7 +785,7 @@ setView('month'); // 【２】複製ボタンが押されたら、強制的に�
             onSelectDay={handleSelectDay}
             onVisibleMonthChange={handleVisibleMonthChange}
             duplicateMode={!!duplicateEvent}
-            duplicateTargetDate={duplicateTargetDate}
+            duplicateTargetDates={duplicateTargetDates} // 配列をPropsに渡すよう変更
             onPasteDuplicate={async () => {}}
           />
         ) : (
