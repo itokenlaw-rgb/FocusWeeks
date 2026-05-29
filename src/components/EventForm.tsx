@@ -156,16 +156,6 @@ export const EventForm: React.FC<EventFormProps> = ({
               />
             </div>
 
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input 
-                type="checkbox" 
-                id="allDay" 
-                checked={allDay}
-                onChange={(e) => setAllDay(e.target.checked)}
-              />
-              <label htmlFor="allDay" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>終日</label>
-            </div>
-
             <div className="form-row">
               <div className="form-group flex-1">
                 <label className="form-label">開始日時</label>
@@ -204,34 +194,44 @@ export const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
             
-            {/* 【３】一番下の行：左から削除、複製、保存の並び */}
-            <div className="button-row" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginTop: '24px' }}>
-              {event && (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => onDelete(event.id)}
-                  style={{ marginRight: 'auto' }} /* 削除ボタンを可能な限り左端に寄せる */
-                >
-                  <Trash2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                  削除
-                </button>
-              )}
+{/* 【３】一番下の行：左から削除、複製、保存の並び */}
+<div className="button-row" style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+  <button
+    type="button"
+    className="btn btn-danger"
+    onClick={() => event && onDelete(event.id)}
+    disabled={!event}
+    style={{ 
+      flex: 1, 
+      padding: '8px 4px', 
+      fontSize: '14px',
+      whiteSpace: 'nowrap',
+      opacity: event ? 1 : 0.5,
+      cursor: event ? 'pointer' : 'not-allowed'
+    }}
+  >
+    <Trash2 size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+    削除
+  </button>
 
-              <button
-                type="button"
-                className="btn btn-duplicate"
-                onClick={handleDuplicateClick}
-                style={{ marginLeft: event ? '0' : 'auto' }} /* 新規追加時は複製ボタンから右寄せに配置 */
-              >
-                <Copy size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                複製
-              </button>
+  <button
+    type="button"
+    className="btn btn-duplicate"
+    onClick={handleDuplicateClick}
+    style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
+  >
+    <Copy size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+    複製
+  </button>
 
-              <button type="submit" className="btn btn-primary">
-                保存
-              </button>
-            </div>
+  <button 
+    type="submit" 
+    className="btn btn-primary"
+    style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
+  >
+    保存
+  </button>
+</div>
           </form>
         </div>{/* fullscreen-body */}
 
