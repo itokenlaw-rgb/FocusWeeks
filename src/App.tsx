@@ -161,6 +161,7 @@ export default function App() {
 
   // Duplicate Mode State
   const [duplicateEvent, setDuplicateEvent] = useState<CalendarEvent | null>(null);
+  const [duplicateTargetDate, setDuplicateTargetDate] = useState<string | null>(null); // 👈 追加（仮押さえ日付）
 
   // Google OAuth States
   const [googleToken, setGoogleToken] = useState<string | null>(() => {
@@ -307,16 +308,79 @@ export default function App() {
   };
 
   // Select a day (Month View)
-  const handleSelectDay = (dateString: string, weekStartDate: string) => {
-    if (isBottomPanelOpen && selectedDate === dateString) {
-      setSelectedDate(null);
-      setIsBottomPanelOpen(false);
-    } else {
-      setSelectedDate(dateString);
-      setFocusedWeekId(weekStartDate);
-      setIsBottomPanelOpen(true);
-    }
+const handleSelectDay = (dateString: string, weekStartDate: string) => {
+  if (duplicateEvent) {
+    // 複製モード中は、仮押さえ状態にする
+    setDuplicateTargetDate(dateString);
+    return;
+  }
+
+  if (isBottomPanelOpen && selectedDate === dateString) {
+    setSelectedDate(null);
+    setIsBottomPanelOpen(false);
+  } else {
+    setSelectedDate(dateString);
+    setFocusedWeekId(weekStartDate);
+    setIsBottomPanelOpen(true);
+  }
+};
+
+// 3. 「完了」ボタンを押した時に実際に複製を保存する関数
+const handleConfirmDuplicate = async () => {
+  if (!duplicateEvent || !duplicateTargetDate) return;
+
+  const originalStart = new Date(duplicateEvent.start);
+  const originalEnd = new Date(duplicateEvent.end);
+  const duration = originalEnd.getTime() - originalStart.getTime();
+
+  const newStart = new Date(duplicateTargetDate);
+  if (!duplicateEvent.allDay) {
+    newStart.setHours(originalStart.getHours());
+    newStart.setMinutes(originalStart.getMinutes());
+    newStart.setSeconds(0);
+    newStart.setMilliseconds(0);
+  }
+
+  const newEnd = duplicateEvent.allDay
+    ? duplicateTargetDate
+    : new Date(newStart.getTime() + duration).toISOString();
+
+  const duplicatedData: Omit<CalendarEvent, 'id'> = {
+    title: `${duplicateEvent.title}`, // 「(コピー)」を付けたい場合は `${duplicateEvent.title} (コピー)`
+    start: duplicateEvent.allDay ? duplicateTargetDate : newStart.toISOString(),
+    end: newEnd,
+    allDay: duplicateEvent.allDay,
+    memo: duplicateEvent.memo,
   };
+
+  let finalEvent: CalendarEvent;
+
+  if (googleToken) {
+    try {
+      const created = await createGoogleEvent(googleToken, duplicatedData);
+      finalEvent = created;
+      syncEvents(googleToken);
+    } catch {
+      finalEvent = { ...duplicatedData, id: 'local-' + Date.now() };
+    }
+  } else {
+    finalEvent = { ...duplicatedData, id: 'local-' + Date.now() };
+  }
+
+  const newEvents = [...events, finalEvent];
+  setEvents(newEvents);
+  localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+  
+  // 終了後にStateをクリア
+  setDuplicateEvent(null);
+  setDuplicateTargetDate(null);
+};
+
+// 4. キャンセル時のクリーンアップ
+const handleCancelDuplicate = () => {
+  setDuplicateEvent(null);
+  setDuplicateTargetDate(null);
+};
 
   // Callback when month scrolls and header needs updating
   const handleVisibleMonthChange = (year: number, month: number) => {
@@ -519,22 +583,45 @@ export default function App() {
     return activeWeek || [];
   };
 
-  return (
-    <div className="app-container">
-      {duplicateEvent && (
-        <div className="duplicate-banner">
-          <span>予定の複製中: 「{duplicateEvent.title}」</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button 
-              className="btn btn-secondary" 
-              style={{ padding: '4px 10px', fontSize: 'var(--text-xs)' }}
-              onClick={() => setDuplicateEvent(null)}
-            >
-              キャンセル
-            </button>
-          </div>
+return (
+  <div className="app-container">
+    {/* 複製中の上部バナー部分をアップデート */}
+    {duplicateEvent && (
+      <div className="duplicate-banner">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span>「{duplicateEvent.title}」を複製します</span>
+          <span style={{ fontSize: '11px', opacity: 0.8 }}>
+            {duplicateTargetDate 
+              ? `選択中: ${duplicateTargetDate.replace(/-/g, '/')} (仮押さえ)` 
+              : '複製先を選択してください'}
+          </span>
         </div>
-      )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '6px 12px', fontSize: 'var(--text-xs)', height: 'auto', width: 'auto' }}
+            onClick={handleCancelDuplicate}
+          >
+            キャンセル
+          </button>
+          <button 
+            className="btn btn-primary" 
+            style={{ 
+              padding: '6px 16px', 
+              fontSize: 'var(--text-xs)', 
+              height: 'auto', 
+              width: 'auto',
+              backgroundColor: duplicateTargetDate ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
+              color: duplicateTargetDate ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
+            }}
+            disabled={!duplicateTargetDate} // 日付が選ばれていない時は押せない
+            onClick={handleConfirmDuplicate}
+          >
+            完了
+          </button>
+        </div>
+      </div>
+    )}
 
       {/* Header */}
       <header className="app-header">
@@ -727,19 +814,28 @@ export default function App() {
       )}
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {view === 'month' ? (
-          <MonthView
-            weeks={weeks}
-            events={events}
-            selectedDate={selectedDate}
-            focusedWeekId={focusedWeekId}
-            settings={settings}
-            onSelectDay={handleSelectDay}
-            onVisibleMonthChange={handleVisibleMonthChange}
-            duplicateMode={!!duplicateEvent}
-            onPasteDuplicate={handlePasteDuplicate}
-          />
-        ) : (
+{view === 'month' ? (
+      <MonthView
+        weeks={weeks}
+        events={events}
+        selectedDate={selectedDate}
+        focusedWeekId={focusedWeekId}
+        settings={settings}
+        // 複製モードの時と通常時で、MonthView内のクリック時の挙動を分けるために、そのまま渡すかラップする
+        onSelectDay={(dateStr, weekId) => {
+          if (duplicateEvent) {
+            setDuplicateTargetDate(dateStr); // 複製モード時は仮押さえ
+          } else {
+            handleSelectDay(dateStr, weekId); // 通常時
+          }
+        }}
+        onVisibleMonthChange={handleVisibleMonthChange}
+        duplicateMode={!!duplicateEvent}
+        // 新しく「現在仮押さえされている日付」を MonthView に教えてあげる（後述のスタイル用）
+        duplicateTargetDate={duplicateTargetDate} 
+        onPasteDuplicate={async (dateStr) => setDuplicateTargetDate(dateStr)}
+      />
+    ) : (
           <WeekView
             weekDays={getWeekDaysForSelectedWeek()}
             events={events}

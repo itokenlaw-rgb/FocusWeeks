@@ -635,3 +635,17 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
   transform: translateX(-30px);
   opacity: 0;
 }
+
+/* 複製モードで仮押さえ（タッチ）されたマスのスタイル */
+.day-cell.duplicate-selected {
+  outline: 2px dashed var(--accent-color);
+  outline-offset: -3px;
+  background-color: var(--accent-light) !important;
+  z-index: 2;
+}
+
+/* 複製バナー内のボタンが既存の .btn スタイルで極端に広がらないように固定をリセット */
+.duplicate-banner .btn {
+  flex: none;
+  width: auto;
+}

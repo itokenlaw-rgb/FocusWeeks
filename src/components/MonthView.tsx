@@ -18,6 +18,7 @@ interface MonthViewProps {
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
+duplicateTargetDate?: string | null; // 👈 追加：仮おさえ中の日付
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
 
@@ -164,7 +165,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSat      = dayOfWeek === 6;
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
-
+const isDuplicateTarget = duplicateTargetDate === dateString; // 👈 追加：ここが今仮押さえされているか？
                 // 月の境目を階段状太線で強調
                 let borderClasses = '';
                 try {
@@ -194,19 +195,17 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   e => e.start.substring(0, 10) === dateString
                 );
 
-                return (
-                  <div
-                    key={dateString}
-                    className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
-                    onClick={() => {
-                      onVisibleMonthChange(year, month);
-                      if (duplicateMode) {
-                        onPasteDuplicate(dateString);
-                      } else {
-                        onSelectDay(dateString, weekStartDateStr);
-                      }
-                    }}
-                  >
+return (
+    <div
+      key={dateString}
+      // 💡 クラス名に `${isDuplicateTarget ? 'duplicate-selected' : ''}` を追加します
+      className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isDuplicateTarget ? 'duplicate-selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
+      onClick={() => {
+        onVisibleMonthChange(year, month);
+        // 親コンポーネント(App.tsx)のonSelectDay側で複製モードの判定を一本化させたため、シンプルに叩くだけでOKに
+        onSelectDay(dateString, weekStartDateStr);
+      }}
+    >
                     {/* 日付数字 */}
                     <div className="day-num">
                       {(() => {
