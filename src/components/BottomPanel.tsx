@@ -171,7 +171,7 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
         {/* ドラッグハンドル部分にイベントをバインド */}
         <div 
           className="panel-drag-handle" 
-          style={{ cursor: 'ns-resize', padding: '8px 0', margin: '0 auto' }} 
+          style={{ cursor: 'ns-resize', padding: '4px 0', margin: '0 auto' }} 
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
           onTouchEnd={handleDragEnd}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Trash2, Copy, X, Check } from 'lucide-react'; // ★ Check アイコンを追加
+import { Trash2, Copy, X, Check } from 'lucide-react';
 
 interface EventFormProps {
   event: CalendarEvent | null;
   initialDate: string; // YYYY-MM-DD
-  initialTimeSlot: number | null; // 0-4 (from focused slots) or hour (from week view)
+  initialTimeSlot: number | null;
   onSave: (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => void;
   onDelete: (id: string) => void;
   onCancel: () => void;
@@ -38,17 +38,10 @@ export const EventForm: React.FC<EventFormProps> = ({
       const startDateTime = new Date(event.start);
       const endDateTime = new Date(event.end);
       
-      if (event.allDay) {
-        setStartDate(event.start.substring(0, 10));
-        setEndDate(event.end.substring(0, 10));
-        setStartTime('00:00');
-        setEndTime('00:00');
-      } else {
-        setStartDate(formatLocalDateString(startDateTime));
-        setStartTime(formatLocalTimeString(startDateTime));
-        setEndDate(formatLocalDateString(endDateTime));
-        setEndTime(formatLocalTimeString(endDateTime));
-      }
+      setStartDate(startDateTime.toISOString().substring(0, 10));
+      setStartTime(`${String(startDateTime.getHours()).padStart(2, '0')}:${String(startDateTime.getMinutes()).padStart(2, '0')}`);
+      setEndDate(endDateTime.toISOString().substring(0, 10));
+      setEndTime(`${String(endDateTime.getHours()).padStart(2, '0')}:${String(endDateTime.getMinutes()).padStart(2, '0')}`);
     } else {
       setTitle('');
       setMemo('');
@@ -57,179 +50,135 @@ export const EventForm: React.FC<EventFormProps> = ({
       setEndDate(initialDate);
       
       if (initialTimeSlot !== null) {
-        if (initialTimeSlot >= 0 && initialTimeSlot <= 4) {
-          const slotTimes = [
-            { start: '08:00', end: '08:50' },
-            { start: '10:00', end: '11:00' },
-            { start: '13:00', end: '14:00' },
-            { start: '16:00', end: '17:00' },
-            { start: '19:00', end: '20:00' }
-          ];
-          setStartTime(slotTimes[initialTimeSlot].start);
-          setEndTime(slotTimes[initialTimeSlot].end);
+        // initialTimeSlot can be index (0-4) or explicit hour
+        let hour = 9;
+        if (initialTimeSlot >= 0 && initialTimeSlot < 5) {
+          const slots = [9, 12, 15, 18, 21];
+          hour = slots[initialTimeSlot];
         } else {
-          const startHourStr = String(initialTimeSlot).padStart(2, '0');
-          const endHourStr = String((initialTimeSlot + 1) % 24).padStart(2, '0');
-          setStartTime(`${startHourStr}:00`);
-          setEndTime(`${endHourStr}:00`);
+          hour = initialTimeSlot;
         }
+        const formattedStart = `${String(hour).padStart(2, '0')}:00`;
+        const formattedEnd = `${String((hour + 1) % 24).padStart(2, '0')}:00`;
+        setStartTime(formattedStart);
+        setEndTime(formattedEnd);
       } else {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const startHourStr = String((currentHour + 1) % 24).padStart(2, '0');
-        const endHourStr = String((currentHour + 2) % 24).padStart(2, '0');
-        setStartTime(`${startHourStr}:00`);
-        setEndTime(`${endHourStr}:00`);
+        setStartTime('09:00');
+        setEndTime('10:00');
       }
     }
   }, [event, initialDate, initialTimeSlot]);
 
-  const formatLocalDateString = (d: Date): string => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
+  // --- 【新設】開始時間から1時間後の時間を計算するヘルパー関数 ---
+  const handleStartTimeChange = (newStartTime: string) => {
+    setStartTime(newStartTime);
 
-  const formatLocalTimeString = (d: Date): string => {
-    const h = String(d.getHours()).padStart(2, '0');
-    const m = String(d.getMinutes()).padStart(2, '0');
-    return `${h}:${m}`;
-  };
+    // "HH:MM" 形式をパース
+    const [hoursStr, minutesStr] = newStartTime.split(':');
+    if (hoursStr && minutesStr) {
+      let hours = parseInt(hoursStr, 10);
+      let minutes = parseInt(minutesStr, 10);
 
-  // 共通のバリデーション・保存ロジックを関数化
-  const executeSave = () => {
-    if (!title.trim()) {
-      alert('タイトルを入力してください。');
-      return;
+      // 1時間進める
+      hours = (hours + 1) % 24;
+
+      // 新しい終了時間を "HH:MM" 形式にする
+      const newEndTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      setEndTime(newEndTime);
+
+      // 日またぎの簡易ケア（23:00 → 00:00 になった場合、終了日を翌日に進める設定も可能）
+      // 今回はシンプルに時間のみ連動させています
     }
-
-    let startIso = '';
-    let endIso = '';
-
-    if (allDay) {
-      startIso = startDate;
-      endIso = endDate;
-    } else {
-      startIso = new Date(`${startDate}T${startTime}`).toISOString();
-      endIso = new Date(`${endDate}T${endTime}`).toISOString();
-      
-      if (new Date(startIso) >= new Date(endIso)) {
-        alert('終了日時は開始日時より後に設定してください。');
-        return;
-      }
-    }
-
-    onSave({
-      id: event?.id,
-      title: title.trim(),
-      start: startIso,
-      end: endIso,
-      allDay,
-      memo: memo.trim(),
-      googleEventId: event?.googleEventId,
-    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    executeSave();
+    if (!title.trim()) return;
+
+    let startIso = `${startDate}T00:00:00`;
+    let endIso = `${endDate}T23:59:59`;
+
+    if (!allDay) {
+      startIso = `${startDate}T${startTime}:00`;
+      endIso = `${endDate}T${endTime}:00`;
+    }
+
+    onSave({
+      title,
+      memo,
+      start: startIso,
+      end: endIso,
+      allDay,
+      id: event?.id
+    });
   };
 
   const handleDuplicateClick = () => {
-    if (event) {
-      onDuplicate(event);
-    } else {
-      let startIso = '';
-      let endIso = '';
-      if (allDay) {
-        startIso = startDate;
-        endIso = endDate;
-      } else {
-        startIso = new Date(`${startDate}T${startTime}`).toISOString();
-        endIso = new Date(`${endDate}T${endTime}`).toISOString();
-      }
-      onDuplicate({
-        id: 'temp-' + Date.now(),
-        title: title.trim() || '(タイトルなし)',
-        start: startIso,
-        end: endIso,
-        allDay,
-        memo: memo.trim(),
-      });
-    }
+    if (!event) return;
+    onDuplicate(event);
   };
 
   return (
-    <div className="fullscreen-overlay active" onClick={onCancel}>
-      <div className="fullscreen-event-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-container">
         
-        {/* ヘッダー領域：右上のアイコンを ☑ ボタン（保存）に変更 */}
-        <div 
-          className="fullscreen-header" 
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            padding: '10px 16px',
-            borderBottom: '1px solid var(--border-color)',
-            backgroundColor: 'var(--bg-card)'
-          }}
-        >
-          <span className="fullscreen-title" style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-            {event ? '予定の編集' : '予定の追加'}
-          </span>
-          <button 
-            type="button" 
-            onClick={executeSave} // ★ クリック時に保存を実行
-            className="icon-btn" 
-            aria-label="保存する"
-            style={{ color: 'var(--accent-color)' }} // アクセントカラーで目立たせる
-          >
-            <Check size={24} />
+        <div className="modal-header">
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-close-footer"
+                onClick={onCancel}
+              >
+                <X size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                閉じる
+              </button>
+
+
+          <h2 className="modal-title">{event ? '予定の編集' : '予定の追加'}</h2>
+
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label="閉じる">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="fullscreen-body">
+        <div className="modal-body">
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label" htmlFor="event-title">タイトル</label>
-              <input
-                id="event-title"
-                type="text"
-                className="form-input"
-                placeholder="タイトルを入力してください"
+              <label className="form-label">タイトル</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="タイトルを入力"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                required
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="event-memo">メモ</label>
-              <textarea
-                id="event-memo"
-                className="form-textarea"
-                placeholder="メモを入力してください"
+              <label className="form-label">メモ</label>
+              <textarea 
+                className="form-input" 
+                placeholder="メモを入力"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
+                rows={3}
               />
             </div>
-            
-            <div className="form-group-row">
-              <span className="form-label">終日</span>
-              <label className="toggle-switch">
-                <input 
-                  type="checkbox" 
-                  checked={allDay} 
-                  onChange={(e) => setAllDay(e.target.checked)} 
-                />
-                <span className="toggle-slider"></span>
-              </label>
+
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input 
+                type="checkbox" 
+                id="allDay" 
+                checked={allDay}
+                onChange={(e) => setAllDay(e.target.checked)}
+              />
+              <label htmlFor="allDay" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>終日</label>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">開始日時</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <div className="form-row">
+              <div className="form-group flex-1">
+                <label className="form-label">開始日時</label>
                 <input 
                   type="date" 
                   className="form-input" 
@@ -241,15 +190,14 @@ export const EventForm: React.FC<EventFormProps> = ({
                     type="time" 
                     className="form-input" 
                     value={startTime} 
-                    onChange={(e) => setStartTime(e.target.value)} 
+                    // 【修正】通常の setStartTime から、連動関数に変更します
+                    onChange={(e) => handleStartTimeChange(e.target.value)} 
                   />
                 )}
               </div>
-            </div>
 
-            <div className="form-group">
-              <label className="form-label">終了日時</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group flex-1">
+                <label className="form-label">終了日時</label>
                 <input 
                   type="date" 
                   className="form-input" 
@@ -267,7 +215,6 @@ export const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
             
-            {/* ボタン配置：既存の保存を残しつつ、右端に閉じるボタンを追加 */}
             <div className="button-row">
               {event && (
                 <button
@@ -293,15 +240,6 @@ export const EventForm: React.FC<EventFormProps> = ({
                 保存
               </button>
 
-              {/* ★ 新設：右下の「× 閉じる」ボタン */}
-              <button
-                type="button"
-                className="btn btn-secondary btn-close-footer"
-                onClick={onCancel}
-              >
-                <X size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                閉じる
-              </button>
             </div>
           </form>
         </div>
