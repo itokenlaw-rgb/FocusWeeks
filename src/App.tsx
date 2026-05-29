@@ -756,22 +756,19 @@ export default function App() {
           </button>
         )}
 
-        {view === 'month' && (
-          <div className={`bottom-panel-container ${isBottomPanelOpen ? 'active' : ''}`}>
-            <BottomPanel
-              isOpen={isBottomPanelOpen}
-              selectedDate={selectedDate}
-              events={events}
-              onClose={() => {
-                setIsBottomPanelOpen(false);
-                setSelectedDate(null);
-              }}
-              onEventClick={handleOpenEditForm}
-              onAddEventClick={handleOpenAddForm}
-            />
-          </div>
-        )}
-      </div>
+{view === 'month' && (
+  <BottomPanel
+    isOpen={isBottomPanelOpen}
+    selectedDate={selectedDate}
+    events={events}
+    onClose={() => {
+      setIsBottomPanelOpen(false);
+      setSelectedDate(null);
+    }}
+    onEventClick={handleOpenEditForm}
+    onAddEventClick={handleOpenAddForm}
+  />
+)}
 
       {activeForm && (
         <EventForm

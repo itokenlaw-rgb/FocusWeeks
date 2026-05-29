@@ -249,20 +249,24 @@ body.theme-green {
 }
 
 
-/* 【２】Bottom Panel - 重ねずに下部に配置するためのスタイル修正 */
+/* 【２】Bottom Panel - ドラッグによる可変対応 */
 .bottom-panel-container {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background-color: var(--bg-primary);  /* ← テーマの薄い色 */
+  background-color: var(--bg-primary);
   border-top: 1px solid var(--border-color);
-  transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  height: 0; /* 閉じている時は高さ0 */
+  /* heightはインラインスタイルで動的に制御するため、ここでは初期値のみ */
+  height: 0; 
   overflow: hidden;
+  position: relative;
+  user-select: none; /* ドラッグ中に文字が選択されて青くなるのを防ぐ */
 }
 
+/* activeクラス時の高さはJSで直接指定するためCSS側での固定値(35vh)を削除、または上書き可能に */
 .bottom-panel-container.active {
-  height: 35vh; /* 開いている時は画面の35%の高さにする（お好みで調整可能） */
+  /* 固定値を削除し、インライン側の指示を優先させます */
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08); 
 }
 
 .bottom-panel {
@@ -273,18 +277,24 @@ body.theme-green {
 }
 
 .panel-drag-handle { 
-  width: 40px; 
-  height: 4px; 
+  width: 50px; /* 掴みやすいように少しだけ横幅を拡大 */
+  height: 5px; 
   background-color: var(--border-color); 
-  border-radius: 2px; 
-  margin: 4px auto 1px; /* ← 上下のマージンを詰めました */
+  border-radius: 3px; 
 }
+/* ハンドルの判定を広くするためのラッパーを兼ねるため、内側のpaddingで調整済 */
+
 .panel-header { 
-  padding: 1px 16px 2px; /* ← 上下のパディングをギュッと狭くしました */
+  padding: 4px 16px 8px;
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
   border-bottom: 1px solid var(--border-color); 
+}
+
+/* X（閉じる）ボタンの色がヘッダーと混ざらないように調整 */
+.panel-header .icon-btn {
+  color: var(--text-primary) !important;
 }
 
 .panel-date-title { font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
 import { Plus, Edit2, X } from 'lucide-react';
 
@@ -19,7 +19,67 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   onEventClick,
   onAddEventClick,
 }) => {
+  // --- ドラッグによる高さ調整のロジックを追加 ---
+  const [panelHeight, setPanelHeight] = useState<string>('35vh');
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartY = useRef<number>(0);
+  const dragStartHeight = useRef<number>(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // パネルが開いたときにデフォルトの高さ（35vh）にリセット
+  useEffect(() => {
+    if (isOpen) {
+      setPanelHeight('35vh');
+    }
+  }, [isOpen, selectedDate]);
+
   if (!selectedDate) return null;
+
+  // ドラッグ開始
+  const handleDragStart = (clientY: number) => {
+    if (!panelRef.current) return;
+    setIsDragging(true);
+    dragStartY.current = clientY;
+    dragStartHeight.current = panelRef.current.getBoundingClientRect().height;
+  };
+
+  // ドラッグ中
+  const handleDragMove = (clientY: number) => {
+    if (!isDragging) return;
+    const deltaY = dragStartY.current - clientY; // 上に引っ張るとプラスになる
+    const newHeight = dragStartHeight.current + deltaY;
+
+    // 画面の高さに対する制限（最小: 20vh相当、最大: 画面の高さの90%）
+    const minHeight = window.innerHeight * 0.2;
+    const maxHeight = window.innerHeight * 0.9;
+
+    const boundedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+    setPanelHeight(`${boundedHeight}px`);
+  };
+
+  // ドラッグ終了
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    // 指やマウスを離した際、中途半端な位置ならキリの良い高さにスナップさせる（お好みで調整可能）
+    if (panelRef.current) {
+      const currentPx = panelRef.current.getBoundingClientRect().height;
+      // 画面の70%以上まで引き上げられていたら、最大化(85vh)にスナップ
+      if (currentPx > window.innerHeight * 0.6) {
+        setPanelHeight('85vh');
+      } else if (currentPx < window.innerHeight * 0.28) {
+        // あまりに下に引っ張られたら閉じる
+        onClose();
+      } else {
+        // それ以外は通常の高さに戻すか、そのままで維持（ここではそのまま or 35vh）
+        // 予定が多い場合は伸ばした位置で維持した方が使いやすいため、35vhより高ければそのまま保持します
+        if (currentPx < window.innerHeight * 0.4) {
+          setPanelHeight('35vh');
+        }
+      }
+    }
+  };
 
   // Filter events for this day
   const dayEvents = events.filter(e => e.start.substring(0, 10) === selectedDate);
@@ -38,12 +98,6 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
     }
   };
 
-  // Determine rows to render:
-  // We want to always display at least 3 rows.
-  // - If 0 events: 3 empty slots + "予定がありません" label.
-  // - If 1 event: 1 event row + 2 empty slots.
-  // - If 2 events: 2 event rows + 1 empty slot.
-  // - If 3+ events: all event rows + 1 empty slot.
   const eventCount = dayEvents.length;
   const renderedElements: React.ReactNode[] = [];
 
@@ -73,14 +127,12 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   } else if (eventCount === 2) {
     emptySlotsCount = 1;
   } else {
-    emptySlotsCount = 1; // Always show at least 1 add slot at the end for 3+ events
+    emptySlotsCount = 1;
   }
 
   // Populate empty slots
   for (let i = 0; i < emptySlotsCount; i++) {
     const slotIdx = eventCount + i;
-    // Map empty slots to tentative default time ranges if possible (just as hints)
-    // Slot 0 -> morning, Slot 1 -> midday, Slot 2 -> afternoon/evening
     const timeSlotHint = slotIdx < 5 ? slotIdx : null;
     
     renderedElements.push(
@@ -106,14 +158,35 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   })();
 
   return (
-    <div className={`bottom-panel-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}>
-      <div className={`bottom-panel ${isOpen ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div className="panel-drag-handle" onClick={onClose} style={{ cursor: 'pointer' }} />
+    <div 
+      ref={panelRef}
+      className={`bottom-panel-container ${isOpen ? 'active' : ''}`}
+      style={{ 
+        height: isOpen ? panelHeight : '0px',
+        // ドラッグ中はアニメーション（transition）を切ることで、指に吸い付くように追従させます
+        transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+      }}
+    >
+      <div className="bottom-panel">
+        {/* ドラッグハンドル部分にイベントをバインド */}
+        <div 
+          className="panel-drag-handle" 
+          style={{ cursor: 'ns-resize', padding: '8px 0', margin: '0 auto' }} 
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={(e) => handleDragStart(e.clientY)}
+          onMouseMove={(e) => {
+            if (isDragging) handleDragMove(e.clientY);
+          }}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        />
         
         <div className="panel-header">
           <span className="panel-date-title">{formattedDateLabel}</span>
           <button onClick={onClose} className="icon-btn" aria-label="閉じる">
-            <X size={20} />
+            <X size={20} style={{ color: 'var(--text-primary)' }} />
           </button>
         </div>
 
