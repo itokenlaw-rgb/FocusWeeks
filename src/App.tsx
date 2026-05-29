@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   initOAuthClient, 
   requestAccessToken, 
   requestAccessTokenSilent, 
-  fetchGoogleEvents, 
-  createGoogleEvent, 
-  deleteGoogleEvent, 
-  updateGoogleEvent 
+  fetchGoogleEvents
 } from './utils/googleCalendar';
-import { CalendarEvent } from './utils/googleCalendar';
+// TypeScriptの厳格な型インポートルールに対応
+import type { CalendarEvent } from './utils/googleCalendar';
 
 function App() {
   // --- 認証関連のステート ---
@@ -29,12 +27,11 @@ function App() {
     return localStorage.getItem('google_user_email');
   });
 
-  // --- その他のUI・データ関連のステート ---
+  // --- その他のUI・データ関連 of ステート ---
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+  const [isDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
         (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -61,7 +58,7 @@ function App() {
   useEffect(() => {
     const body = document.body;
     if (isDarkMode) {
-      body.classList.add('theme-monochrome'); // CSSの仕様に合わせて調整してください
+      body.classList.add('theme-monochrome');
       localStorage.setItem('theme', 'dark');
     } else {
       body.classList.remove('theme-monochrome');
@@ -71,13 +68,11 @@ function App() {
 
   // --- 認証・クライアント初期化のuseEffect ---
   useEffect(() => {
-    // 1. 通常のOAuthクライアントの初期化（手動ログイン用）
     initOAuthClient((token, expiresAt) => {
       console.log('手動ログインに成功しました');
       handleTokenReceived(token, expiresAt);
     });
 
-    // 2. 自動ログイン（サイレント再取得）のチェックロジック
     if (googleToken) {
       setIsCheckingAuth(false);
     } else if (userEmail) {
@@ -110,7 +105,6 @@ function App() {
     if (!googleToken) return;
     setIsLoading(true);
     try {
-      // 簡易的に今月の前後1ヶ月を取得する指定
       const timeMin = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1).toISOString();
       const timeMax = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0).toISOString();
       const fetchedEvents = await fetchGoogleEvents(googleToken, timeMin, timeMax);
@@ -134,7 +128,6 @@ function App() {
     setEvents([]);
   };
 
-  // --- ナビゲーション処理 ---
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
@@ -175,14 +168,11 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* アプリケーションヘッダー */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
             <span className="header-year">{currentDate.getFullYear()}年</span>
-            <span className="header-month">
-              {currentDate.getMonth() + 1}月
-            </span>
+            <span className="header-month">{currentDate.getMonth() + 1}月</span>
           </div>
           <button className="header-focus-toggle-btn" onClick={prevMonth}>前月</button>
           <button className="header-focus-toggle-btn" onClick={nextMonth}>次月</button>
@@ -194,7 +184,6 @@ function App() {
         </div>
       </header>
 
-      {/* メインコンテンツエリア */}
       <div className="scroll-content" style={{ padding: '16px' }}>
         {isLoading ? (
           <p style={{ textAlign: 'center', color: '#71717a' }}>同期中...</p>
