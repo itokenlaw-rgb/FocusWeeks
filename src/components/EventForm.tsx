@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Trash2, Copy, X, Check } from 'lucide-react';
+import { Trash2, Copy, X } from 'lucide-react'; // 【修正】使われていない Check を削
 
 interface EventFormProps {
   event: CalendarEvent | null;
