@@ -161,7 +161,7 @@ export default function App() {
 
   // Duplicate Mode State
   const [duplicateEvent, setDuplicateEvent] = useState<CalendarEvent | null>(null);
-  const [duplicateTargetDate, setDuplicateTargetDate] = useState<string | null>(null); // 👈 追加（仮押さえ日付）
+  const [duplicateTargetDate, setDuplicateTargetDate] = useState<string | null>(null); // 仮おさえ先の日付
 
   // Google OAuth States
   const [googleToken, setGoogleToken] = useState<string | null>(() => {
@@ -308,79 +308,21 @@ export default function App() {
   };
 
   // Select a day (Month View)
-const handleSelectDay = (dateString: string, weekStartDate: string) => {
-  if (duplicateEvent) {
-    // 複製モード中は、仮押さえ状態にする
-    setDuplicateTargetDate(dateString);
-    return;
-  }
-
-  if (isBottomPanelOpen && selectedDate === dateString) {
-    setSelectedDate(null);
-    setIsBottomPanelOpen(false);
-  } else {
-    setSelectedDate(dateString);
-    setFocusedWeekId(weekStartDate);
-    setIsBottomPanelOpen(true);
-  }
-};
-
-// 3. 「完了」ボタンを押した時に実際に複製を保存する関数
-const handleConfirmDuplicate = async () => {
-  if (!duplicateEvent || !duplicateTargetDate) return;
-
-  const originalStart = new Date(duplicateEvent.start);
-  const originalEnd = new Date(duplicateEvent.end);
-  const duration = originalEnd.getTime() - originalStart.getTime();
-
-  const newStart = new Date(duplicateTargetDate);
-  if (!duplicateEvent.allDay) {
-    newStart.setHours(originalStart.getHours());
-    newStart.setMinutes(originalStart.getMinutes());
-    newStart.setSeconds(0);
-    newStart.setMilliseconds(0);
-  }
-
-  const newEnd = duplicateEvent.allDay
-    ? duplicateTargetDate
-    : new Date(newStart.getTime() + duration).toISOString();
-
-  const duplicatedData: Omit<CalendarEvent, 'id'> = {
-    title: `${duplicateEvent.title}`, // 「(コピー)」を付けたい場合は `${duplicateEvent.title} (コピー)`
-    start: duplicateEvent.allDay ? duplicateTargetDate : newStart.toISOString(),
-    end: newEnd,
-    allDay: duplicateEvent.allDay,
-    memo: duplicateEvent.memo,
-  };
-
-  let finalEvent: CalendarEvent;
-
-  if (googleToken) {
-    try {
-      const created = await createGoogleEvent(googleToken, duplicatedData);
-      finalEvent = created;
-      syncEvents(googleToken);
-    } catch {
-      finalEvent = { ...duplicatedData, id: 'local-' + Date.now() };
+  const handleSelectDay = (dateString: string, weekStartDate: string) => {
+    if (duplicateEvent) {
+      setDuplicateTargetDate(dateString);
+      return;
     }
-  } else {
-    finalEvent = { ...duplicatedData, id: 'local-' + Date.now() };
-  }
 
-  const newEvents = [...events, finalEvent];
-  setEvents(newEvents);
-  localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
-  
-  // 終了後にStateをクリア
-  setDuplicateEvent(null);
-  setDuplicateTargetDate(null);
-};
-
-// 4. キャンセル時のクリーンアップ
-const handleCancelDuplicate = () => {
-  setDuplicateEvent(null);
-  setDuplicateTargetDate(null);
-};
+    if (isBottomPanelOpen && selectedDate === dateString) {
+      setSelectedDate(null);
+      setIsBottomPanelOpen(false);
+    } else {
+      setSelectedDate(dateString);
+      setFocusedWeekId(weekStartDate);
+      setIsBottomPanelOpen(true);
+    }
+  };
 
   // Callback when month scrolls and header needs updating
   const handleVisibleMonthChange = (year: number, month: number) => {
@@ -500,19 +442,20 @@ const handleCancelDuplicate = () => {
   // Duplicate Mode Triggers
   const handleTriggerDuplicate = (event: CalendarEvent) => {
     setDuplicateEvent(event);
+    setDuplicateTargetDate(null); 
     setActiveForm(null); 
     setIsBottomPanelOpen(false); 
   };
 
-  // Paste Duplicated Event
-  const handlePasteDuplicate = async (targetDateString: string) => {
-    if (!duplicateEvent) return;
+  // 完了ボタンが押された時に実際に複製を作成する関数
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateEvent || !duplicateTargetDate) return;
 
     const originalStart = new Date(duplicateEvent.start);
     const originalEnd = new Date(duplicateEvent.end);
     const duration = originalEnd.getTime() - originalStart.getTime();
 
-    const newStart = new Date(targetDateString);
+    const newStart = new Date(duplicateTargetDate);
     if (!duplicateEvent.allDay) {
       newStart.setHours(originalStart.getHours());
       newStart.setMinutes(originalStart.getMinutes());
@@ -521,12 +464,12 @@ const handleCancelDuplicate = () => {
     }
 
     const newEnd = duplicateEvent.allDay
-      ? targetDateString
+      ? duplicateTargetDate
       : new Date(newStart.getTime() + duration).toISOString();
 
     const duplicatedData: Omit<CalendarEvent, 'id'> = {
-      title: `${duplicateEvent.title} (コピー)`,
-      start: duplicateEvent.allDay ? targetDateString : newStart.toISOString(),
+      title: duplicateEvent.title,
+      start: duplicateEvent.allDay ? duplicateTargetDate : newStart.toISOString(),
       end: newEnd,
       allDay: duplicateEvent.allDay,
       memo: duplicateEvent.memo,
@@ -555,7 +498,9 @@ const handleCancelDuplicate = () => {
     const newEvents = [...events, finalEvent];
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+    
     setDuplicateEvent(null);
+    setDuplicateTargetDate(null);
   };
 
   // Open Add Dialog from empty slots
@@ -583,45 +528,46 @@ const handleCancelDuplicate = () => {
     return activeWeek || [];
   };
 
-return (
-  <div className="app-container">
-    {/* 複製中の上部バナー部分をアップデート */}
-    {duplicateEvent && (
-      <div className="duplicate-banner">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span>「{duplicateEvent.title}」を複製します</span>
-          <span style={{ fontSize: '11px', opacity: 0.8 }}>
-            {duplicateTargetDate 
-              ? `選択中: ${duplicateTargetDate.replace(/-/g, '/')} (仮押さえ)` 
-              : '複製先を選択してください'}
-          </span>
+  return (
+    <div className="app-container">
+      {duplicateEvent && (
+        <div className="duplicate-banner">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span>予定の複製中: 「{duplicateEvent.title}」</span>
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>
+              {duplicateTargetDate 
+                ? `選択中: ${duplicateTargetDate.replace(/-/g, '/')} (仮押さえ)` 
+                : 'カレンダーから複製先を選択してください'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', width: 'auto' }}
+              onClick={() => {
+                setDuplicateEvent(null);
+                setDuplicateTargetDate(null);
+              }}
+            >
+              キャンセル
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ 
+                padding: '4px 14px', 
+                fontSize: 'var(--text-xs)', 
+                width: 'auto',
+                backgroundColor: duplicateTargetDate ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
+                color: duplicateTargetDate ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
+              }}
+              disabled={!duplicateTargetDate}
+              onClick={handleConfirmDuplicate}
+            >
+              完了
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button 
-            className="btn btn-secondary" 
-            style={{ padding: '6px 12px', fontSize: 'var(--text-xs)', height: 'auto', width: 'auto' }}
-            onClick={handleCancelDuplicate}
-          >
-            キャンセル
-          </button>
-          <button 
-            className="btn btn-primary" 
-            style={{ 
-              padding: '6px 16px', 
-              fontSize: 'var(--text-xs)', 
-              height: 'auto', 
-              width: 'auto',
-              backgroundColor: duplicateTargetDate ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
-              color: duplicateTargetDate ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
-            }}
-            disabled={!duplicateTargetDate} // 日付が選ばれていない時は押せない
-            onClick={handleConfirmDuplicate}
-          >
-            完了
-          </button>
-        </div>
-      </div>
-    )}
+      )}
 
       {/* Header */}
       <header className="app-header">
@@ -639,32 +585,30 @@ return (
                 <ChevronDown size={16} />
               </button>
 
-{/* 【修正箇所】時計表示を削除し、フォーカスサイズ切り替えボタンを配置 */}
-<button
-  className="header-focus-toggle-btn icon-btn" // 既存の icon-btn クラスがあれば馴染みやすいです
-  onClick={() => {
-    setSettings(prev => ({
-      ...prev,
-      focusSize: prev.focusSize === 3 ? 5 : 3
-    }));
-  }}
-  title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
-  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
->
-  {/* アイコンと、補足として小さな文字を添える（文字なしでアイコンだけでもOK） */}
-  {settings.focusSize === 3 ? (
-    <>
-      <Minimize2 size={14} />
-      <span style={{ fontSize: '11px' }}>小</span>
-    </>
-  ) : (
-    <>
-      <Maximize2 size={14} />
-      <span style={{ fontSize: '11px' }}>大</span>
-    </>
-  )}
-</button>
-      </div>
+              <button
+                className="header-focus-toggle-btn icon-btn"
+                onClick={() => {
+                  setSettings(prev => ({
+                    ...prev,
+                    focusSize: prev.focusSize === 3 ? 5 : 3
+                  }));
+                }}
+                title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {settings.focusSize === 3 ? (
+                  <>
+                    <Minimize2 size={14} />
+                    <span style={{ fontSize: '11px' }}>小</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 size={14} />
+                    <span style={{ fontSize: '11px' }}>大</span>
+                  </>
+                )}
+              </button>
+            </div>
             
             {showMonthDropdown && (
               <div 
@@ -814,28 +758,20 @@ return (
       )}
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-{view === 'month' ? (
-      <MonthView
-        weeks={weeks}
-        events={events}
-        selectedDate={selectedDate}
-        focusedWeekId={focusedWeekId}
-        settings={settings}
-        // 複製モードの時と通常時で、MonthView内のクリック時の挙動を分けるために、そのまま渡すかラップする
-        onSelectDay={(dateStr, weekId) => {
-          if (duplicateEvent) {
-            setDuplicateTargetDate(dateStr); // 複製モード時は仮押さえ
-          } else {
-            handleSelectDay(dateStr, weekId); // 通常時
-          }
-        }}
-        onVisibleMonthChange={handleVisibleMonthChange}
-        duplicateMode={!!duplicateEvent}
-        // 新しく「現在仮押さえされている日付」を MonthView に教えてあげる（後述のスタイル用）
-        duplicateTargetDate={duplicateTargetDate} 
-        onPasteDuplicate={async (dateStr) => setDuplicateTargetDate(dateStr)}
-      />
-    ) : (
+        {view === 'month' ? (
+          <MonthView
+            weeks={weeks}
+            events={events}
+            selectedDate={selectedDate}
+            focusedWeekId={focusedWeekId}
+            settings={settings}
+            onSelectDay={handleSelectDay}
+            onVisibleMonthChange={handleVisibleMonthChange}
+            duplicateMode={!!duplicateEvent}
+            duplicateTargetDate={duplicateTargetDate}
+            onPasteDuplicate={async () => {}}
+          />
+        ) : (
           <WeekView
             weekDays={getWeekDaysForSelectedWeek()}
             events={events}
@@ -856,19 +792,19 @@ return (
           </button>
         )}
 
-{view === 'month' && (
-  <BottomPanel
-    isOpen={isBottomPanelOpen}
-    selectedDate={selectedDate}
-    events={events}
-    onClose={() => {
-      setIsBottomPanelOpen(false);
-      setSelectedDate(null);
-    }}
-    onEventClick={handleOpenEditForm}
-    onAddEventClick={handleOpenAddForm}
-  />
-)}
+        {view === 'month' && (
+          <BottomPanel
+            isOpen={isBottomPanelOpen}
+            selectedDate={selectedDate}
+            events={events}
+            onClose={() => {
+              setIsBottomPanelOpen(false);
+              setSelectedDate(null);
+            }}
+            onEventClick={handleOpenEditForm}
+            onAddEventClick={handleOpenAddForm}
+          />
+        )}
       </div>
 
       {activeForm && (
