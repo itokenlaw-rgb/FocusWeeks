@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../utils/googleCalendar';
-import { Trash2, Copy, X } from 'lucide-react'; // 【修正】使われていない Check を削
+import { Trash2, Copy, X, Check } from 'lucide-react';
 
 interface EventFormProps {
   event: CalendarEvent | null;
@@ -50,7 +50,6 @@ export const EventForm: React.FC<EventFormProps> = ({
       setEndDate(initialDate);
       
       if (initialTimeSlot !== null) {
-        // initialTimeSlot can be index (0-4) or explicit hour
         let hour = 9;
         if (initialTimeSlot >= 0 && initialTimeSlot < 5) {
           const slots = [9, 12, 15, 18, 21];
@@ -69,30 +68,25 @@ export const EventForm: React.FC<EventFormProps> = ({
     }
   }, [event, initialDate, initialTimeSlot]);
 
-  // --- 【新設】開始時間から1時間後の時間を計算するヘルパー関数 ---
+  // 【１】開始時間変更時に、終了時間を自動的に1時間後にする関数
   const handleStartTimeChange = (newStartTime: string) => {
     setStartTime(newStartTime);
 
-    // "HH:MM" 形式をパース
     const [hoursStr, minutesStr] = newStartTime.split(':');
     if (hoursStr && minutesStr) {
       let hours = parseInt(hoursStr, 10);
       let minutes = parseInt(minutesStr, 10);
 
-      // 1時間進める
+      // 1時間進める (23時の次は00時になるよう % 24)
       hours = (hours + 1) % 24;
 
-      // 新しい終了時間を "HH:MM" 形式にする
       const newEndTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
       setEndTime(newEndTime);
-
-      // 日またぎの簡易ケア（23:00 → 00:00 になった場合、終了日を翌日に進める設定も可能）
-      // 今回はシンプルに時間のみ連動させています
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!title.trim()) return;
 
     let startIso = `${startDate}T00:00:00`;
@@ -122,22 +116,18 @@ export const EventForm: React.FC<EventFormProps> = ({
     <div className="modal-overlay">
       <div className="modal-container">
         
-        <div className="modal-header">
+        {/* 【２】ヘッダー：左に×、中央にタイトル、右にチェック(保存) */}
+        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label="閉じる" style={{ padding: '4px', margin: 0 }}>
+            <X size={22} />
+          </button>
 
-              <button
-                type="button"
-                className="btn btn-secondary btn-close-footer"
-                onClick={onCancel}
-              >
-                <X size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                閉じる
-              </button>
+          <h2 className="modal-title" style={{ margin: 0, textAlign: 'center', flex: 1 }}>
+            {event ? '予定の編集' : '予定の追加'}
+          </h2>
 
-
-          <h2 className="modal-title">{event ? '予定の編集' : '予定の追加'}</h2>
-
-          <button type="button" className="icon-btn" onClick={onCancel} aria-label="閉じる">
-            <X size={20} />
+          <button type="button" className="icon-btn" onClick={() => handleSubmit()} aria-label="保存" style={{ padding: '4px', margin: 0, color: 'var(--accent-color, #007aff)' }}>
+            <Check size={22} />
           </button>
         </div>
 
@@ -190,7 +180,6 @@ export const EventForm: React.FC<EventFormProps> = ({
                     type="time" 
                     className="form-input" 
                     value={startTime} 
-                    // 【修正】通常の setStartTime から、連動関数に変更します
                     onChange={(e) => handleStartTimeChange(e.target.value)} 
                   />
                 )}
@@ -215,12 +204,14 @@ export const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
             
-            <div className="button-row">
+            {/* 【３】一番下の行：左から削除、複製、保存の並び */}
+            <div className="button-row" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginTop: '24px' }}>
               {event && (
                 <button
                   type="button"
                   className="btn btn-danger"
                   onClick={() => onDelete(event.id)}
+                  style={{ marginRight: 'auto' }} /* 削除ボタンを可能な限り左端に寄せる */
                 >
                   <Trash2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                   削除
@@ -231,6 +222,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                 type="button"
                 className="btn btn-duplicate"
                 onClick={handleDuplicateClick}
+                style={{ marginLeft: event ? '0' : 'auto' }} /* 新規追加時は複製ボタンから右寄せに配置 */
               >
                 <Copy size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                 複製
@@ -239,7 +231,6 @@ export const EventForm: React.FC<EventFormProps> = ({
               <button type="submit" className="btn btn-primary">
                 保存
               </button>
-
             </div>
           </form>
         </div>
