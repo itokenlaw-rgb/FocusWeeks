@@ -113,25 +113,25 @@ export const EventForm: React.FC<EventFormProps> = ({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        
-        {/* 【２】ヘッダー：左に×、中央にタイトル、右にチェック(保存) */}
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <button type="button" className="icon-btn" onClick={onCancel} aria-label="閉じる" style={{ padding: '4px', margin: 0 }}>
+    <div className="fullscreen-overlay" onClick={onCancel}>
+      <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
+
+        {/* ヘッダー：左に×、中央にタイトル、右にチェック(保存) */}
+        <div className="fullscreen-header">
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label="閉じる">
             <X size={22} />
           </button>
 
-          <h2 className="modal-title" style={{ margin: 0, textAlign: 'center', flex: 1 }}>
+          <span className="fullscreen-title">
             {event ? '予定の編集' : '予定の追加'}
-          </h2>
+          </span>
 
-          <button type="button" className="icon-btn" onClick={() => handleSubmit()} aria-label="保存" style={{ padding: '4px', margin: 0, color: 'var(--accent-color, #007aff)' }}>
+          <button type="button" className="icon-btn" onClick={() => handleSubmit()} aria-label="保存" style={{ color: 'var(--accent-color)' }}>
             <Check size={22} />
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="fullscreen-body">
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">タイトル</label>
@@ -233,9 +233,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               </button>
             </div>
           </form>
-        </div>
+        </div>{/* fullscreen-body */}
 
-      </div>
+      </div>{/* fullscreen-modal-content */}
     </div>
   );
 };
