@@ -8,9 +8,8 @@ const kv = new Redis({
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, error } = req.query;
 
-  // Googleがエラーを返した場合（ユーザーがキャンセルした等）
   if (error) {
-    return res.redirect(`/?auth_error=${encodeURIComponent(String(error))}`);
+    return res.status(302).setHeader('Location', `/?auth_error=${encodeURIComponent(String(error))}`).end();
   }
 
   if (!code || typeof code !== 'string') {
@@ -21,7 +20,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI!;
 
-  // code → access_token + refresh_token の交換
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -37,31 +35,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!tokenRes.ok) {
     const errBody = await tokenRes.text();
     console.error('Token exchange failed:', errBody);
-    return res.redirect('/?auth_error=token_exchange_failed');
+    return res.status(302).setHeader('Location', '/?auth_error=token_exchange_failed').end();
   }
 
   const tokens = await tokenRes.json();
   const { access_token, refresh_token, expires_in } = tokens;
 
   if (!refresh_token) {
-    // prompt='consent' を指定しているので通常は必ず届くが、念のため
     console.error('No refresh_token returned from Google');
-    return res.redirect('/?auth_error=no_refresh_token');
+    return res.status(302).setHeader('Location', '/?auth_error=no_refresh_token').end();
   }
 
-  // Vercel KV に refresh_token を永続保存
-  // キー: "google_refresh_token"（シングルユーザー用途なので固定キー）
   await kv.set('google_refresh_token', refresh_token);
 
-  // access_token と有効期限をセッションCookieとして保存
-  // HttpOnly + SameSite=Lax でXSS対策
   const expiresAt = Date.now() + (parseInt(expires_in, 10) || 3600) * 1000;
 
-  res.setHeader('Set-Cookie', [
-    `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
-    `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
-  ]);
-
-  // ログイン完了後はアプリのトップへリダイレクト
-  res.redirect('/?auth_success=1');
+  res
+    .status(302)
+    .setHeader('Set-Cookie', [
+      `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
+      `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
+    ])
+    .setHeader('Location', '/?auth_success=1')
+    .end();
 }
