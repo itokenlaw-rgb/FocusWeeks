@@ -162,25 +162,16 @@ const currentEventData: CalendarEvent = {
               />
             </div>
 
+{/* 開始日時の横並び化 */}
             <div className="form-group">
-              <label className="form-label">メモ</label>
-              <textarea 
-                className="form-input" 
-                placeholder="メモを入力"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group flex-1">
-                <label className="form-label">開始日時</label>
+              <label className="form-label">開始日時</label>
+              <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                 <input 
                   type="date" 
                   className="form-input" 
                   value={startDate} 
                   onChange={(e) => setStartDate(e.target.value)} 
+                  style={{ flex: 2 }}
                 />
                 {!allDay && (
                   <input 
@@ -188,17 +179,22 @@ const currentEventData: CalendarEvent = {
                     className="form-input" 
                     value={startTime} 
                     onChange={(e) => handleStartTimeChange(e.target.value)} 
+                    style={{ flex: 1 }}
                   />
                 )}
               </div>
+            </div>
 
-              <div className="form-group flex-1">
-                <label className="form-label">終了日時</label>
+            {/* 終了日時の横並び化 */}
+            <div className="form-group">
+              <label className="form-label">終了日時</label>
+              <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                 <input 
                   type="date" 
                   className="form-input" 
                   value={endDate} 
                   onChange={(e) => setEndDate(e.target.value)} 
+                  style={{ flex: 2 }}
                 />
                 {!allDay && (
                   <input 
@@ -206,9 +202,23 @@ const currentEventData: CalendarEvent = {
                     className="form-input" 
                     value={endTime} 
                     onChange={(e) => setEndTime(e.target.value)} 
+                    style={{ flex: 1 }}
                   />
                 )}
               </div>
+            </div>
+
+            {/* 拡大したメモ欄 */}
+            <div className="form-group">
+              <label className="form-label">メモ</label>
+              <textarea 
+                className="form-textarea" 
+                placeholder="メモを入力"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                rows={5}
+              />
+            </div>
             </div>
             
 {/* 【３】一番下の行：左から削除、複製、保存の並び */}
