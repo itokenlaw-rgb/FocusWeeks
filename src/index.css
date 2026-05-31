@@ -649,3 +649,17 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
   flex: none;
   width: auto;
 }
+
+/* 【１】ヘッダー内の年月ボタンをクリック・ホバーした際に白く反転するのを防ぐ */
+.app-header .header-month:hover,
+.app-header .header-month:focus,
+.app-header .header-month:active {
+  background-color: rgba(255, 255, 255, 0.15) !important; /* 白ではなく、ヘッダー色に馴染む半透明 */
+  color: var(--bg-card) !important; /* 文字は白を維持 */
+  outline: none;
+}
+
+/* 月ドロップダウン内の各選択肢（ボタン）のホバー設定 */
+.dropdown-item-btn:hover {
+  background-color: var(--bg-primary) !important;
+}

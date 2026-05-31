@@ -120,6 +120,21 @@ export default function App() {
     return defaultSettings;
   });
 
+// 月ドロップダウンが開いた時に、現在の年月に自動スクロールする
+useEffect(() => {
+  if (showMonthDropdown) {
+    // 現在表示している年月と一致するIDを持つボタンを探す
+    const targetId = `dropdown-month-${currentYear}-${currentMonth}`;
+    // ドロップダウンメニューの描画が完了するのをわずかに待ってから実行
+    setTimeout(() => {
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+      }
+    }, 50);
+  }
+}, [showMonthDropdown, currentYear, currentMonth]);
+
   // 設定項目（settings）が変更されたら自動で localStorage へ同期・保存する
   useEffect(() => {
     localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
@@ -646,19 +661,25 @@ const handleManualSync = () => {
                   target.setMonth(target.getMonth() - 3 + idx);
                   const year = target.getFullYear();
                   const month = target.getMonth();
+// 現在ヘッダーに表示されている年月と一致するかどうか
+      const isCurrentSelected = year === currentYear && month === currentMonth;
                   return (
                     <button
                       key={idx}
                       style={{
-                        padding: '10px 16px',
-                        border: 'none',
-                        background: 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: 'var(--text-sm)',
-                        color: 'var(--text-primary)',
-                        borderBottom: '1px solid var(--border-color)'
+padding: '10px 16px',
+            border: 'none',
+            // 【対応１】現在の月は少し背景色を変えて分かりやすく、それ以外は透明に
+            background: isCurrentSelected ? 'var(--accent-light)' : 'none',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: 'var(--text-sm)',
+            // 【対応１】文字色もテーマに合わせる
+            color: isCurrentSelected ? 'var(--accent-color)' : 'var(--text-primary)',
+            fontWeight: isCurrentSelected ? '700' : '400',
+            borderBottom: '1px solid var(--border-color)'
                       }}
+className="dropdown-item-btn" // CSSでホバーを当てるためのクラス
                       onClick={() => {
                         handleVisibleMonthChange(year, month);
                         const dateStr = getFormattedDateString(new Date(year, month, 1));
