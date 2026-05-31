@@ -6,8 +6,9 @@ import { EventForm } from './components/EventForm';
 import { SettingsView } from './components/SettingsView';
 import type { Settings } from './components/SettingsView';
 import { 
-  loadGoogleScript, 
-  initOAuthClient, 
+  redirectToGoogleLogin,
+  checkLoginStatus,
+  logout,
   fetchGoogleEvents,
   createGoogleEvent,
   updateGoogleEvent,
@@ -164,14 +165,24 @@ export default function App() {
   const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); // 配列で複数管理
 
   // Google OAuth States
-  const [googleToken, setGoogleToken] = useState<string | null>(() => {
-    const token = localStorage.getItem('google_access_token');
-    const expiresAt = localStorage.getItem('google_token_expires_at');
-    if (token && expiresAt && Date.now() < parseInt(expiresAt, 10)) {
-      return token;
+const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+
+// アプリ起動時のログイン状態チェック
+// URLに ?auth_success=1 がある場合もここで検知する
+useEffect(() => {
+  checkLoginStatus().then(loggedIn => {
+    setIsLoggedIn(loggedIn);
+    if (loggedIn) syncEvents();
+
+    // OAuthリダイレクト後のクエリパラメータをURLから除去
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('auth_success') || url.searchParams.has('auth_error')) {
+      url.searchParams.delete('auth_success');
+      url.searchParams.delete('auth_error');
+      window.history.replaceState({}, '', url.toString());
     }
-    return null;
   });
+}, []);
   
   // Event Caches
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
@@ -251,61 +262,47 @@ export default function App() {
   }, [settings.weekStart]);
 
   // Google Script & OAuth Client Loader
-  const handleTokenReceived = useCallback((token: string, expiresAt: number) => {
-    setGoogleToken(token);
-    localStorage.setItem('google_access_token', token);
-    localStorage.setItem('google_token_expires_at', String(expiresAt));
-    syncEvents(token);
-  }, []);
 
-  const handleLogout = useCallback(() => {
-    setGoogleToken(null);
-    localStorage.removeItem('google_access_token');
-    localStorage.removeItem('google_token_expires_at');
-  }, []);
 
-  useEffect(() => {
-    loadGoogleScript()
-      .then(() => {
-        initOAuthClient(handleTokenReceived);
-      })
-      .catch((err) => {
-        console.error('Could not initialize Google client:', err);
-      });
-  }, [handleTokenReceived]);
+// 【After】
+// handleTokenReceived / initOAuthClient / loadGoogleScript は不要なので削除
 
-  // Sync Google Events
-  const syncEvents = async (token: string) => {
-    setIsSyncing(true);
-    try {
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(today.getDate() - 12 * 7);
-      const end = new Date(today);
-      end.setDate(today.getDate() + 42 * 7);
+const handleLogout = useCallback(async () => {
+  await logout();
+  setIsLoggedIn(false);
+}, []);
 
-      const items = await fetchGoogleEvents(token, start.toISOString(), end.toISOString());
-      setEvents(items);
-      localStorage.setItem('focusweeks_events', JSON.stringify(items));
-    } catch (error: any) {
-      if (error.message === 'UNAUTHORIZED') {
-        handleLogout();
-      } else {
-        console.error('Error syncing events:', error);
-      }
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+// tokenを引数で受け取る必要がなくなる（バックエンドがCookieで管理）
+const syncEvents = async () => {
+  setIsSyncing(true);
+  try {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 12 * 7);
+    const end = new Date(today);
+    end.setDate(today.getDate() + 42 * 7);
 
-  // 手動同期ボタンのハンドラー
-  const handleManualSync = () => {
-    if (googleToken) {
-      syncEvents(googleToken);
+    const items = await fetchGoogleEvents(start.toISOString(), end.toISOString());
+    setEvents(items);
+    localStorage.setItem('focusweeks_events', JSON.stringify(items));
+  } catch (error: any) {
+    if (error.message === 'UNAUTHORIZED') {
+      setIsLoggedIn(false);
     } else {
-      alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
+      console.error('Error syncing events:', error);
     }
-  };
+  } finally {
+    setIsSyncing(false);
+  }
+};
+
+const handleManualSync = () => {
+  if (isLoggedIn) {
+    syncEvents();
+  } else {
+    alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
+  }
+};
 
   // Select a day (Month View) - 複数日複製トグルロジック適用
   const handleSelectDay = (dateString: string, weekStartDate: string) => {
@@ -360,16 +357,16 @@ export default function App() {
     const isEdit = !!eventData.id;
     let finalEvent: CalendarEvent;
 
-    if (googleToken) {
+    if (isLoggedIn) {
       try {
         if (isEdit && eventData.id) {
-          const updated = await updateGoogleEvent(googleToken, eventData.id, eventData);
+          const updated = await updateGoogleEvent(isLoggedIn, eventData.id, eventData);
           finalEvent = updated;
         } else {
-          const created = await createGoogleEvent(googleToken, eventData);
+          const created = await createGoogleEvent(isLoggedIn, eventData);
           finalEvent = created;
         }
-        syncEvents(googleToken);
+        syncEvents(isLoggedIn);
       } catch (err) {
         console.error('Google API error, saving locally only:', err);
         finalEvent = {
@@ -402,10 +399,10 @@ export default function App() {
   const handleDeleteEvent = async (id: string) => {
     const hasGoogleId = !id.startsWith('local-');
     
-    if (googleToken && hasGoogleId) {
+    if (isLoggedIn && hasGoogleId) {
       try {
-        await deleteGoogleEvent(googleToken, id);
-        syncEvents(googleToken);
+        await deleteGoogleEvent(isLoggedIn, id);
+        syncEvents(isLoggedIn);
       } catch (err) {
         console.error('Google API delete error:', err);
       }
@@ -430,10 +427,10 @@ export default function App() {
       end: newEnd,
     };
 
-    if (googleToken && !eventId.startsWith('local-')) {
+    if (isLoggedIn && !eventId.startsWith('local-')) {
       try {
-        await updateGoogleEvent(googleToken, eventId, updatedEvent);
-        syncEvents(googleToken);
+        await updateGoogleEvent(isLoggedIn, eventId, updatedEvent);
+        syncEvents(isLoggedIn);
       } catch (err) {
         console.error('Google API update failed on move:', err);
       }
@@ -487,9 +484,9 @@ export default function App() {
 
       let finalEvent: CalendarEvent;
 
-      if (googleToken) {
+      if (isLoggedIn) {
         try {
-          const created = await createGoogleEvent(googleToken, duplicatedData);
+          const created = await createGoogleEvent(isLoggedIn, duplicatedData);
           finalEvent = created;
         } catch {
           finalEvent = {
@@ -507,8 +504,8 @@ export default function App() {
     }
 
     // Google認証時のみ、最後に1回だけ全同期をかける
-    if (googleToken) {
-      syncEvents(googleToken);
+    if (isLoggedIn) {
+      syncEvents(isLoggedIn);
     }
 
     const newEvents = [...events, ...createdEvents];
@@ -730,7 +727,7 @@ export default function App() {
             onClick={handleManualSync}
             disabled={isSyncing}
             aria-label="Googleカレンダーと同期"
-            style={{ opacity: googleToken ? 1 : 0.4 }}
+            style={{ opacity: isLoggedIn ? 1 : 0.4 }}
           >
             <RefreshCw size={18} />
           </button>
@@ -841,7 +838,7 @@ export default function App() {
           settings={settings}
           onUpdateSettings={setSettings}
           onClose={() => setShowSettings(false)}
-          googleToken={googleToken}
+          isLoggedIn={isLoggedIn}
           onLogout={handleLogout}
         />
       )}
