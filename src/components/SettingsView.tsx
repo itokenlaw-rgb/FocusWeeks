@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { requestAccessToken } from '../utils/googleCalendar';
+
 
 // 1. Settings型を、3用と5用でそれぞれ before/after を持てるように拡張
 interface Settings {
@@ -17,7 +17,8 @@ interface SettingsViewProps {
   settings: Settings;
   onUpdateSettings: (newSettings: Settings) => void;
   onClose: () => void;
-  googleToken: string | null;
+  isLoggedIn: boolean;
+  onLogin: () => void;
   onLogout: () => void;
 }
 
@@ -25,7 +26,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onUpdateSettings,
   onClose,
-  googleToken,
+  isLoggedIn,
+  onLogin,
   onLogout,
 }) => {
   // 通知の許可状態をローカルステートで管理 ('default' | 'granted' | 'denied' | 'unsupported')
@@ -306,7 +308,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* Google カレンダー連携 */}
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>Google カレンダー連携</span>
-            {googleToken ? (
+            {isLoggedIn ? (
               <div className="login-status-container">
                 <div className="login-status-text">Googleアカウントと連携中</div>
                 <div className="login-status-subtext">Googleカレンダーから予定を同期しています。</div>
@@ -327,7 +329,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   className="btn btn-primary"
                   style={{ width: '100%', marginTop: 8 }}
-                  onClick={requestAccessToken}
+                  onClick={onLogin}
                 >
                   Googleでログイン
                 </button>
