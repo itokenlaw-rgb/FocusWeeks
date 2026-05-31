@@ -25,7 +25,7 @@ export async function redirectToGoogleLogin(): Promise<void> {
 /** ログイン状態を確認する */
 export async function checkLoginStatus(): Promise<boolean> {
   try {
-    const res = await fetch('/api/events/status', { credentials: 'include' });
+    const res = await fetch('/api/events?action=status', { credentials: 'include' });
     if (!res.ok) return false;
     const { loggedIn } = await res.json();
     return !!loggedIn;
@@ -36,7 +36,7 @@ export async function checkLoginStatus(): Promise<boolean> {
 
 /** ログアウト（KVのrefresh_tokenとCookieを削除） */
 export async function logout(): Promise<void> {
-  await fetch('/api/events/logout', { method: 'DELETE', credentials: 'include' });
+  await fetch('/api/events?action=logout', { method: 'DELETE', credentials: 'include' });
 }
 
 // ---- カレンダーAPI ----
@@ -73,8 +73,7 @@ export async function fetchGoogleEvents(
   timeMax: string
 ): Promise<CalendarEvent[]> {
   const res = await fetch(
-    `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
-    { credentials: 'include' }
+    `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
   );
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
@@ -92,7 +91,6 @@ export async function createGoogleEvent(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(buildEventBody(event)),
-    credentials: 'include',
   });
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
@@ -111,7 +109,6 @@ export async function updateGoogleEvent(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(buildEventBody(event)),
-    credentials: 'include',
   });
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
@@ -125,7 +122,6 @@ export async function updateGoogleEvent(
 export async function deleteGoogleEvent(eventId: string): Promise<void> {
   const res = await fetch(`/api/events?eventId=${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
-    credentials: 'include',
   });
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');

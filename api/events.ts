@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { Redis } from '@upstash/redis';
 const kv = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
@@ -74,7 +73,7 @@ async function getValidAccessToken(
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ログアウト処理
-  if (req.method === 'DELETE' && req.url?.includes('/logout')) {
+  if (req.method === 'DELETE' && req.query.action === 'logout') {
     await kv.del('google_refresh_token');
     res.setHeader('Set-Cookie', [
       'google_access_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
@@ -84,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ログイン状態確認
-  if (req.method === 'GET' && req.url?.includes('/status')) {
+  if (req.method === 'GET' && req.query.action === 'status') {
     const token = await getValidAccessToken(req, res);
     return res.json({ loggedIn: !!token });
   }
