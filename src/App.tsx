@@ -120,21 +120,6 @@ export default function App() {
     return defaultSettings;
   });
 
-// 月ドロップダウンが開いた時に、現在の年月に自動スクロールする
-useEffect(() => {
-  if (showMonthDropdown) {
-    // 現在表示している年月と一致するIDを持つボタンを探す
-    const targetId = `dropdown-month-${currentYear}-${currentMonth}`;
-    // ドロップダウンメニューの描画が完了するのをわずかに待ってから実行
-    setTimeout(() => {
-      const targetEl = document.getElementById(targetId);
-      if (targetEl) {
-        targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-      }
-    }, 50);
-  }
-}, [showMonthDropdown, currentYear, currentMonth]);
-
   // 設定項目（settings）が変更されたら自動で localStorage へ同期・保存する
   useEffect(() => {
     localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
@@ -163,6 +148,22 @@ useEffect(() => {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+
+// 月ドロップダウンが開いた時に、現在の年月に自動スクロールする
+useEffect(() => {
+  if (showMonthDropdown) {
+    // 現在表示している年月と一致するIDを持つボタンを探す
+    const targetId = `dropdown-month-${currentYear}-${currentMonth}`;
+    // ドロップダウンメニューの描画が完了するのをわずかに待ってから実行
+    setTimeout(() => {
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+      }
+    }, 50);
+  }
+}, [showMonthDropdown, currentYear, currentMonth]);
+
 
   // Bottom panel sliding state
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
