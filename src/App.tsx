@@ -360,13 +360,13 @@ const handleManualSync = () => {
     if (isLoggedIn) {
       try {
         if (isEdit && eventData.id) {
-          const updated = await updateGoogleEvent(isLoggedIn, eventData.id, eventData);
+          const updated = await updateGoogleEvent(eventData.id, eventData);
           finalEvent = updated;
         } else {
-          const created = await createGoogleEvent(isLoggedIn, eventData);
+          const created = await createGoogleEvent(eventData);
           finalEvent = created;
         }
-        syncEvents(isLoggedIn);
+        syncEvents();
       } catch (err) {
         console.error('Google API error, saving locally only:', err);
         finalEvent = {
@@ -401,8 +401,8 @@ const handleManualSync = () => {
     
     if (isLoggedIn && hasGoogleId) {
       try {
-        await deleteGoogleEvent(isLoggedIn, id);
-        syncEvents(isLoggedIn);
+        await deleteGoogleEvent(id);
+        syncEvents();
       } catch (err) {
         console.error('Google API delete error:', err);
       }
@@ -429,8 +429,8 @@ const handleManualSync = () => {
 
     if (isLoggedIn && !eventId.startsWith('local-')) {
       try {
-        await updateGoogleEvent(isLoggedIn, eventId, updatedEvent);
-        syncEvents(isLoggedIn);
+        await updateGoogleEvent(eventId, updatedEvent);
+        syncEvents();
       } catch (err) {
         console.error('Google API update failed on move:', err);
       }
@@ -486,7 +486,7 @@ const handleManualSync = () => {
 
       if (isLoggedIn) {
         try {
-          const created = await createGoogleEvent(isLoggedIn, duplicatedData);
+          const created = await createGoogleEvent(duplicatedData);
           finalEvent = created;
         } catch {
           finalEvent = {
@@ -505,7 +505,7 @@ const handleManualSync = () => {
 
     // Google認証時のみ、最後に1回だけ全同期をかける
     if (isLoggedIn) {
-      syncEvents(isLoggedIn);
+      syncEvents();
     }
 
     const newEvents = [...events, ...createdEvents];
@@ -839,6 +839,7 @@ const handleManualSync = () => {
           onUpdateSettings={setSettings}
           onClose={() => setShowSettings(false)}
           isLoggedIn={isLoggedIn}
+          onLogin={redirectToGoogleLogin}
           onLogout={handleLogout}
         />
       )}
