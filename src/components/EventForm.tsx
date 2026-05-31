@@ -107,8 +107,7 @@ export const EventForm: React.FC<EventFormProps> = ({
     });
   };
 
-const handleDuplicateClick = () => {
-    // 新規追加でも編集でも、現在フォームに入力されている最新のデータで複製用オブジェクトを作る
+  const handleDuplicateClick = () => {
     let startIso = `${startDate}T00:00:00`;
     let endIso = `${endDate}T23:59:59`;
 
@@ -117,8 +116,8 @@ const handleDuplicateClick = () => {
       endIso = `${endDate}T${endTime}:00`;
     }
 
-const currentEventData: CalendarEvent = {
-      id: event?.id || 'temp-local-' + Date.now(), // 新規の場合は一時的なIDを付与
+    const currentEventData: CalendarEvent = {
+      id: event?.id || 'temp-local-' + Date.now(),
       title: title.trim() || '無題の予定',
       memo,
       start: startIso,
@@ -162,7 +161,7 @@ const currentEventData: CalendarEvent = {
               />
             </div>
 
-{/* 開始日時の横並び化 */}
+            {/* 開始日時の横並び化 */}
             <div className="form-group">
               <label className="form-label">開始日時</label>
               <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
@@ -219,50 +218,49 @@ const currentEventData: CalendarEvent = {
                 rows={5}
               />
             </div>
-            </div>
             
-{/* 【３】一番下の行：左から削除、複製、保存の並び */}
-<div className="button-row" style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
-  <button
-    type="button"
-    className="btn btn-danger"
-    onClick={() => event && onDelete(event.id)}
-    disabled={!event}
-    style={{ 
-      flex: 1, 
-      padding: '8px 4px', 
-      fontSize: '14px',
-      whiteSpace: 'nowrap',
-      opacity: event ? 1 : 0.5,
-      cursor: event ? 'pointer' : 'not-allowed'
-    }}
-  >
-    <Trash2 size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-    削除
-  </button>
+            {/* 一番下の行：左から削除、複製、保存の並び */}
+            <div className="button-row" style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => event && onDelete(event.id)}
+                disabled={!event}
+                style={{ 
+                  flex: 1, 
+                  padding: '8px 4px', 
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  opacity: event ? 1 : 0.5,
+                  cursor: event ? 'pointer' : 'not-allowed'
+                }}
+              >
+                <Trash2 size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                削除
+              </button>
 
-  <button
-    type="button"
-    className="btn btn-duplicate"
-    onClick={handleDuplicateClick}
-    style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
-  >
-    <Copy size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-    複製
-  </button>
+              <button
+                type="button"
+                className="btn btn-duplicate"
+                onClick={handleDuplicateClick}
+                style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
+              >
+                <Copy size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                複製
+              </button>
 
-  <button 
-    type="submit" 
-    className="btn btn-primary"
-    style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
-  >
-    保存
-  </button>
-</div>
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                style={{ flex: 1, padding: '8px 4px', fontSize: '14px', whiteSpace: 'nowrap' }}
+              >
+                保存
+              </button>
+            </div>
           </form>
-        </div>{/* fullscreen-body */}
+        </div>
 
-      </div>{/* fullscreen-modal-content */}
+      </div>
     </div>
   );
 };
