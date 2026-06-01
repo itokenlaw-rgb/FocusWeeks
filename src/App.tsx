@@ -583,7 +583,7 @@ const handleManualSync = () => {
         </div>
       )}
 
-      {/* Header */}
+{/* Header */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
@@ -597,30 +597,6 @@ const handleManualSync = () => {
               >
                 {currentMonth + 1}月
                 <ChevronDown size={16} />
-              </button>
-
-              <button
-                className="header-focus-toggle-btn icon-btn"
-                onClick={() => {
-                  setSettings(prev => ({
-                    ...prev,
-                    focusSize: prev.focusSize === 3 ? 5 : 3
-                  }));
-                }}
-                title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                {settings.focusSize === 3 ? (
-                  <>
-                    <Minimize2 size={14} />
-                    <span style={{ fontSize: '11px' }}>小</span>
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 size={14} />
-                    <span style={{ fontSize: '11px' }}>大</span>
-                  </>
-                )}
               </button>
             </div>
             
@@ -679,6 +655,30 @@ const handleManualSync = () => {
         </div>
 
         <div className="header-right">
+          {/* フォーカス切り替えボタンを「今日」ボタンのすぐ左隣に配置（icon-btnクラスは除去） */}
+          <button
+            className="header-focus-toggle-btn"
+            onClick={() => {
+              setSettings(prev => ({
+                ...prev,
+                focusSize: prev.focusSize === 3 ? 5 : 3
+              }));
+            }}
+            title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
+          >
+            {settings.focusSize === 3 ? (
+              <>
+                <Minimize2 size={14} />
+                <span style={{ fontSize: '11px' }}>小</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 size={14} />
+                <span style={{ fontSize: '11px' }}>大</span>
+              </>
+            )}
+          </button>
+
           <button 
             className="switch-btn" 
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'var(--bg-card)', padding: '6px 12px' }}
