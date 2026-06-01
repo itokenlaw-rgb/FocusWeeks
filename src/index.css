@@ -152,16 +152,24 @@ body.theme-green {
   color: var(--bg-card); 
   background-color: rgba(255, 255, 255, 0.12); /* ほんの少し薄くして背景に馴染ませる */
   border: none;
-  padding: 6px 12px; /* 横・縦の余白を少し縮小 */
-  border-radius: var(--radius-sm); /* 丸みも統一 */
+  
+  /* 「今日」ボタンのインラインスタイルと完全に一致させる */
+  padding: 6px 12px; 
+  border-radius: var(--radius-sm); 
   cursor: pointer;
   transition: var(--transition-fast);
-display: flex;
+
+  /* フレックスボックスで中の要素（アイコンと「小/大」の文字）を上下左右中央に */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   user-select: none;
-  line-height: inherit;
+  
+  /* 親要素（header-left）の上下中央にボタン自体を配置するためのリセット */
+  align-self: center;
+  line-height: 1;
+  height: auto;
 }
 
 .header-focus-toggle-btn:hover {

@@ -182,10 +182,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                   />
                 )}
               </div>
-            </div>
 
-            {/* 終了日時の横並び化 */}
-            <div className="form-group">
               <label className="form-label">終了日時</label>
               <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                 <input 
