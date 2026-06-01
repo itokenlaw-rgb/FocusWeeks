@@ -204,7 +204,7 @@ duplicateTargetDates, // 【変更】
                   >
                     {/* 日付数字 */}
                     <div className="day-num">
-                      {dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
+                      {dayOfMonth === 1 ? `$1日` : dayOfMonth}
                     </div>
 
                     {/* フォーカス週：時間スロット5分割で表示 */}
