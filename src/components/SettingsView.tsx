@@ -113,13 +113,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {notificationPermission === 'granted' && (
                 <>
                   <div className="login-status-text" style={{ color: 'var(--event-text)' }}>通知設定: オン</div>
-                  <div className="login-status-subtext">予定の開始時刻になると、ブラウザまたは端末にデスクトップ通知が届きます。</div>
                 </>
               )}
               {notificationPermission === 'default' && (
                 <>
-                  <div className="login-status-text">通知設定: 未設定</div>
-                  <div className="login-status-subtext">予定の時間になったら画面外でもプッシュ通知を受け取ることができます。</div>
+                  <div className="login-status-text">通知設定: オフ</div>
                   <button
                     type="button"
                     className="btn btn-primary"
