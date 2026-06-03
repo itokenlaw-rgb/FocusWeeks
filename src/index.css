@@ -660,3 +660,16 @@ font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-
   flex: none;
   width: auto;
 }
+
+/* ===== Google Calendar カラー（colorId 1〜11）===== */
+.gcal-color-1  { background-color: #ffd5d5 !important; border-left-color: #d50000 !important; color: #7f0000 !important; }
+.gcal-color-2  { background-color: #ffe0ee !important; border-left-color: #e67c73 !important; color: #8c2828 !important; }
+.gcal-color-3  { background-color: #fff0d5 !important; border-left-color: #f4511e !important; color: #7a2800 !important; }
+.gcal-color-4  { background-color: #fffbd5 !important; border-left-color: #f6bf26 !important; color: #7a5c00 !important; }
+.gcal-color-5  { background-color: #e0f0e8 !important; border-left-color: #33b679 !important; color: #1a5c38 !important; }
+.gcal-color-6  { background-color: #d5ede0 !important; border-left-color: #0b8043 !important; color: #064424 !important; }
+.gcal-color-7  { background-color: #d5edf7 !important; border-left-color: #039be5 !important; color: #024f73 !important; }
+.gcal-color-8  { background-color: #d8d9f5 !important; border-left-color: #3f51b5 !important; color: #1a237e !important; }
+.gcal-color-9  { background-color: #ede7f6 !important; border-left-color: #7986cb !important; color: #3a3b8c !important; }
+.gcal-color-10 { background-color: #f0d5f5 !important; border-left-color: #8e24aa !important; color: #4a0070 !important; }
+.gcal-color-11 { background-color: #e8e8e8 !important; border-left-color: #616161 !important; color: #212121 !important; }
