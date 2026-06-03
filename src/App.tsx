@@ -310,6 +310,7 @@ export default function App() {
           id: eventData.id || 'local-' + Date.now(),
         };
       }
+}
     } else {
       finalEvent = {
         ...eventData
