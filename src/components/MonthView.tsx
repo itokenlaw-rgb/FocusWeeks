@@ -242,18 +242,24 @@ duplicateTargetDates, // 【変更】
                               style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
                             >
                               {visibleEvents.map(event => (
-                                <div
-                                  key={event.id}
-                                  className="focused-event"
-                                  title={`${formatEventTime(event)} ${event.title}`}
-                                  style={{
-                                    WebkitLineClamp: lineClamp,
-                                    maxHeight: `${lineClamp * 1.2}em`, 
-                                  }}
-                                >
-                                  {event.title}
-                                </div>
-                              ))}
+
+// ★ 設定が有効かつcolorIdがあればカスタムクラスを適用
+      const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
+
+return (
+        <div
+          key={event.id}
+          className={`focused-event ${colorClass}`} // ★ テンプレートリテラルに変更
+          title={`${formatEventTime(event)} ${event.title}`}
+          style={{
+            WebkitLineClamp: lineClamp,
+            maxHeight: `${lineClamp * 1.2}em`, 
+          }}
+        >
+          {event.title}
+        </div>
+      );
+    })}
                               
                               {settings.focusSize === 3 && slotEvents.length > 1 && (
                                 <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'flex-end', position: 'absolute', right: 2, bottom: 2 }}>
@@ -266,13 +272,17 @@ duplicateTargetDates, // 【変更】
                       </div>
                     ) : (
                       /* 通常週（未フォーカス）：コンパクト表示 */
-                      <div className="day-events-compact">
-                        {dayEvents.slice(0, 2).map((event: any) => (
-                          <div
-                            key={event.id}
-                            className="compact-event"
-                            title={event.title}
-                          >
+<div className="day-events-compact">
+  {dayEvents.slice(0, 2).map((event: any) => {
+    // ★ 同様に設定が有効かつcolorIdがあればカスタムクラスを適用
+    const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
+    
+    return (
+      <div
+        key={event.id}
+        className={`compact-event ${colorClass}`} // ★ テンプレートリテラルに変更
+        title={event.title}
+      >
                             {event.title}
                           </div>
                         ))}

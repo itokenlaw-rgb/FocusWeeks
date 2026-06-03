@@ -11,6 +11,7 @@ interface Settings {
   // それぞれ独立したオブジェクトとして管理
   focusSize3: { before: 0 | 1; after: 0 | 1 | 2 };
   focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
+  useGoogleColors: boolean; // ★ 追加
 }
 
 interface SettingsViewProps {
@@ -30,6 +31,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onLogin,
   onLogout,
 }) => {
+
+// ★ トグル切り替え用のハンドラーを追加
+  const handleUseGoogleColorsChange = (checked: boolean) => {
+    onUpdateSettings({ ...settings, useGoogleColors: checked });
+  };
+
   // 通知の許可状態をローカルステートで管理 ('default' | 'granted' | 'denied' | 'unsupported')
   const [notificationPermission, setNotificationPermission] = useState<string>(() => {
     if (!('Notification' in window)) return 'unsupported';
@@ -302,6 +309,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
           </div>
+
+{/* ★ Googleカレンダーカラー設定（新規追加項目） */}
+          {isLoggedIn && (
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="form-label" style={{ margin: 0 }}>カレンダー色の反映</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Googleカレンダーの色で予定を表示します</span>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.useGoogleColors}
+                  onChange={(e) => handleUseGoogleColorsChange(e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          )}
 
           {/* Google カレンダー連携 */}
           <div className="form-group">

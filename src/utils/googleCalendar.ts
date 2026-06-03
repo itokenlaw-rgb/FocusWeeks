@@ -10,6 +10,7 @@ export interface CalendarEvent {
   end: string;   // ISO DateTime string or YYYY-MM-DD
   allDay: boolean;
   memo?: string;
+  colorId?: string; // ★ 追加
   googleEventId?: string;
 }
 
@@ -51,6 +52,7 @@ function mapItem(item: any): CalendarEvent {
     allDay,
     memo: item.description || '',
     googleEventId: item.id,
+    colorId: item.colorId || undefined, // ★ 追加
   };
 }
 

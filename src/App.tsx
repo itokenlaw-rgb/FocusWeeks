@@ -81,18 +81,33 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('focusweeks_settings');
     
-    const defaultSettings: Settings = {
+const defaultSettings: Settings = {
       textSize: 'medium',
       focusSize: 3,
       weekStart: 'monday',
       themeColor: 'blue',
       focusSize3: { before: 0, after: 0 },
       focusSize5: { before: 0, after: 0 },
+      useGoogleColors: true, // ★ デフォルトはONにする
     };
 
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
+
+// マイグレーションgoogleカレンダーの色
+        if (parsed.useGoogleColors === undefined) {
+          parsed.useGoogleColors = true;
+        }
+        
+        // 既存の focusSize3 などのマイグレーションロジック...
+        return { ...defaultSettings, ...parsed };
+      } catch {
+        return defaultSettings;
+      }
+    }
+    return defaultSettings;
+  });
         
         // 旧バージョン（focusBefore / focusAfter）から新構造（focusSize3 / focusSize5）への移行
         if (parsed.focusSize3 === undefined) {
