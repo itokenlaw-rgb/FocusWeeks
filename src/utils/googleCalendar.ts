@@ -57,20 +57,30 @@ function mapItem(item: any): CalendarEvent {
 }
 
 function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
-  // 分割代入を使って安全に値を取り出す
   const { title, memo, start, end, allDay, colorId } = event;
 
-  return {
+  // ★ 終日イベントのend.dateをGoogle仕様（翌日）に変換
+  let endDateStr = end ? end.substring(0, 10) : (start ? start.substring(0, 10) : '');
+  if (allDay && endDateStr) {
+    const d = new Date(endDateStr + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    endDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  const body: Record<string, unknown> = {
     summary: title || '(タイトルなし)',
     description: memo || '',
     start: allDay
       ? { date: start ? start.substring(0, 10) : '' }
       : { dateTime: start },
     end: allDay
-      ? { date: end ? end.substring(0, 10) : '' }
+      ? { date: endDateStr }
       : { dateTime: end },
-    colorId: colorId || undefined, // ★ これによりアプリで選んだ色もGoogleカレンダーに反映されます
   };
+
+  if (colorId) body.colorId = colorId;
+
+  return body;
 }
 
 /** イベント一覧取得 */
