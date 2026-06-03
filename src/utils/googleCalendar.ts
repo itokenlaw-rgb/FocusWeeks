@@ -47,8 +47,12 @@ function mapItem(item: any): CalendarEvent {
   return {
     id: item.id,
     title: item.summary || '(タイトルなし)',
-    start: allDay ? item.start.date : item.start.dateTime,
-    end: allDay ? item.end.date : item.end.dateTime,
+    start: allDay
+      ? { date: start ? start.substring(0, 10) : '' }
+      : { dateTime: start, timeZone: TZ },
+    end: allDay
+      ? { date: endDateStr }
+      : { dateTime: end, timeZone: TZ },
     allDay,
     memo: item.description || '',
     googleEventId: item.id,
