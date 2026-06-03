@@ -57,15 +57,19 @@ function mapItem(item: any): CalendarEvent {
 }
 
 function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
+  // 分割代入を使って安全に値を取り出す
+  const { title, memo, start, end, allDay, colorId } = event;
+
   return {
-    summary: event.title,
-    description: event.memo || '',
-    start: event.allDay
-      ? { date: event.start.substring(0, 10) }
-      : { dateTime: event.start },
-    end: event.allDay
-      ? { date: event.end.substring(0, 10) }
-      : { dateTime: event.end },
+    summary: title || '(タイトルなし)',
+    description: memo || '',
+    start: allDay
+      ? { date: start ? start.substring(0, 10) : '' }
+      : { dateTime: start },
+    end: allDay
+      ? { date: end ? end.substring(0, 10) : '' }
+      : { dateTime: end },
+    colorId: colorId || undefined, // ★ これによりアプリで選んだ色もGoogleカレンダーに反映されます
   };
 }
 
@@ -92,6 +96,7 @@ export async function createGoogleEvent(
   const res = await fetch('/api/events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    // 確実にオブジェクトの形でシリアライズしてバックエンドへ送信
     body: JSON.stringify(buildEventBody(event)),
   });
 
