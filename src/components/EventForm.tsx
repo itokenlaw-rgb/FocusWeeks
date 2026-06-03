@@ -215,10 +215,7 @@ export const EventForm: React.FC<EventFormProps> = ({
 
             {/* ★ カラー選択セクション */}
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label className="form-label">カレンダーの色</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
-                {/* デフォルト色（未選択）ボタン */}
-                <button
+              <label className="form-label">カレンダーの色　                <button
                   type="button"
                   onClick={() => setColorId('')}
                   style={{
@@ -234,6 +231,9 @@ export const EventForm: React.FC<EventFormProps> = ({
                   }}
                   title="デフォルト"
                 >
+</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
+                {/* デフォルト色（未選択）ボタン */}
                   {colorId === '' && <Check size={14} color="#333" />}
                 </button>
 
