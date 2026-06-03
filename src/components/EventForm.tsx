@@ -213,9 +213,11 @@ export const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
 
-            {/* ★ カラー選択セクション */}
+{/* ★ カラー選択セクション */}
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label className="form-label">カレンダーの色　                <button
+              <label className="form-label">カレンダーの色              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
+                {/* デフォルト色（未選択）ボタン */}
+                <button
                   type="button"
                   onClick={() => setColorId('')}
                   style={{
@@ -231,11 +233,12 @@ export const EventForm: React.FC<EventFormProps> = ({
                   }}
                   title="デフォルト"
                 >
-</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
-                {/* デフォルト色（未選択）ボタン */}
                   {colorId === '' && <Check size={14} color="#333" />}
                 </button>
+              </div>
+
+</label>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
 
                 {/* gcal-color-X のクラスを利用したカラーパレット */}
                 {GOOGLE_COLORS.map((id) => (
