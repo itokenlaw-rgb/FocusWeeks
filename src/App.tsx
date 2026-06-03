@@ -162,22 +162,6 @@ export default function App() {
   const isLoggedInRef = useRef<boolean>(false);
   const eventsRef = useRef<CalendarEvent[]>([]);
 
-  useEffect(() => {
-    checkLoginStatus().then(loggedIn => {
-      // refを先に更新してからsyncEventsを呼ぶ（stateの非同期更新前にrefが参照される対策）
-      isLoggedInRef.current = loggedIn;
-      setIsLoggedIn(loggedIn);
-      if (loggedIn) syncEvents();
-
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('auth_success') || url.searchParams.has('auth_error')) {
-        url.searchParams.delete('auth_success');
-        url.searchParams.delete('auth_error');
-        window.history.replaceState({}, '', url.toString());
-      }
-    });
-  }, [syncEvents]);
-  
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
     const saved = localStorage.getItem('focusweeks_events');
     return saved ? JSON.parse(saved) : [];
@@ -291,6 +275,22 @@ export default function App() {
       setIsSyncing(false);
     }
   }, []);
+
+  useEffect(() => {
+    checkLoginStatus().then(loggedIn => {
+      // refを先に更新してからsyncEventsを呼ぶ（stateの非同期更新前にrefが参照される対策）
+      isLoggedInRef.current = loggedIn;
+      setIsLoggedIn(loggedIn);
+      if (loggedIn) syncEvents();
+
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('auth_success') || url.searchParams.has('auth_error')) {
+        url.searchParams.delete('auth_success');
+        url.searchParams.delete('auth_error');
+        window.history.replaceState({}, '', url.toString());
+      }
+    });
+  }, [syncEvents]);
 
   const handleLogout = useCallback(async () => {
     await logout();
