@@ -281,12 +281,9 @@ export default function App() {
     }
   };
 
-// 💡 ここ（handleSaveEvent）からファイルの一番最後までをすべて置き換えてください
-
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
     let finalEvent: CalendarEvent;
-
     const isGoogleEvent = isEdit && eventData.id && !eventData.id.startsWith('local-');
 
     if (isLoggedIn) {
@@ -298,13 +295,9 @@ export default function App() {
           const created = await createGoogleEvent(eventData);
           finalEvent = created;
         } else {
+          // ローカルイベントを編集してGoogleに送る場合など
           finalEvent = { ...eventData, id: eventData.id as string };
         }
-        
-        await syncEvents();
-        setActiveForm(null);
-        setIsBottomPanelOpen(false);
-        return; 
       } catch (err) {
         console.error('Google API error, saving locally only:', err);
         finalEvent = {
@@ -319,6 +312,7 @@ export default function App() {
       };
     }
 
+    // Googleへの送信成否に関わらず、ローカルの状態を確実に更新する
     let newEvents = [...events];
     if (isEdit) {
       newEvents = newEvents.map(e => e.id === finalEvent.id ? finalEvent : e);
@@ -331,6 +325,11 @@ export default function App() {
 
     setActiveForm(null);
     setIsBottomPanelOpen(false);
+
+    // バックグラウンドで最新のカレンダー情報を同期して整合性を取る
+    if (isLoggedIn) {
+      await syncEvents();
+    }
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -339,21 +338,22 @@ export default function App() {
     if (isLoggedIn && hasGoogleId) {
       try {
         await deleteGoogleEvent(id);
-        await syncEvents();
-        setActiveForm(null);
-        setIsBottomPanelOpen(false);
-        return;
       } catch (err) {
         console.error('Google API delete error:', err);
       }
     }
 
+    // Google側の削除成否に関わらず、ローカルから削除を実行する
     const newEvents = events.filter(e => e.id !== id);
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
     
     setActiveForm(null);
     setIsBottomPanelOpen(false);
+
+    if (isLoggedIn) {
+      await syncEvents();
+    }
   };
 
   const handleMoveEvent = async (eventId: string, newStart: string, newEnd: string) => {
@@ -366,19 +366,19 @@ export default function App() {
       end: newEnd,
     };
 
+    // 先にローカルの状態を更新して画面のガタつきを防ぐ（楽観的アップデート）
+    const newEvents = events.map(e => e.id === eventId ? updatedEvent : e);
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+
     if (isLoggedIn && !eventId.startsWith('local-')) {
       try {
         await updateGoogleEvent(eventId, updatedEvent);
         await syncEvents();
-        return;
       } catch (err) {
         console.error('Google API update failed on move:', err);
       }
     }
-
-    const newEvents = events.map(e => e.id === eventId ? updatedEvent : e);
-    setEvents(newEvents);
-    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
   };
 
   const handleManualSync = () => {
@@ -493,16 +493,16 @@ export default function App() {
       createdEvents.push(finalEvent);
     }
 
-    if (isLoggedIn) {
-      syncEvents();
-    }
-
     const newEvents = [...events, ...createdEvents];
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
     
     setDuplicateEvent(null);
     setDuplicateTargetDates([]);
+
+    if (isLoggedIn) {
+      await syncEvents();
+    }
   };
 
   const handleOpenAddForm = (date: string, timeSlot: number | null) => {
