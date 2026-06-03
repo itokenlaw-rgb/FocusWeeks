@@ -281,6 +281,8 @@ export default function App() {
     }
   };
 
+// 💡 ここ（handleSaveEvent）からファイルの一番最後までをすべて置き換えてください
+
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
     let finalEvent: CalendarEvent;
@@ -310,7 +312,521 @@ export default function App() {
           id: eventData.id || 'local-' + Date.now(),
         };
       }
-}
     } else {
       finalEvent = {
-        ...eventData
+        ...eventData,
+        id: eventData.id || 'local-' + Date.now(),
+      };
+    }
+
+    let newEvents = [...events];
+    if (isEdit) {
+      newEvents = newEvents.map(e => e.id === finalEvent.id ? finalEvent : e);
+    } else {
+      newEvents.push(finalEvent);
+    }
+
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+
+    setActiveForm(null);
+    setIsBottomPanelOpen(false);
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    const hasGoogleId = !id.startsWith('local-');
+    
+    if (isLoggedIn && hasGoogleId) {
+      try {
+        await deleteGoogleEvent(id);
+        await syncEvents();
+        setActiveForm(null);
+        setIsBottomPanelOpen(false);
+        return;
+      } catch (err) {
+        console.error('Google API delete error:', err);
+      }
+    }
+
+    const newEvents = events.filter(e => e.id !== id);
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+    
+    setActiveForm(null);
+    setIsBottomPanelOpen(false);
+  };
+
+  const handleMoveEvent = async (eventId: string, newStart: string, newEnd: string) => {
+    const eventToMove = events.find(e => e.id === eventId);
+    if (!eventToMove) return;
+
+    const updatedEvent = {
+      ...eventToMove,
+      start: newStart,
+      end: newEnd,
+    };
+
+    if (isLoggedIn && !eventId.startsWith('local-')) {
+      try {
+        await updateGoogleEvent(eventId, updatedEvent);
+        await syncEvents();
+        return;
+      } catch (err) {
+        console.error('Google API update failed on move:', err);
+      }
+    }
+
+    const newEvents = events.map(e => e.id === eventId ? updatedEvent : e);
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+  };
+
+  const handleManualSync = () => {
+    if (isLoggedIn) {
+      syncEvents();
+    } else {
+      alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
+    }
+  };
+
+  const handleSelectDay = (dateString: string, weekStartDate: string) => {
+    if (duplicateEvent) {
+      setDuplicateTargetDates(prev => 
+        prev.includes(dateString)
+          ? prev.filter(d => d !== dateString)
+          : [...prev, dateString]
+      );
+      return;
+    }
+
+    if (isBottomPanelOpen && selectedDate === dateString) {
+      setSelectedDate(null);
+      setIsBottomPanelOpen(false);
+    } else {
+      setSelectedDate(dateString);
+      setFocusedWeekId(weekStartDate);
+      setIsBottomPanelOpen(true);
+    }
+  };
+
+  const handleVisibleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  };
+
+  const handleNavigateWeek = (direction: 'prev' | 'next') => {
+    if (!focusedWeekId || weeks.length === 0) return;
+
+    const currentWeekIdx = weeks.findIndex(w => w[0].dateString === focusedWeekId);
+    if (currentWeekIdx === -1) return;
+
+    let targetWeekIdx = currentWeekIdx;
+    if (direction === 'prev' && currentWeekIdx > 0) {
+      targetWeekIdx = currentWeekIdx - 1;
+    } else if (direction === 'next' && currentWeekIdx < weeks.length - 1) {
+      targetWeekIdx = currentWeekIdx + 1;
+    }
+
+    if (targetWeekIdx !== currentWeekIdx) {
+      const targetWeek = weeks[targetWeekIdx];
+      setFocusedWeekId(targetWeek[0].dateString);
+      handleVisibleMonthChange(targetWeek[0].date.getFullYear(), targetWeek[0].date.getMonth());
+    }
+  };
+
+  const handleTriggerDuplicate = (event: CalendarEvent) => {
+    setDuplicateEvent(event);
+    setDuplicateTargetDates([]); 
+    setActiveForm(null); 
+    setIsBottomPanelOpen(false); 
+    setView('month'); 
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateEvent || duplicateTargetDates.length === 0) return;
+
+    const originalStart = new Date(duplicateEvent.start);
+    const originalEnd = new Date(duplicateEvent.end);
+    const duration = originalEnd.getTime() - originalStart.getTime();
+
+    const createdEvents: CalendarEvent[] = [];
+
+    for (const targetDate of duplicateTargetDates) {
+      const newStart = new Date(targetDate);
+      if (!duplicateEvent.allDay) {
+        newStart.setHours(originalStart.getHours());
+        newStart.setMinutes(originalStart.getMinutes());
+        newStart.setSeconds(0);
+        newStart.setMilliseconds(0);
+      }
+
+      const newEnd = duplicateEvent.allDay
+        ? targetDate
+        : new Date(newStart.getTime() + duration).toISOString();
+
+      const duplicatedData: Omit<CalendarEvent, 'id'> = {
+        title: duplicateEvent.title,
+        start: duplicateEvent.allDay ? targetDate : newStart.toISOString(),
+        end: newEnd,
+        allDay: duplicateEvent.allDay,
+        memo: duplicateEvent.memo,
+      };
+
+      let finalEvent: CalendarEvent;
+
+      if (isLoggedIn) {
+        try {
+          const created = await createGoogleEvent(duplicatedData);
+          finalEvent = created;
+        } catch {
+          finalEvent = {
+            ...duplicatedData,
+            id: 'local-' + Date.now() + '-' + Math.random(),
+          };
+        }
+      } else {
+        finalEvent = {
+          ...duplicatedData,
+          id: 'local-' + Date.now() + '-' + Math.random(),
+        };
+      }
+      createdEvents.push(finalEvent);
+    }
+
+    if (isLoggedIn) {
+      syncEvents();
+    }
+
+    const newEvents = [...events, ...createdEvents];
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+    
+    setDuplicateEvent(null);
+    setDuplicateTargetDates([]);
+  };
+
+  const handleOpenAddForm = (date: string, timeSlot: number | null) => {
+    setActiveForm({
+      event: null,
+      date,
+      timeSlot,
+    });
+  };
+
+  const handleOpenEditForm = (event: CalendarEvent) => {
+    setActiveForm({
+      event,
+      date: event.start.substring(0, 10),
+      timeSlot: null,
+    });
+  };
+
+  const getWeekDaysForSelectedWeek = (): any[] => {
+    if (!focusedWeekId || weeks.length === 0) return [];
+    const activeWeek = weeks.find(w => w[0].dateString === focusedWeekId);
+    return activeWeek || [];
+  };
+
+  return (
+    <div className="app-container">
+      {duplicateEvent && (
+        <div className="duplicate-banner">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span>予定の複製中: 「{duplicateEvent.title}」</span>
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>
+              {duplicateTargetDates.length > 0 
+                ? `選択中: ${duplicateTargetDates.length} 日分 (仮押さえ)` 
+                : 'カレンダーから複製先（複数選択可）を選択してください'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', width: 'auto' }}
+              onClick={() => {
+                setDuplicateEvent(null);
+                setDuplicateTargetDates([]);
+              }}
+            >
+              キャンセル
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ 
+                padding: '4px 14px', 
+                fontSize: 'var(--text-xs)', 
+                width: 'auto',
+                backgroundColor: duplicateTargetDates.length > 0 ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
+                color: duplicateTargetDates.length > 0 ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
+              }}
+              disabled={duplicateTargetDates.length === 0}
+              onClick={handleConfirmDuplicate}
+            >
+              完了
+            </button>
+          </div>
+        </div>
+      )}
+
+      <header className="app-header">
+        <div className="header-left">
+          <div className="header-title-container">
+            <span className="header-year">{currentYear}年</span>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                className="header-month icon-btn" 
+                style={{ padding: '0 4px', borderRadius: '4px' }}
+                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+              >
+                {currentMonth + 1}月
+                <ChevronDown size={16} />
+              </button>
+            </div>
+            
+            {showMonthDropdown && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: 50,
+                  left: 16,
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  maxHeight: 200,
+                  overflowY: 'auto'
+                }}
+              >
+                {Array.from({ length: 12 }).map((_, idx) => {
+                  const target = new Date();
+                  target.setMonth(target.getMonth() - 3 + idx);
+                  const year = target.getFullYear();
+                  const month = target.getMonth();
+                  return (
+                    <button
+                      key={idx}
+                      style={{
+                        padding: '10px 16px',
+                        border: 'none',
+                        background: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--text-primary)',
+                        borderBottom: '1px solid var(--border-color)'
+                      }}
+                      onClick={() => {
+                        handleVisibleMonthChange(year, month);
+                        const dateStr = getFormattedDateString(new Date(year, month, 1));
+                        const targetWeekEl = document.querySelector(`[data-contains-date*="${dateStr}"]`);
+                        if (targetWeekEl) {
+                          targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }
+                        setShowMonthDropdown(false);
+                      }}
+                    >
+                      {year}年 {month + 1}月
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="header-right">
+          <button
+            className="header-focus-toggle-btn"
+            onClick={() => {
+              setSettings(prev => ({
+                ...prev,
+                focusSize: prev.focusSize === 3 ? 5 : 3
+              }));
+            }}
+            title={`フォーカスサイズを${settings.focusSize === 3 ? '大' : '小'}に切り替え`}
+          >
+            {settings.focusSize === 3 ? (
+              <>
+                <Minimize2 size={14} />
+                <span style={{ fontSize: '11px' }}>小</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 size={14} />
+                <span style={{ fontSize: '11px' }}>大</span>
+              </>
+            )}
+          </button>
+
+          <button 
+            className="switch-btn" 
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'var(--bg-card)', padding: '6px 12px' }}
+            onClick={() => {
+              const today = new Date();
+              const todayStr = getFormattedDateString(today);
+              setSelectedDate(null);
+              
+              const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
+              if (targetWeekEl) {
+                targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              }
+              
+              if (weeks.length > 0) {
+                const currentWeek = weeks.find(w => w.some(d => d.dateString === todayStr));
+                if (currentWeek) {
+                  setFocusedWeekId(currentWeek[0].dateString);
+                }
+              }
+              
+              handleVisibleMonthChange(today.getFullYear(), today.getMonth());
+            }}
+          >
+            今日
+          </button>
+          
+          <div className="view-switch" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+            <button 
+              className={`switch-btn ${view === 'month' ? 'active' : ''}`}
+              style={{ color: view === 'month' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.7)' }}
+              onClick={() => setView('month')}
+            >
+              月
+            </button>
+            <button 
+              className={`switch-btn ${view === 'week' ? 'active' : ''}`}
+              style={{ color: view === 'week' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.7)' }}
+              onClick={() => setView('week')}
+            >
+              週
+            </button>
+          </div>
+
+          <button 
+            className={`icon-btn sync-btn ${isSyncing ? 'spinning' : ''}`}
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            aria-label="Googleカレンダーと同期"
+            style={{ opacity: isLoggedIn ? 1 : 0.4 }}
+          >
+            <RefreshCw size={18} />
+          </button>
+
+          <button 
+            className="icon-btn" 
+            onClick={() => {
+              setShowSettings(true);
+              setIsBottomPanelOpen(false);
+            }}
+            aria-label="設定"
+          >
+            <SettingsIcon size={20} />
+          </button>
+        </div>
+      </header>
+
+      {view === 'month' && (
+        <div className="weekday-header">
+          {settings.weekStart === 'sunday' ? (
+            <>
+              <span className="sun">日</span>
+              <span>月</span>
+              <span>火</span>
+              <span>水</span>
+              <span>木</span>
+              <span>金</span>
+              <span className="sat">土</span>
+            </>
+          ) : (
+            <>
+              <span>月</span>
+              <span>火</span>
+              <span>水</span>
+              <span>木</span>
+              <span>金</span>
+              <span className="sat">土</span>
+              <span className="sun">日</span>
+            </>
+          )}
+        </div>
+      )}
+
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {view === 'month' ? (
+          <MonthView
+            weeks={weeks}
+            events={events}
+            selectedDate={selectedDate}
+            focusedWeekId={focusedWeekId}
+            settings={settings}
+            onSelectDay={handleSelectDay}
+            onVisibleMonthChange={handleVisibleMonthChange}
+            duplicateMode={!!duplicateEvent}
+            duplicateTargetDates={duplicateTargetDates} 
+            onPasteDuplicate={async () => {}}
+          />
+        ) : (
+          <WeekView
+            weekDays={getWeekDaysForSelectedWeek()}
+            events={events}
+            onEventClick={handleOpenEditForm}
+            onAddEventClick={(date, hour) => handleOpenAddForm(date, hour)}
+            onMoveEvent={handleMoveEvent}
+            onNavigateWeek={handleNavigateWeek}
+            useGoogleColors={settings.useGoogleColors}
+          />
+        )}
+
+        {view === 'month' && !selectedDate && (
+          <button 
+            className="floating-add-btn" 
+            onClick={() => handleOpenAddForm(getFormattedDateString(new Date()), null)}
+            aria-label="予定を追加"
+          >
+            <Plus size={24} />
+          </button>
+        )}
+
+        {view === 'month' && (
+          <BottomPanel
+            isOpen={isBottomPanelOpen}
+            selectedDate={selectedDate}
+            events={events}
+            onClose={() => {
+              setIsBottomPanelOpen(false);
+              setSelectedDate(null);
+            }}
+            onEventClick={handleOpenEditForm}
+            onAddEventClick={handleOpenAddForm}
+          />
+        )}
+      </div>
+
+      {activeForm && (
+        <EventForm
+          event={activeForm.event}
+          initialDate={activeForm.date}
+          initialTimeSlot={activeForm.timeSlot}
+          onSave={handleSaveEvent}
+          onDelete={handleDeleteEvent}
+          onCancel={() => setActiveForm(null)}
+          onDuplicate={handleTriggerDuplicate}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsView
+          settings={settings}
+          onUpdateSettings={setSettings}
+          onClose={() => setShowSettings(false)}
+          isLoggedIn={isLoggedIn}
+          onLogin={redirectToGoogleLogin}
+          onLogout={handleLogout}
+        />
+      )}
+    </div>
+  );
+}
