@@ -341,11 +341,9 @@ export default function App() {
 
     setActiveForm(null);
     setIsBottomPanelOpen(false);
-
-    // バックグラウンドで最新のカレンダー情報を同期して整合性を取る
-    if (isLoggedIn) {
-      await syncEvents();
-    }
+    // 保存直後にsyncEventsを呼ぶと、Google側への書き込みが
+    // まだ反映されていない状態でfetchしてしまい予定が消える。
+    // ローカルstateへの反映のみで完結させ、同期は手動ボタンに委ねる。
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -366,10 +364,7 @@ export default function App() {
     
     setActiveForm(null);
     setIsBottomPanelOpen(false);
-
-    if (isLoggedIn) {
-      await syncEvents();
-    }
+    // 削除後も即座にsyncすると削除反映前のデータで上書きされる可能性があるため省略
   };
 
   const handleMoveEvent = async (eventId: string, newStart: string, newEnd: string) => {
@@ -390,7 +385,7 @@ export default function App() {
     if (isLoggedIn && !eventId.startsWith('local-')) {
       try {
         await updateGoogleEvent(eventId, updatedEvent);
-        await syncEvents();
+        // 更新直後のsyncは省略（Google側反映前にfetchすると古いデータで上書きされるため）
       } catch (err) {
         console.error('Google API update failed on move:', err);
       }
@@ -515,10 +510,7 @@ export default function App() {
     
     setDuplicateEvent(null);
     setDuplicateTargetDates([]);
-
-    if (isLoggedIn) {
-      await syncEvents();
-    }
+    // 複製直後のsyncも省略（Google反映前にfetchすると複製分が消える）
   };
 
   const handleOpenAddForm = (date: string, timeSlot: number | null) => {
