@@ -158,8 +158,14 @@ export default function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
+  // isLoggedIn / events の最新値をrefで保持（useCallback内のstaleクロージャ対策）
+  const isLoggedInRef = useRef<boolean>(false);
+  const eventsRef = useRef<CalendarEvent[]>([]);
+
   useEffect(() => {
     checkLoginStatus().then(loggedIn => {
+      // refを先に更新してからsyncEventsを呼ぶ（stateの非同期更新前にrefが参照される対策）
+      isLoggedInRef.current = loggedIn;
       setIsLoggedIn(loggedIn);
       if (loggedIn) syncEvents();
 
@@ -170,12 +176,22 @@ export default function App() {
         window.history.replaceState({}, '', url.toString());
       }
     });
-  }, []);
+  }, [syncEvents]);
   
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
     const saved = localStorage.getItem('focusweeks_events');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // eventsRefをeventsと同期
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
+
+  // isLoggedInRefをisLoggedInと同期
+  useEffect(() => {
+    isLoggedInRef.current = isLoggedIn;
+  }, [isLoggedIn]);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const lastCheckedMinute = useRef<string>('');
@@ -241,12 +257,7 @@ export default function App() {
     }
   }, [settings.weekStart]);
 
-  const handleLogout = useCallback(async () => {
-    await logout();
-    setIsLoggedIn(false);
-  }, []);
-
-  const syncEvents = async () => {
+  const syncEvents = useCallback(async () => {
     setIsSyncing(true);
     try {
       const today = new Date();
@@ -255,8 +266,8 @@ export default function App() {
       const end = new Date(today);
       end.setDate(today.getDate() + 42 * 7);
 
-      if (isLoggedIn) {
-        const localEvents = events.filter(e => e.id.startsWith('local-'));
+      if (isLoggedInRef.current) {
+        const localEvents = eventsRef.current.filter(e => e.id.startsWith('local-'));
         for (const localEv of localEvents) {
           try {
             const { id, ...eventDataWithoutId } = localEv;
@@ -279,7 +290,12 @@ export default function App() {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    setIsLoggedIn(false);
+  }, []);
 
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
