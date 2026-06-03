@@ -10,7 +10,7 @@ export interface CalendarEvent {
   end: string;   // ISO DateTime string or YYYY-MM-DD
   allDay: boolean;
   memo?: string;
-  colorId?: string; // ★ 追加
+  colorId?: string;
   googleEventId?: string;
 }
 
@@ -47,23 +47,19 @@ function mapItem(item: any): CalendarEvent {
   return {
     id: item.id,
     title: item.summary || '(タイトルなし)',
-    start: allDay
-      ? { date: start ? start.substring(0, 10) : '' }
-      : { dateTime: start, timeZone: TZ },
-    end: allDay
-      ? { date: endDateStr }
-      : { dateTime: end, timeZone: TZ },
+    start: allDay ? item.start.date : item.start.dateTime,
+    end: allDay ? item.end.date : item.end.dateTime,
     allDay,
     memo: item.description || '',
     googleEventId: item.id,
-    colorId: item.colorId || undefined, // ★ 追加
+    colorId: item.colorId || undefined,
   };
 }
 
 function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
   const { title, memo, start, end, allDay, colorId } = event;
 
-  // ★ 終日イベントのend.dateをGoogle仕様（翌日）に変換
+  // 終日イベントのend.dateをGoogle仕様（翌日）に変換
   let endDateStr = end ? end.substring(0, 10) : (start ? start.substring(0, 10) : '');
   if (allDay && endDateStr) {
     const d = new Date(endDateStr + 'T00:00:00');
@@ -71,7 +67,7 @@ function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
     endDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  // ★ タイムゾーン（Asia/Tokyo固定）
+  // タイムゾーン（Asia/Tokyo固定）
   const TZ = 'Asia/Tokyo';
 
   const body: Record<string, unknown> = {
@@ -79,10 +75,10 @@ function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
     description: memo || '',
     start: allDay
       ? { date: start ? start.substring(0, 10) : '' }
-      : { dateTime: start },
+      : { dateTime: start, timeZone: TZ },
     end: allDay
       ? { date: endDateStr }
-      : { dateTime: end },
+      : { dateTime: end, timeZone: TZ },
   };
 
   if (colorId) body.colorId = colorId;
@@ -113,7 +109,6 @@ export async function createGoogleEvent(
   const res = await fetch('/api/events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // 確実にオブジェクトの形でシリアライズしてバックエンドへ送信
     body: JSON.stringify(buildEventBody(event)),
   });
 
