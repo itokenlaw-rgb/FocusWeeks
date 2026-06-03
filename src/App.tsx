@@ -256,6 +256,21 @@ export default function App() {
       const end = new Date(today);
       end.setDate(today.getDate() + 42 * 7);
 
+// 【追加】ログイン中であれば、ローカルにしか存在しない予定（local-XXX）を先にGoogleにアウトプットする
+      if (isLoggedIn) {
+        const localEvents = events.filter(e => e.id.startsWith('local-'));
+        for (const localEv of localEvents) {
+          try {
+            // Omit<CalendarEvent, 'id'> の形にして送信
+            const { id, ...eventDataWithoutId } = localEv;
+            await createGoogleEvent(eventDataWithoutId);
+          } catch (err) {
+            console.error('ローカル予定のアウトプットに失敗しました:', localEv.title, err);
+          }
+        }
+      }
+
+// その後、最新のGoogleカレンダーの情報をインプットする
       const items = await fetchGoogleEvents(start.toISOString(), end.toISOString());
       setEvents(items);
       localStorage.setItem('focusweeks_events', JSON.stringify(items));
@@ -268,6 +283,112 @@ export default function App() {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
+    const isEdit = !!eventData.id;
+    let finalEvent: CalendarEvent;
+
+    // 「編集かつGoogleの予定」または「新規追加かつログイン中」
+    const isGoogleEvent = isEdit && eventData.id && !eventData.id.startsWith('local-');
+
+    if (isLoggedIn) {
+      try {
+        if (isGoogleEvent && eventData.id) {
+          // ★ await をつけて確実にGoogle側の更新が終わるのを待つ
+          const updated = await updateGoogleEvent(eventData.id, eventData);
+          finalEvent = updated;
+        } else if (!isEdit) {
+          // 新規作成時も await でGoogle側への書き込み完了を待つ
+          const created = await createGoogleEvent(eventData);
+          finalEvent = created;
+        } else {
+          // local-で始まる予定の編集
+          finalEvent = { ...eventData, id: eventData.id };
+        }
+        
+        // ★ 確実に保存が終わった後に同期を走らせる
+        await syncEvents();
+        setActiveForm(null);
+        setIsBottomPanelOpen(false);
+        return; // 同期処理の中でstate更新されるためここで終了
+      } catch (err) {
+        console.error('Google API error, saving locally only:', err);
+        finalEvent = {
+          ...eventData,
+          id: eventData.id || 'local-' + Date.now(),
+        };
+      }
+    } else {
+      finalEvent = {
+        ...eventData,
+        id: eventData.id || 'local-' + Date.now(),
+      };
+    }
+
+    // オフラインまたはログインしていない場合のローカルフォールバック処理
+    let newEvents = [...events];
+    if (isEdit) {
+      newEvents = newEvents.map(e => e.id === finalEvent.id ? finalEvent : e);
+    } else {
+      newEvents.push(finalEvent);
+    }
+
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+
+    setActiveForm(null);
+    setIsBottomPanelOpen(false);
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    const hasGoogleId = !id.startsWith('local-');
+    
+    if (isLoggedIn && hasGoogleId) {
+      try {
+        // ★ await をつけてGoogle側の削除完了を待つ
+        await deleteGoogleEvent(id);
+        await syncEvents();
+        setActiveForm(null);
+        setIsBottomPanelOpen(false);
+        return;
+      } catch (err) {
+        console.error('Google API delete error:', err);
+      }
+    }
+
+    const newEvents = events.filter(e => e.id !== id);
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+    
+    setActiveForm(null);
+    setIsBottomPanelOpen(false);
+  };
+
+  const handleMoveEvent = async (eventId: string, newStart: string, newEnd: string) => {
+    const eventToMove = events.find(e => e.id === eventId);
+    if (!eventToMove) return;
+
+    const updatedEvent = {
+      ...eventToMove,
+      start: newStart,
+      end: newEnd,
+    };
+
+    if (isLoggedIn && !eventId.startsWith('local-')) {
+      try {
+        // ★ カレンダー上のドラッグ＆ドロップ移動時も、完了を待ってから同期する
+        await updateGoogleEvent(eventId, updatedEvent);
+        await syncEvents();
+        return;
+      } catch (err) {
+        console.error('Google API update failed on move:', err);
+      }
+    }
+
+    const newEvents = events.map(e => e.id === eventId ? updatedEvent : e);
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
   };
 
   const handleManualSync = () => {
