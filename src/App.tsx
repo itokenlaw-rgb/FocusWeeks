@@ -17,7 +17,6 @@ import {
 import type { CalendarEvent } from './utils/googleCalendar';
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
-// Get ISO Date format string in Local Time zone (YYYY-MM-DD)
 const getFormattedDateString = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -25,12 +24,11 @@ const getFormattedDateString = (d: Date): string => {
   return `${y}-${m}-${date}`;
 };
 
-// Generate weeks helper
 function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', countBefore = 10, countAfter = 30) {
   const weeks = [];
   
   const currentMonthStart = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-  const startDay = currentMonthStart.getDay(); // 0 = Sun, 1 = Mon
+  const startDay = currentMonthStart.getDay(); 
   
   let diff = 0;
   if (weekStart === 'sunday') {
@@ -77,39 +75,28 @@ function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', count
 }
 
 export default function App() {
-  // Global Settings State（マイグレーション対応版）
+  // Global Settings State（マイグレーション重複エラー解消版）
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('focusweeks_settings');
     
-const defaultSettings: Settings = {
+    const defaultSettings: Settings = {
       textSize: 'medium',
       focusSize: 3,
       weekStart: 'monday',
       themeColor: 'blue',
       focusSize3: { before: 0, after: 0 },
       focusSize5: { before: 0, after: 0 },
-      useGoogleColors: true, // ★ デフォルトはONにする
+      useGoogleColors: true, 
     };
 
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
 
-// マイグレーションgoogleカレンダーの色
         if (parsed.useGoogleColors === undefined) {
           parsed.useGoogleColors = true;
         }
         
-        // 既存の focusSize3 などのマイグレーションロジック...
-        return { ...defaultSettings, ...parsed };
-      } catch {
-        return defaultSettings;
-      }
-    }
-    return defaultSettings;
-  });
-        
-        // 旧バージョン（focusBefore / focusAfter）から新構造（focusSize3 / focusSize5）への移行
         if (parsed.focusSize3 === undefined) {
           parsed.focusSize3 = {
             before: parsed.focusBefore !== undefined ? parsed.focusBefore : 0,
@@ -123,7 +110,6 @@ const defaultSettings: Settings = {
           };
         }
 
-        // 不要になった古いキーの削除
         delete parsed.focusBefore;
         delete parsed.focusAfter;
 
@@ -135,12 +121,10 @@ const defaultSettings: Settings = {
     return defaultSettings;
   });
 
-  // 設定項目（settings）が変更されたら自動で localStorage へ同期・保存する
   useEffect(() => {
     localStorage.setItem('focusweeks_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // 同期中（ローディング）の状態を管理
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
@@ -153,21 +137,16 @@ const defaultSettings: Settings = {
     document.body.classList.add(`size-${settings.textSize}`);
   }, [settings.themeColor, settings.textSize]);
 
-  // Views and Dates States
   const [view, setView] = useState<'month' | 'week'>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [focusedWeekId, setFocusedWeekId] = useState<string | null>(null);
   const [weeks, setWeeks] = useState<any[][]>([]);
   
-  // Header Month display
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-
-  // Bottom panel sliding state
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
 
-  // Forms and settings screen states
   const [activeForm, setActiveForm] = useState<{
     event: CalendarEvent | null;
     date: string;
@@ -175,43 +154,33 @@ const defaultSettings: Settings = {
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Duplicate Mode State (複数仮押さえ対応版)
   const [duplicateEvent, setDuplicateEvent] = useState<CalendarEvent | null>(null);
-  const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); // 配列で複数管理
+  const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); 
 
-  // Google OAuth States
-const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-// アプリ起動時のログイン状態チェック
-// URLに ?auth_success=1 がある場合もここで検知する
-useEffect(() => {
-  checkLoginStatus().then(loggedIn => {
-    setIsLoggedIn(loggedIn);
-    if (loggedIn) syncEvents();
+  useEffect(() => {
+    checkLoginStatus().then(loggedIn => {
+      setIsLoggedIn(loggedIn);
+      if (loggedIn) syncEvents();
 
-    // OAuthリダイレクト後のクエリパラメータをURLから除去
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('auth_success') || url.searchParams.has('auth_error')) {
-      url.searchParams.delete('auth_success');
-      url.searchParams.delete('auth_error');
-      window.history.replaceState({}, '', url.toString());
-    }
-  });
-}, []);
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('auth_success') || url.searchParams.has('auth_error')) {
+        url.searchParams.delete('auth_success');
+        url.searchParams.delete('auth_error');
+        window.history.replaceState({}, '', url.toString());
+      }
+    });
+  }, []);
   
-  // Event Caches
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
     const saved = localStorage.getItem('focusweeks_events');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 現在時刻を管理するState
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  // 重複通知を防ぐため、最後に通知をチェックした「時:分」を保持するRef
   const lastCheckedMinute = useRef<string>('');
 
-  // 1秒ごとに時刻を更新するタイマー
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -219,7 +188,6 @@ useEffect(() => {
     return () => clearInterval(timer);
   }, []);
 
-  // 予定の通知チェックロジック
   useEffect(() => {
     const currentHM = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
     
@@ -245,7 +213,6 @@ useEffect(() => {
     });
   }, [currentTime, events]);
 
-  // 通知を実際にトリガーする関数
   const triggerNotification = (title: string, body: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body });
@@ -254,7 +221,6 @@ useEffect(() => {
     }
   };
 
-  // Re-generate weeks on weekStart configuration change
   useEffect(() => {
     const base = new Date();
     const list = generateWeeksList(base, settings.weekStart, 10, 40);
@@ -276,53 +242,44 @@ useEffect(() => {
     }
   }, [settings.weekStart]);
 
-  // Google Script & OAuth Client Loader
+  const handleLogout = useCallback(async () => {
+    await logout();
+    setIsLoggedIn(false);
+  }, []);
 
+  const syncEvents = async () => {
+    setIsSyncing(true);
+    try {
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - 12 * 7);
+      const end = new Date(today);
+      end.setDate(today.getDate() + 42 * 7);
 
-// 【After】
-// handleTokenReceived / initOAuthClient / loadGoogleScript は不要なので削除
-
-const handleLogout = useCallback(async () => {
-  await logout();
-  setIsLoggedIn(false);
-}, []);
-
-// tokenを引数で受け取る必要がなくなる（バックエンドがCookieで管理）
-const syncEvents = async () => {
-  setIsSyncing(true);
-  try {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - 12 * 7);
-    const end = new Date(today);
-    end.setDate(today.getDate() + 42 * 7);
-
-    const items = await fetchGoogleEvents(start.toISOString(), end.toISOString());
-    setEvents(items);
-    localStorage.setItem('focusweeks_events', JSON.stringify(items));
-  } catch (error: any) {
-    if (error.message === 'UNAUTHORIZED') {
-      setIsLoggedIn(false);
-    } else {
-      console.error('Error syncing events:', error);
+      const items = await fetchGoogleEvents(start.toISOString(), end.toISOString());
+      setEvents(items);
+      localStorage.setItem('focusweeks_events', JSON.stringify(items));
+    } catch (error: any) {
+      if (error.message === 'UNAUTHORIZED') {
+        setIsLoggedIn(false);
+      } else {
+        console.error('Error syncing events:', error);
+      }
+    } finally {
+      setIsSyncing(false);
     }
-  } finally {
-    setIsSyncing(false);
-  }
-};
+  };
 
-const handleManualSync = () => {
-  if (isLoggedIn) {
-    syncEvents();
-  } else {
-    alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
-  }
-};
+  const handleManualSync = () => {
+    if (isLoggedIn) {
+      syncEvents();
+    } else {
+      alert('Googleアカウントにログインしていません。設定画面からログインしてください。');
+    }
+  };
 
-  // Select a day (Month View) - 複数日複製トグルロジック適用
   const handleSelectDay = (dateString: string, weekStartDate: string) => {
     if (duplicateEvent) {
-      // 複製モード時はタップされた日付を配列からトグル（追加/削除）する
       setDuplicateTargetDates(prev => 
         prev.includes(dateString)
           ? prev.filter(d => d !== dateString)
@@ -341,7 +298,6 @@ const handleManualSync = () => {
     }
   };
 
-  // Callback when month scrolls and header needs updating
   const handleVisibleMonthChange = (year: number, month: number) => {
     setCurrentYear(year);
     setCurrentMonth(month);
@@ -367,7 +323,6 @@ const handleManualSync = () => {
     }
   };
 
-  // Save Event Action
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
     let finalEvent: CalendarEvent;
@@ -410,7 +365,6 @@ const handleManualSync = () => {
     setIsBottomPanelOpen(false);
   };
 
-  // Delete Event Action
   const handleDeleteEvent = async (id: string) => {
     const hasGoogleId = !id.startsWith('local-');
     
@@ -431,7 +385,6 @@ const handleManualSync = () => {
     setIsBottomPanelOpen(false);
   };
 
-  // Move Event (Week drag & drop)
   const handleMoveEvent = async (eventId: string, newStart: string, newEnd: string) => {
     const eventToMove = events.find(e => e.id === eventId);
     if (!eventToMove) return;
@@ -456,16 +409,14 @@ const handleManualSync = () => {
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
   };
 
-  // Duplicate Mode Triggers
   const handleTriggerDuplicate = (event: CalendarEvent) => {
     setDuplicateEvent(event);
-    setDuplicateTargetDates([]); // 配列を空で初期化
+    setDuplicateTargetDates([]); 
     setActiveForm(null); 
     setIsBottomPanelOpen(false); 
-    setView('month'); // 複製ボタンが押されたら、強制的に月表示カレンダーに切り替える
+    setView('month'); 
   };
 
-  // 完了ボタンが押された時に選択されたすべての日付に対して一括複製を作成する関数
   const handleConfirmDuplicate = async () => {
     if (!duplicateEvent || duplicateTargetDates.length === 0) return;
 
@@ -475,7 +426,6 @@ const handleManualSync = () => {
 
     const createdEvents: CalendarEvent[] = [];
 
-    // 選択されたすべての日付に対して複製をループ処理
     for (const targetDate of duplicateTargetDates) {
       const newStart = new Date(targetDate);
       if (!duplicateEvent.allDay) {
@@ -518,7 +468,6 @@ const handleManualSync = () => {
       createdEvents.push(finalEvent);
     }
 
-    // Google認証時のみ、最後に1回だけ全同期をかける
     if (isLoggedIn) {
       syncEvents();
     }
@@ -527,12 +476,10 @@ const handleManualSync = () => {
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
     
-    // モードのリセット
     setDuplicateEvent(null);
     setDuplicateTargetDates([]);
   };
 
-  // Open Add Dialog from empty slots
   const handleOpenAddForm = (date: string, timeSlot: number | null) => {
     setActiveForm({
       event: null,
@@ -541,7 +488,6 @@ const handleManualSync = () => {
     });
   };
 
-  // Open Edit Dialog from clicking event card/row
   const handleOpenEditForm = (event: CalendarEvent) => {
     setActiveForm({
       event,
@@ -550,7 +496,6 @@ const handleManualSync = () => {
     });
   };
 
-  // Generate week-based days array for WeekView
   const getWeekDaysForSelectedWeek = (): any[] => {
     if (!focusedWeekId || weeks.length === 0) return [];
     const activeWeek = weeks.find(w => w[0].dateString === focusedWeekId);
@@ -598,7 +543,6 @@ const handleManualSync = () => {
         </div>
       )}
 
-{/* Header */}
       <header className="app-header">
         <div className="header-left">
           <div className="header-title-container">
@@ -670,7 +614,6 @@ const handleManualSync = () => {
         </div>
 
         <div className="header-right">
-          {/* フォーカス切り替えボタンを「今日」ボタンのすぐ左隣に配置（icon-btnクラスは除去） */}
           <button
             className="header-focus-toggle-btn"
             onClick={() => {
@@ -797,7 +740,7 @@ const handleManualSync = () => {
             onSelectDay={handleSelectDay}
             onVisibleMonthChange={handleVisibleMonthChange}
             duplicateMode={!!duplicateEvent}
-            duplicateTargetDates={duplicateTargetDates} // 配列をPropsに渡すよう変更
+            duplicateTargetDates={duplicateTargetDates} 
             onPasteDuplicate={async () => {}}
           />
         ) : (
@@ -808,6 +751,7 @@ const handleManualSync = () => {
             onAddEventClick={(date, hour) => handleOpenAddForm(date, hour)}
             onMoveEvent={handleMoveEvent}
             onNavigateWeek={handleNavigateWeek}
+            useGoogleColors={settings.useGoogleColors} // ★ WeekView側へ設定値を渡す
           />
         )}
 

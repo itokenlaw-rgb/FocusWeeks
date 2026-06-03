@@ -13,31 +13,30 @@ interface MonthViewProps {
     themeColor: string;
     focusSize3: { before: number; after: number };
     focusSize5: { before: number; after: number };
+    useGoogleColors: boolean; // ★ Props型定義に追加
   };
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
-duplicateTargetDates: string[]; // 【変更】string[] に変更
+  duplicateTargetDates: string[];
   onPasteDuplicate: (targetDateString: string) => Promise<void>;
 }
 
-// 予定の時間からどのスロットに配置するかを決定するヘルパー関数
 const getEventSlotIndex = (event: CalendarEvent): number => {
   if (event.allDay) return 0;
   try {
     const date = new Date(event.start);
     const hour = date.getHours();
-    if (hour < 9) return 0;       // 9時前
-    if (hour < 12) return 1;      // 9時〜12時
-    if (hour < 15) return 2;      // 12時〜15時
-    if (hour < 18) return 3;      // 15時〜18時
-    return 4;                     // 18時以降
+    if (hour < 9) return 0;       
+    if (hour < 12) return 1;      
+    if (hour < 15) return 2;      
+    if (hour < 18) return 3;      
+    return 4;                     
   } catch {
     return 0;
   }
 };
 
-// 予定の時間をフォーマットするヘルパー関数
 const formatEventTime = (event: CalendarEvent): string => {
   if (event.allDay) return '終日';
   try {
@@ -56,18 +55,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
   settings,
   onSelectDay,
   onVisibleMonthChange,
-  duplicateMode, // TS6133回避用
-duplicateTargetDates, // 【変更】
-  onPasteDuplicate, // TS6133回避用
+  duplicateMode, 
+  duplicateTargetDates, 
+  onPasteDuplicate, 
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // TypeScriptの未使用変数エラー(TS6133)対策
   const _unusedChecks = () => {
     if (duplicateMode) onPasteDuplicate('');
   };
 
-  // 起動時、またはfocusedWeekIdが変化した時にフォーカス週をスクロール表示する処理
   useEffect(() => {
     if (focusedWeekId && containerRef.current) {
       const targetEl = containerRef.current.querySelector(`[data-week-id="${focusedWeekId}"]`);
@@ -77,7 +74,6 @@ duplicateTargetDates, // 【変更】
     }
   }, [focusedWeekId]);
 
-  // スクロール時に見えている年月のラベルを親コンポーネントへ伝える処理
   const handleScroll = () => {
     if (!containerRef.current) return;
     const container = containerRef.current;
@@ -107,7 +103,6 @@ duplicateTargetDates, // 【変更】
     }
   };
 
-  // 現在フォーカスすべき週のインデックス一覧を計算する
   const getFocusedWeekIndices = (): number[] => {
     if (!focusedWeekId) return [];
     
@@ -163,9 +158,8 @@ duplicateTargetDates, // 【変更】
                 const isSat      = dayOfWeek === 6;
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
-           const isDuplicateTarget = duplicateTargetDates.includes(dateString);
+                const isDuplicateTarget = duplicateTargetDates.includes(dateString);
 
-                // 月の境目を強調する太線設定
                 let borderClasses = '';
                 try {
                   if (dayOfMonth === 1) {
@@ -202,12 +196,10 @@ duplicateTargetDates, // 【変更】
                       onSelectDay(dateString, weekStartDateStr);
                     }}
                   >
-                    {/* 日付数字 */}
                     <div className="day-num">
                       {dayOfMonth === 1 ? `1日` : dayOfMonth}
                     </div>
 
-                    {/* フォーカス週：時間スロット5分割で表示 */}
                     {isWeekFocused ? (
                       <div
                         className="day-events-focused"
@@ -241,25 +233,23 @@ duplicateTargetDates, // 【変更】
                               className="day-time-slot"
                               style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
                             >
-                              {visibleEvents.map(event => (
-
-// ★ 設定が有効かつcolorIdがあればカスタムクラスを適用
-      const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
-
-return (
-        <div
-          key={event.id}
-          className={`focused-event ${colorClass}`} // ★ テンプレートリテラルに変更
-          title={`${formatEventTime(event)} ${event.title}`}
-          style={{
-            WebkitLineClamp: lineClamp,
-            maxHeight: `${lineClamp * 1.2}em`, 
-          }}
-        >
-          {event.title}
-        </div>
-      );
-    })}
+                              {visibleEvents.map(event => {
+                                // ★ 正しいJavaScript実行可能領域で変数を定義
+                                const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className={`focused-event ${colorClass}`}
+                                    title={`${formatEventTime(event)} ${event.title}`}
+                                    style={{
+                                      WebkitLineClamp: lineClamp,
+                                      maxHeight: `${lineClamp * 1.2}em`, 
+                                    }}
+                                  >
+                                    {event.title}
+                                  </div>
+                                );
+                              })}
                               
                               {settings.focusSize === 3 && slotEvents.length > 1 && (
                                 <span style={{ fontSize: '8px', color: 'var(--text-secondary)', alignSelf: 'flex-end', position: 'absolute', right: 2, bottom: 2 }}>
@@ -271,21 +261,19 @@ return (
                         })}
                       </div>
                     ) : (
-                      /* 通常週（未フォーカス）：コンパクト表示 */
-<div className="day-events-compact">
-  {dayEvents.slice(0, 2).map((event: any) => {
-    // ★ 同様に設定が有効かつcolorIdがあればカスタムクラスを適用
-    const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
-    
-    return (
-      <div
-        key={event.id}
-        className={`compact-event ${colorClass}`} // ★ テンプレートリテラルに変更
-        title={event.title}
-      >
-                            {event.title}
-                          </div>
-                        ))}
+                      <div className="day-events-compact">
+                        {dayEvents.slice(0, 2).map((event: any) => {
+                          const colorClass = settings.useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
+                          return (
+                            <div
+                              key={event.id}
+                              className={`compact-event ${colorClass}`}
+                              title={event.title}
+                            >
+                              {event.title}
+                            </div>
+                          );
+                        })}
                         {dayEvents.length > 2 && (
                           <div className="compact-event-more">
                             他 {dayEvents.length - 2} 件
