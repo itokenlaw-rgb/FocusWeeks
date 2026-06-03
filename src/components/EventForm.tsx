@@ -31,13 +31,15 @@ export const EventForm: React.FC<EventFormProps> = ({
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('10:00');
   const [allDay, setAllDay] = useState(false);
+  // ★ 漏れていた colorId の useState を追加
+  const [colorId, setColorId] = useState<string>('');
 
   useEffect(() => {
     if (event) {
       setTitle(event.title);
       setMemo(event.memo || '');
       setAllDay(event.allDay);
-setColorId(event.colorId || ''); // ★ 既存のcolorIdをセット
+      setColorId(event.colorId || ''); // ★ 既存のcolorIdをセット
       
       const startDateTime = new Date(event.start);
       const endDateTime = new Date(event.end);
@@ -49,7 +51,7 @@ setColorId(event.colorId || ''); // ★ 既存のcolorIdをセット
     } else {
       setTitle('');
       setMemo('');
-setColorId(''); // 新規はデフォルト色
+      setColorId(''); // 新規はデフォルト色
       setAllDay(false);
       setStartDate(initialDate);
       setEndDate(initialDate);
@@ -73,7 +75,7 @@ setColorId(''); // 新規はデフォルト色
     }
   }, [event, initialDate, initialTimeSlot]);
 
-  // 【１】開始時間変更時に、終了時間を自動的に1時間後にする関数
+  // 開始時間変更時に、終了時間を自動的に1時間後にする関数
   const handleStartTimeChange = (newStartTime: string) => {
     setStartTime(newStartTime);
 
@@ -108,8 +110,8 @@ setColorId(''); // 新規はデフォルト色
       start: startIso,
       end: endIso,
       allDay,
-      id: event?.id
-colorId: colorId || undefined, // 空文字の場合はundefinedにしてデフォルトに
+      id: event?.id, // ★ カンマを追加
+      colorId: colorId || undefined, // 空文字の場合はundefinedにしてデフォルトに
     });
   };
 
@@ -129,6 +131,7 @@ colorId: colorId || undefined, // 空文字の場合はundefinedにしてデフ�
       start: startIso,
       end: endIso,
       allDay,
+      colorId: colorId || undefined, // ★ 複製時にもcolorIdを引き継ぐ
     };
 
     onDuplicate(currentEventData);
@@ -210,57 +213,55 @@ colorId: colorId || undefined, // 空文字の場合はundefinedにしてデフ�
               </div>
             </div>
 
-{/* ★ カラー選択セクションの追加 */}
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              カレンダーの色
-            </label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* デフォルト色（未選択）ボタン */}
-              <button
-                type="button"
-                onClick={() => setColorId('')}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  border: colorId === '' ? '2px solid #333' : '1px solid #ccc',
-                  backgroundColor: '#ffffff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="デフォルト"
-              >
-                {colorId === '' && <Check size={14} color="#333" />}
-              </button>
-
-              {/* gcal-color-X のクラスを利用したカラーパレット */}
-              {GOOGLE_COLORS.map((id) => (
+            {/* ★ カラー選択セクション */}
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label">カレンダーの色</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', padding: '4px 0' }}>
+                {/* デフォルト色（未選択）ボタン */}
                 <button
-                  key={id}
                   type="button"
-                  className={`gcal-color-${id}`}
-                  onClick={() => setColorId(id)}
+                  onClick={() => setColorId('')}
                   style={{
                     width: '28px',
                     height: '28px',
                     borderRadius: '50%',
-                    border: colorId === id ? '2px solid #333' : '1px solid transparent',
+                    border: colorId === '' ? '2px solid #333' : '1px solid #ccc',
+                    backgroundColor: '#ffffff',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    padding: 0
+                    justifyContent: 'center'
                   }}
+                  title="デフォルト"
                 >
-                  {colorId === id && <Check size={14} />}
+                  {colorId === '' && <Check size={14} color="#333" />}
                 </button>
-              ))}
+
+                {/* gcal-color-X のクラスを利用したカラーパレット */}
+                {GOOGLE_COLORS.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`gcal-color-${id}`}
+                    onClick={() => setColorId(id)}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      border: colorId === id ? '2px solid #333' : '1px solid transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                      padding: 0
+                    }}
+                  >
+                    {colorId === id && <Check size={14} />}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
             {/* 拡大したメモ欄 */}
             <div className="form-group">
