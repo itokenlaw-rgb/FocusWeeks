@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+
+// ★ 追加：Vercelのbody自動パースを有効化
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 const kv = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
@@ -112,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ---- イベント作成 ----
   if (method === 'POST') {
+    console.log('POST body:', JSON.stringify(req.body)); // ★ デバッグ用
     const gcRes = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
       {
@@ -123,9 +132,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         body: JSON.stringify(req.body),
       }
     );
-    if (!gcRes.ok) return res.status(gcRes.status).json({ error: 'Google API error' });
+    if (!gcRes.ok) {
+      const errText = await gcRes.text(); // ★ デバッグ用
+      console.error('Google API POST error:', errText);
+      return res.status(gcRes.status).json({ error: 'Google API error', detail: errText });
+    }
     return res.json(await gcRes.json());
   }
+
 
   // ---- イベント更新 ----
   if (method === 'PUT') {
