@@ -16,6 +16,7 @@ interface WeekViewProps {
   onAddEventClick: (date: string, hour: number) => void;
   onMoveEvent: (eventId: string, newStart: string, newEnd: string) => void;
   onNavigateWeek: (direction: 'prev' | 'next') => void;
+  useGoogleColors: boolean; // ★ 追加：App.tsxからの型不一致エラーを解消
 }
 
 interface DragState {
@@ -34,6 +35,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onAddEventClick,
   onMoveEvent,
   onNavigateWeek,
+  useGoogleColors, // ★ 追加
 }) => {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -43,28 +45,21 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const isDraggingActiveRef = useRef(false);
   const dragDistanceRef = useRef(0);
   
-  // スワイプ管理用のRef
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const isSwipingRef = useRef(false);
 
-  // ★ アニメーション制御用のStateを追加
   const [slideDirection, setSlideDirection] = useState<'none' | 'slide-out-left' | 'slide-out-right' | 'slide-in-left' | 'slide-in-right'>('none');
-  // 連続スワイプによるバグを防ぐフラグ
   const isAnimatingRef = useRef(false);
 
-  // 最外殻（week-container）または全体のタッチ開始処理
   const handleContainerTouchStart = (e: React.TouchEvent) => {
-    // アニメーション中、またはドラッグ中はスワイプさせない
     if (isAnimatingRef.current || isDraggingActiveRef.current || (e.target as HTMLElement).closest('.week-event-card')) {
       return;
     }
-
     const touch = e.touches[0];
     swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
     isSwipingRef.current = false;
   };
 
-  // タッチ移動時の制御（縦スクロールと横スワイプの競合を防ぐ）
   const handleContainerTouchMove = (e: React.TouchEvent) => {
     if (!swipeStartRef.current || isDraggingActiveRef.current) return;
 
@@ -72,47 +67,37 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const diffX = touch.clientX - swipeStartRef.current.x;
     const diffY = touch.clientY - swipeStartRef.current.y;
 
-    // 左右の動きの方が上下より大きい場合、スワイプモードとしてロックする
     if (!isSwipingRef.current && Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
       isSwipingRef.current = true;
     }
 
-    // 横スワイプ中であれば、ブラウザの縦スクロール挙動を無効化する
     if (isSwipingRef.current) {
       if (e.cancelable) e.preventDefault();
     }
   };
 
-  // ★ アニメーションを伴う週移動の共通処理
   const triggerWeekNavigation = (direction: 'prev' | 'next') => {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
 
-    // 1. まずは現在のグリッドを画面外へスライドアウトさせる
     setSlideDirection(direction === 'next' ? 'slide-out-left' : 'slide-out-right');
 
-    // 2. スライドアウト（200ms）が終わるタイミングでデータを切り替える
     setTimeout(() => {
       onNavigateWeek(direction);
-      
-      // 3. データが切り替わったら、反対側の画面外に一瞬で配置（アニメーションなし）
       setSlideDirection(direction === 'next' ? 'slide-in-right' : 'slide-in-left');
       
-      // 4. 次のレンダリングを待って、画面内にスッと戻すアニメーションを発火
       requestAnimationFrame(() => {
         setTimeout(() => {
           setSlideDirection('none');
           isAnimatingRef.current = false;
         }, 20);
       });
-    }, 200); // index.cssの transition 速度と合わせます
+    }, 200); 
   };
 
-  // タッチ終了時に安全に週移動をトリガー
   const handleContainerTouchEnd = (e: React.TouchEvent) => {
     if (!swipeStartRef.current) return;
 
-    // 予定の長押しドラッグ中だった場合はスワイプを無視
     if (isDraggingActiveRef.current) {
       swipeStartRef.current = null;
       isSwipingRef.current = false;
@@ -123,10 +108,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const diffX = touch.clientX - swipeStartRef.current.x;
     const diffY = touch.clientY - swipeStartRef.current.y;
 
-    const SWIPE_THRESHOLD = 40; // 判定しきい値(px)
+    const SWIPE_THRESHOLD = 40; 
     
     if (isSwipingRef.current || (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY))) {
-      // ★ 共通のアニメーション付き関数を呼ぶように変更
       if (diffX > 0) {
         triggerWeekNavigation('prev');
       } else {
@@ -324,7 +308,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
       onTouchEnd={handleContainerTouchEnd}
       style={{ touchAction: 'pan-y' }} 
     >
-      {/* アニメーション用のコンテナ wrapper */}
       <div className={`week-animate-wrapper ${slideDirection}`}>
         {/* 曜日ヘッダー */}
         <div 
@@ -428,17 +411,20 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     />
                   ))}
 
+                  {/* 通常の予定カード */}
                   {timedEvents.map((event) => {
                     const layout = getEventLayout(event);
                     if (!layout) return null;
 
                     const isDragging = dragState?.event.id === event.id;
                     const translation = getDragTranslation(event);
+                    // ★ 設定が有効かつcolorIdがあればカスタムクラスを適用
+                    const colorClass = useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
 
                     return (
                       <div
                         key={event.id}
-                        className={`week-event-card ${isDragging ? 'dragging' : ''}`}
+                        className={`week-event-card ${isDragging ? 'dragging' : ''} ${colorClass}`}
                         style={{
                           top: layout.top,
                           height: layout.height,
@@ -464,32 +450,35 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     );
                   })}
 
-                  {allDayEvents.map((event, idx) => (
-                    <div
-                      key={event.id}
-                      className="week-event-card"
-                      style={{
-                        top: idx * 24 + 2,
-                        height: 22,
-                        backgroundColor: 'var(--accent-color)',
-                        color: 'var(--bg-card)',
-                        fontSize: '9px',
-                        padding: '2px 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 15,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isSwipingRef.current) {
-                          onEventClick(event);
-                        }
-                      }}
-                    >
-                      <div className="week-event-card-title">{event.title}</div>
-                    </div>
-                  ))}
+                  {/* 終日予定カード */}
+                  {allDayEvents.map((event, idx) => {
+                    // ★ 設定が有効かつcolorIdがあればカスタムクラスを適用
+                    const colorClass = useGoogleColors && event.colorId ? `gcal-color-${event.colorId}` : '';
+                    return (
+                      <div
+                        key={event.id}
+                        className={`week-event-card all-day-card ${colorClass}`}
+                        style={{
+                          top: idx * 24 + 2,
+                          height: 22,
+                          fontSize: '9px',
+                          padding: '2px 4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 15,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isSwipingRef.current) {
+                            onEventClick(event);
+                          }
+                        }}
+                      >
+                        <div className="week-event-card-title">{event.title}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
