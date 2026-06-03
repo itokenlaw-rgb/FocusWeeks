@@ -67,6 +67,9 @@ function buildEventBody(event: Omit<CalendarEvent, 'id'>) {
     endDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  // ★ タイムゾーン（Asia/Tokyo固定）
+  const TZ = 'Asia/Tokyo';
+
   const body: Record<string, unknown> = {
     summary: title || '(タイトルなし)',
     description: memo || '',
