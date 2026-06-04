@@ -197,6 +197,7 @@ TypeScript
       />
     )}
   </div>
+        </div>
 
   {/* 終了行（ここで改行されます） */}
   <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
