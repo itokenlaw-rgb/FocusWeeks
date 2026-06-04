@@ -174,45 +174,51 @@ export const EventForm: React.FC<EventFormProps> = ({
             <div className="form-group">
               {/* 開始日時 */}
 {/* 開始日時 */}
-<div className="form-group-row" style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', alignItems: 'center' }}>
-  <span className="form-label" style={{ flexShrink: 0, minWidth: '40px', marginRight: '2px' }}>開始</span>
-  <input
-    type="date"
-    className="form-input"
-    value={startDate}
-    onChange={(e) => setStartDate(e.target.value)}
-    style={{ flex: 2, minWidth: 0, margin: 0 }}
-  />
-  {!allDay && (
+TypeScript
+{/* 開始日時 */}
+<div className="form-group-row" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+  {/* 開始行 */}
+  <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+    <span className="form-label" style={{ flexShrink: 0, minWidth: '40px', marginRight: '2px' }}>開始</span>
     <input
-      type="time"
+      type="date"
       className="form-input"
-      value={startTime}
-      onChange={(e) => handleStartTimeChange(e.target.value)}
-      style={{ flex: 1.2, minWidth: 0, margin: 0 }}
+      value={startDate}
+      onChange={(e) => setStartDate(e.target.value)}
+      style={{ flex: 2, minWidth: 0, margin: 0 }}
     />
-  )}
+    {!allDay && (
+      <input
+        type="time"
+        className="form-input"
+        value={startTime}
+        onChange={(e) => handleStartTimeChange(e.target.value)}
+        style={{ flex: 1.2, minWidth: 0, margin: 0 }}
+      />
+    )}
+  </div>
 
-  <span className="form-label" style={{ flexShrink: 0, minWidth: '40px', marginLeft: '6px', marginRight: '2px' }}>終了</span>
-  <input
-    type="date"
-    className="form-input"
-    value={endDate}
-    onChange={(e) => setEndDate(e.target.value)}
-    style={{ flex: 2, minWidth: 0, margin: 0 }}
-  />
-  {!allDay && (
+  {/* 終了行（ここで改行されます） */}
+  <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+    <span className="form-label" style={{ flexShrink: 0, minWidth: '40px', marginRight: '2px' }}>終了</span>
     <input
-      type="time"
+      type="date"
       className="form-input"
-      value={endTime}
-      onChange={(e) => setEndTime(e.target.value)}
-      style={{ flex: 1.2, minWidth: 0, margin: 0 }}
+      value={endDate}
+      onChange={(e) => setEndDate(e.target.value)}
+      style={{ flex: 2, minWidth: 0, margin: 0 }}
     />
-  )}
+    {!allDay && (
+      <input
+        type="time"
+        className="form-input"
+        value={endTime}
+        onChange={(e) => setEndTime(e.target.value)}
+        style={{ flex: 1.2, minWidth: 0, margin: 0 }}
+      />
+    )}
+  </div>
 </div>
-            </div>
-
             {/* 拡大したメモ欄 */}
             <div className="form-group">
               <label className="form-label">メモ</label>
