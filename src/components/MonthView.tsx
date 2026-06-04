@@ -69,7 +69,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
     if (focusedWeekId && containerRef.current) {
       const targetEl = containerRef.current.querySelector(`[data-week-id="${focusedWeekId}"]`);
       if (targetEl) {
-        targetEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     }
   }, [focusedWeekId]);

@@ -12,6 +12,8 @@ interface Settings {
   focusSize3: { before: 0 | 1; after: 0 | 1 | 2 };
   focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
   useGoogleColors: boolean; // ★ 追加
+  notificationEnabled: boolean; // 通知オン/オフ
+  notificationMinutes: number[]; // 通知タイミング（分前）
 }
 
 interface SettingsViewProps {
@@ -42,6 +44,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (!('Notification' in window)) return 'unsupported';
     return Notification.permission;
   });
+
+  const NOTIFICATION_OPTIONS = [5, 15, 30, 60];
+
+  // 通知分数のチェックボックストグル
+  const handleNotificationMinuteToggle = (minute: number) => {
+    const current = settings.notificationMinutes;
+    const next = current.includes(minute)
+      ? current.filter(m => m !== minute)
+      : [...current, minute].sort((a, b) => a - b);
+    onUpdateSettings({ ...settings, notificationMinutes: next });
+  };
+
+  // 通知ステータス表示文字列
+  const notificationStatusText = (() => {
+    if (!settings.notificationEnabled) return '通知設定：オフ';
+    if (settings.notificationMinutes.length === 0) return '通知設定：オン';
+    const labels = settings.notificationMinutes.map(m => `${m}分`).join('・');
+    return `通知設定：オン（${labels}）`;
+  })();
 
   const handleTextSizeChange = (textSize: Settings['textSize']) => {
     onUpdateSettings({ ...settings, textSize });
@@ -117,14 +138,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="form-group">
             <span className="form-label" style={{ marginBottom: 8 }}>アプリ通知機能</span>
             <div className="login-status-container" style={{ marginTop: 0 }}>
-              {notificationPermission === 'granted' && (
+
+              {/* ブロック中 */}
+              {notificationPermission === 'denied' && (
                 <>
-                  <div className="login-status-text" style={{ color: 'var(--event-text)' }}>通知設定: オン</div>
+                  <div className="login-status-text" style={{ color: '#b91c1c' }}>通知設定：ブロック中</div>
+                  <div className="login-status-subtext">ブラウザの設定で通知が禁止されています。アドレスバーの鍵マーク等から通知を許可してください。</div>
                 </>
               )}
+
+              {/* 非対応 */}
+              {notificationPermission === 'unsupported' && (
+                <>
+                  <div className="login-status-text">通知設定：非対応</div>
+                  <div className="login-status-subtext">お使いのブラウザはWeb通知機能に対応していません。</div>
+                </>
+              )}
+
+              {/* 未許可：まず有効化ボタン */}
               {notificationPermission === 'default' && (
                 <>
-                  <div className="login-status-text">通知設定: オフ</div>
+                  <div className="login-status-text">通知設定：オフ</div>
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -135,18 +169,50 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </button>
                 </>
               )}
-              {notificationPermission === 'denied' && (
+
+              {/* 許可済み：オン/オフ切り替え＋時間選択 */}
+              {notificationPermission === 'granted' && (
                 <>
-                  <div className="login-status-text" style={{ color: '#b91c1c' }}>通知設定: ブロック中</div>
-                  <div className="login-status-subtext">ブラウザの設定で通知が禁止されています。通知を受け取るには、アドレスバーの鍵マーク等から通知を許可してください。</div>
+                  {/* ステータス表示 */}
+                  <div className="login-status-text" style={{ color: settings.notificationEnabled ? 'var(--event-text)' : undefined }}>
+                    {notificationStatusText}
+                  </div>
+
+                  {/* オン/オフ切り替えボタン */}
+                  <button
+                    type="button"
+                    className={settings.notificationEnabled ? 'btn btn-danger' : 'btn btn-primary'}
+                    style={{ width: '100%', marginTop: 8 }}
+                    onClick={() => onUpdateSettings({ ...settings, notificationEnabled: !settings.notificationEnabled })}
+                  >
+                    {settings.notificationEnabled ? '通知をオフにする' : '通知をオンにする'}
+                  </button>
+
+                  {/* 通知タイミング選択（オン時のみ表示） */}
+                  {settings.notificationEnabled && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 8 }}>通知タイミング（複数選択可）</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {NOTIFICATION_OPTIONS.map((minute) => (
+                          <label
+                            key={minute}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={settings.notificationMinutes.includes(minute)}
+                              onChange={() => handleNotificationMinuteToggle(minute)}
+                              style={{ cursor: 'pointer', accentColor: 'var(--accent-color)', width: 16, height: 16 }}
+                            />
+                            {minute}分前
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
-              {notificationPermission === 'unsupported' && (
-                <>
-                  <div className="login-status-text">通知設定: 非対応</div>
-                  <div className="login-status-subtext">お使いのブラウザはWeb通知機能に対応していません。</div>
-                </>
-              )}
+
             </div>
           </div>
 

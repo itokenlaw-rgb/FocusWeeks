@@ -85,7 +85,9 @@ export default function App() {
       themeColor: 'blue',
       focusSize3: { before: 0, after: 0 },
       focusSize5: { before: 0, after: 0 },
-      useGoogleColors: true, 
+      useGoogleColors: true,
+      notificationEnabled: true,
+      notificationMinutes: [5],
     };
 
     if (saved) {
@@ -94,6 +96,12 @@ export default function App() {
 
         if (parsed.useGoogleColors === undefined) {
           parsed.useGoogleColors = true;
+        }
+        if (parsed.notificationEnabled === undefined) {
+          parsed.notificationEnabled = true;
+        }
+        if (parsed.notificationMinutes === undefined) {
+          parsed.notificationMinutes = [5];
         }
         
         if (parsed.focusSize3 === undefined) {
@@ -193,6 +201,10 @@ export default function App() {
     if (lastCheckedMinute.current === currentHM) return;
     lastCheckedMinute.current = currentHM;
 
+    // 通知がオフ、または通知分数が未設定の場合はスキップ
+    if (!settings.notificationEnabled) return;
+    if (settings.notificationMinutes.length === 0) return;
+
     const todayStr = getFormattedDateString(currentTime);
 
     events.forEach((event) => {
@@ -201,16 +213,24 @@ export default function App() {
       try {
         const eventDate = new Date(event.start);
         const eventDateStr = getFormattedDateString(eventDate);
-        const eventHM = `${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`;
 
-        if (eventDateStr === todayStr && eventHM === currentHM) {
-          triggerNotification(event.title, `予定の時間になりました（${eventHM}〜）`);
-        }
+        settings.notificationMinutes.forEach((minutesBefore) => {
+          // イベント開始時刻から minutesBefore 分前の時刻を計算
+          const notifyTime = new Date(eventDate.getTime() - minutesBefore * 60 * 1000);
+          const notifyDateStr = getFormattedDateString(notifyTime);
+          const notifyHM = `${String(notifyTime.getHours()).padStart(2, '0')}:${String(notifyTime.getMinutes()).padStart(2, '0')}`;
+
+          if (notifyDateStr === todayStr && notifyHM === currentHM) {
+            const eventHM = `${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`;
+            const label = minutesBefore === 0 ? `予定の時間になりました（${eventHM}〜）` : `${minutesBefore}分後に予定があります（${eventHM}〜）`;
+            triggerNotification(event.title, label);
+          }
+        });
       } catch (e) {
         console.error('Failed to parse event date for notification:', e);
       }
     });
-  }, [currentTime, events]);
+  }, [currentTime, events, settings.notificationEnabled, settings.notificationMinutes]);
 
   const triggerNotification = (title: string, body: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
