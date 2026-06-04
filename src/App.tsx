@@ -632,7 +632,7 @@ export default function App() {
                         const dateStr = getFormattedDateString(new Date(year, month, 1));
                         const targetWeekEl = document.querySelector(`[data-contains-date*="${dateStr}"]`);
                         if (targetWeekEl) {
-                          targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                          targetWeekEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
                         }
                         setShowMonthDropdown(false);
                       }}
@@ -680,7 +680,7 @@ export default function App() {
               
               const targetWeekEl = document.querySelector(`[data-contains-date*="${todayStr}"]`);
               if (targetWeekEl) {
-                targetWeekEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                targetWeekEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
               }
               
               if (weeks.length > 0) {
