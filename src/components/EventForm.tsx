@@ -182,19 +182,6 @@ export const EventForm: React.FC<EventFormProps> = ({
                   onChange={(e) => setStartDate(e.target.value)}
                   style={{ flex: 2, minWidth: 0 }}
                 />
-                {!allDay && (
-                  <input
-                    type="time"
-                    className="form-input"
-                    value={startTime}
-                    onChange={(e) => handleStartTimeChange(e.target.value)}
-                    style={{ flex: 1, minWidth: 0 }}
-                  />
-                )}
-              </div>
-
-              {/* 終了日時 */}
-              <div className="form-group-row" style={{ gap: '8px', marginBottom: 0 }}>
                 <span className="form-label" style={{ flexShrink: 0, minWidth: '52px' }}>終了</span>
                 <input
                   type="date"
