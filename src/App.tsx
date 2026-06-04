@@ -212,7 +212,6 @@ export default function App() {
 
       try {
         const eventDate = new Date(event.start);
-        const eventDateStr = getFormattedDateString(eventDate);
 
         settings.notificationMinutes.forEach((minutesBefore) => {
           // イベント開始時刻から minutesBefore 分前の時刻を計算
