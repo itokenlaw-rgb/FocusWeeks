@@ -601,14 +601,27 @@ export default function App() {
             <span className="header-year">{currentYear}年</span>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button 
-                className="header-month icon-btn" 
-                style={{ padding: '0 4px', borderRadius: '4px' }}
-                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-              >
-                {currentMonth + 1}月
-                <ChevronDown size={16} />
-              </button>
+<button 
+  // 必要に応じて icon-btn を外し、独自のクラスにするかインラインで制御します
+  className="header-month" 
+  style={{ 
+    padding: '0 4px', 
+    borderRadius: '4px',
+    background: 'none',             // 背景を透明に固定
+    border: 'none',                 // 枠線を消す
+    color: 'inherit',               // 文字色は親要素の白（または元々の色）を引き継ぐ
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    cursor: 'pointer',
+    outline: 'none',                // クリック時の青い枠線などを防止
+    WebkitTapHighlightColor: 'transparent' // スマホ等でのタップ時ハイライトを防止
+  }}
+  onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+>
+  {currentMonth + 1}月
+  <ChevronDown size={16} />
+</button>
             </div>
             
             {showMonthDropdown && (
@@ -732,15 +745,27 @@ export default function App() {
             </button>
           </div>
 
-          <button 
-            className={`icon-btn sync-btn ${isSyncing ? 'spinning' : ''}`}
-            onClick={handleManualSync}
-            disabled={isSyncing}
-            aria-label="Googleカレンダーと同期"
-            style={{ opacity: isLoggedIn ? 1 : 0.4 }}
-          >
-            <RefreshCw size={18} />
-          </button>
+<button 
+  className={`sync-btn ${isSyncing ? 'spinning' : ''}`} // 反転の原因と思われる icon-btn クラスを外すか、下で上書き
+  onClick={handleManualSync}
+  disabled={isSyncing}
+  aria-label="Googleカレンダーと同期"
+  style={{ 
+    opacity: isLoggedIn ? 1 : 0.4,
+    background: 'none',             // 背景が白く反転するのを防止
+    border: 'none',
+    color: 'inherit',               // アイコンの色をそのまま維持
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    outline: 'none',
+    WebkitTapHighlightColor: 'transparent' // タップ時の反転防止
+  }}
+>
+  <RefreshCw size={18} />
+</button>
 
           <button 
             className="icon-btn" 
