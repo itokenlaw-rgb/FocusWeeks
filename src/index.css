@@ -238,9 +238,9 @@ body.theme-green {
 /* Compact events */
 .day-events-compact { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
 .compact-event { font-size: calc(var(--text-xs) * 0.9); padding: 1px 4px; border-radius: 3px;
-  background-color: var(--event-bg) !important;
-  color: var(--event-text) !important;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid var(--event-border) !important; }
+  background-color: var(--event-bg-custom, var(--event-bg)) !important;
+  color: var(--event-text-custom, var(--event-text)) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid var(--event-border-custom, var(--event-border)) !important; }
 .compact-event-more { font-size: calc(var(--text-xs) * 0.85); color: var(--text-secondary); font-weight: 500; text-align: center; }
 
 /* Focused day view slots */
@@ -267,9 +267,9 @@ body.theme-green {
   font-size: calc(var(--text-xs) * 0.85); 
   line-height: 1.2; 
   padding: 1px 4px; /* 縦に並ぶので上下パディングを少しだけスリムに */
-  background-color: var(--event-bg) !important;
-  color: var(--event-text) !important;
-  border-left: 3px solid var(--event-border) !important;
+  background-color: var(--event-bg-custom, var(--event-bg)) !important;
+  color: var(--event-text-custom, var(--event-text)) !important;
+  border-left: 3px solid var(--event-border-custom, var(--event-border)) !important;
   border-radius: 4px; 
   margin: 1px 0; 
   flex: 1;
@@ -500,6 +500,18 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 .color-dot-btn.yellow::after { background-color: #ca8a04; }
 .color-dot-btn.green::after { background-color: #557d55; }
 
+/* イベントカラー用の dot ボタン */
+.color-dot-btn.event-default::after { background: conic-gradient(#9ca3af 25%, #3b82f6 25% 50%, #22c55e 50% 75%, #d97706 75%); }
+.color-dot-btn.event-monochrome::after { background-color: #9ca3af; }
+.color-dot-btn.event-red::after { background-color: #f43f5e; }
+.color-dot-btn.event-blue::after { background-color: #3b82f6; }
+.color-dot-btn.event-yellow::after { background-color: #d97706; }
+.color-dot-btn.event-green::after { background-color: #22c55e; }
+.color-dot-btn.event-purple::after { background-color: #7c3aed; }
+.color-dot-btn.event-pink::after { background-color: #ec4899; }
+.color-dot-btn.event-orange::after { background-color: #ea580c; }
+.color-dot-btn.event-teal::after { background-color: #14b8a6; }
+
 /* Navbar Bottom */
 .app-navbar { 
   display: grid; 
@@ -533,9 +545,9 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 .week-day-hour-slot { height: 60px; border-bottom: 1px dashed rgba(0, 0, 0, 0.05); cursor: pointer; }
 .week-day-hour-slot:hover { background-color: rgba(0, 0, 0, 0.02); }
 .week-event-card { position: absolute; left: 2px; right: 2px; border-radius: var(--radius-sm); padding: 4px;
-  background-color: var(--event-bg) !important;
-  color: var(--event-text) !important;
-  border-left: 3px solid var(--event-border) !important;
+  background-color: var(--event-bg-custom, var(--event-bg)) !important;
+  color: var(--event-text-custom, var(--event-text)) !important;
+  border-left: 3px solid var(--event-border-custom, var(--event-border)) !important;
 font-size: calc(var(--text-xs) * 0.9); line-height: 1.1; overflow: hidden; text-overflow: ellipsis; cursor: grab; user-select: none; z-index: 10; transition: box-shadow 0.15s ease; }
 .week-event-card:active { cursor: grabbing; opacity: 0.8; box-shadow: var(--shadow-md); z-index: 20; }
 .week-event-card.dragging { opacity: 0.5; cursor: grabbing; }

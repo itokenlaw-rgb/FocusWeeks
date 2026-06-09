@@ -83,6 +83,7 @@ export default function App() {
       focusSize: 3,
       weekStart: 'monday',
       themeColor: 'blue',
+      eventColor: 'default',
       focusSize3: { before: 0, after: 0 },
       focusSize5: { before: 0, after: 0 },
       useGoogleColors: true,
@@ -96,6 +97,9 @@ export default function App() {
 
         if (parsed.useGoogleColors === undefined) {
           parsed.useGoogleColors = true;
+        }
+        if (parsed.eventColor === undefined) {
+          parsed.eventColor = 'default';
         }
         if (parsed.notificationEnabled === undefined) {
           parsed.notificationEnabled = true;
@@ -143,6 +147,32 @@ export default function App() {
     document.body.classList.add(`theme-${settings.themeColor}`);
     document.body.classList.add(`size-${settings.textSize}`);
   }, [settings.themeColor, settings.textSize]);
+
+  useEffect(() => {
+    const colorMap: Record<string, { bg: string; border: string; text: string }> = {
+      default:    { bg: '', border: '', text: '' }, // テーマのデフォルトを使う
+      monochrome: { bg: '#f3f4f6', border: '#9ca3af', text: '#1f2937' },
+      red:        { bg: '#ffe4e6', border: '#f43f5e', text: '#9f1239' },
+      blue:       { bg: '#bfdbfe', border: '#3b82f6', text: '#1e3a8a' },
+      yellow:     { bg: '#fef3c7', border: '#d97706', text: '#78350f' },
+      green:      { bg: '#dcfce7', border: '#22c55e', text: '#14532d' },
+      purple:     { bg: '#ede9fe', border: '#7c3aed', text: '#3b0764' },
+      pink:       { bg: '#fce7f3', border: '#ec4899', text: '#831843' },
+      orange:     { bg: '#ffedd5', border: '#ea580c', text: '#7c2d12' },
+      teal:       { bg: '#ccfbf1', border: '#14b8a6', text: '#134e4a' },
+    };
+    const root = document.documentElement;
+    const c = colorMap[settings.eventColor] ?? colorMap['default'];
+    if (settings.eventColor === 'default' || !c.bg) {
+      root.style.removeProperty('--event-bg-custom');
+      root.style.removeProperty('--event-border-custom');
+      root.style.removeProperty('--event-text-custom');
+    } else {
+      root.style.setProperty('--event-bg-custom', c.bg);
+      root.style.setProperty('--event-border-custom', c.border);
+      root.style.setProperty('--event-text-custom', c.text);
+    }
+  }, [settings.eventColor]);
 
   const [view, setView] = useState<'month' | 'week'>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);

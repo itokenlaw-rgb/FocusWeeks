@@ -8,6 +8,7 @@ interface Settings {
   focusSize: 3 | 5;
   weekStart: 'monday' | 'sunday';
   themeColor: 'monochrome' | 'red' | 'blue' | 'yellow' | 'green';
+  eventColor: 'default' | 'monochrome' | 'red' | 'blue' | 'yellow' | 'green' | 'purple' | 'pink' | 'orange' | 'teal';
   // それぞれ独立したオブジェクトとして管理
   focusSize3: { before: 0 | 1; after: 0 | 1 | 2 };
   focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
@@ -78,6 +79,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleThemeColorChange = (themeColor: Settings['themeColor']) => {
     onUpdateSettings({ ...settings, themeColor });
+  };
+
+  const handleEventColorChange = (eventColor: Settings['eventColor']) => {
+    onUpdateSettings({ ...settings, eventColor });
   };
 
 // 2. 選択中のフォーカスサイズ（3または5）の値を書き換えるようにハンドラーを修正
@@ -344,9 +349,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* 表示カラー */}
+          {/* ベースカラー（旧：表示カラー） */}
           <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>表示カラー</span>
+            <span className="form-label" style={{ marginBottom: 8 }}>ベースカラー</span>
             <div className="color-dot-container">
               <button
                 className={`color-dot-btn monochrome ${settings.themeColor === 'monochrome' ? 'active' : ''}`}
@@ -372,6 +377,63 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className={`color-dot-btn green ${settings.themeColor === 'green' ? 'active' : ''}`}
                 onClick={() => handleThemeColorChange('green')}
                 title="緑系"
+              />
+            </div>
+          </div>
+
+          {/* イベントカラー */}
+          <div className="form-group">
+            <span className="form-label" style={{ marginBottom: 8 }}>イベントカラー</span>
+            <div className="color-dot-container" style={{ flexWrap: 'wrap', gap: '10px', justifyContent: 'flex-start' }}>
+              <button
+                className={`color-dot-btn event-default ${settings.eventColor === 'default' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('default')}
+                title="テーマに合わせる"
+              />
+              <button
+                className={`color-dot-btn event-monochrome ${settings.eventColor === 'monochrome' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('monochrome')}
+                title="グレー"
+              />
+              <button
+                className={`color-dot-btn event-red ${settings.eventColor === 'red' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('red')}
+                title="レッド"
+              />
+              <button
+                className={`color-dot-btn event-blue ${settings.eventColor === 'blue' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('blue')}
+                title="ブルー"
+              />
+              <button
+                className={`color-dot-btn event-yellow ${settings.eventColor === 'yellow' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('yellow')}
+                title="イエロー"
+              />
+              <button
+                className={`color-dot-btn event-green ${settings.eventColor === 'green' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('green')}
+                title="グリーン"
+              />
+              <button
+                className={`color-dot-btn event-purple ${settings.eventColor === 'purple' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('purple')}
+                title="パープル"
+              />
+              <button
+                className={`color-dot-btn event-pink ${settings.eventColor === 'pink' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('pink')}
+                title="ピンク"
+              />
+              <button
+                className={`color-dot-btn event-orange ${settings.eventColor === 'orange' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('orange')}
+                title="オレンジ"
+              />
+              <button
+                className={`color-dot-btn event-teal ${settings.eventColor === 'teal' ? 'active' : ''}`}
+                onClick={() => handleEventColorChange('teal')}
+                title="ティール"
               />
             </div>
           </div>
