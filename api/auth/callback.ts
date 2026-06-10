@@ -59,9 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res
     .status(302)
     .setHeader('Set-Cookie', [
-      `session_id=${sessionId}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`,
-      `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
-      `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${expires_in || 3600}`,
+      `session_id=${sessionId}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${60 * 60 * 24 * 30}`,
+      `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
+      `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
     ])
     .setHeader('Location', '/?auth_success=1')
     .end();
