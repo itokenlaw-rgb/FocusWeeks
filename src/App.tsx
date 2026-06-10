@@ -328,36 +328,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-const url = new URL(window.location.href);
-// auth_success だけでなく、URLに「code」が含まれている場合も成功とみなす
-const hasAuthSuccess = url.searchParams.has('auth_success') || url.searchParams.has('code');
-const hasAuthError = url.searchParams.has('auth_error');
+    const url = new URL(window.location.href);
+    const hasAuthSuccess = url.searchParams.has('auth_success');
+    const hasAuthError = url.searchParams.has('auth_error');
 
-    // [修正] OAuthコールバック直後（auth_success）はCookieがブラウザに
-    // セットされるまで少し待つ。通常の初回ロードは即座にチェック。
-    const delay = hasAuthSuccess ? 300 : 0;
+    if (hasAuthSuccess || hasAuthError) {
+      url.searchParams.delete('auth_success');
+      url.searchParams.delete('auth_error');
+      window.history.replaceState({}, '', url.toString());
+    }
 
-    const timer = setTimeout(() => {
+    if (hasAuthSuccess) {
+      // auth_success の場合はリトライ付きでチェック（Safari でCookie反映が遅い対策）
+      let retryCount = 0;
+      const maxRetries = 10;
+      const tryCheck = () => {
+        checkLoginStatus().then(loggedIn => {
+          if (loggedIn) {
+            isLoggedInRef.current = true;
+            setIsLoggedIn(true);
+            syncEvents(true);
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(tryCheck, 500);
+          }
+        });
+      };
+      setTimeout(tryCheck, 300);
+    } else {
       checkLoginStatus().then(loggedIn => {
-        // refを先に更新してからsyncEventsを呼ぶ（stateの非同期更新前にrefが参照される対策）
         isLoggedInRef.current = loggedIn;
         setIsLoggedIn(loggedIn);
-        // [修正] loggedIn を直接引数で渡し、ref の更新タイミング問題を回避
         if (loggedIn) syncEvents(loggedIn);
-
-if (hasAuthSuccess || hasAuthError) {
-  url.searchParams.delete('auth_success');
-  url.searchParams.delete('auth_error');
-  url.searchParams.delete('code'); // <-- これを追加
-  url.searchParams.delete('iss');  // <-- ついでにこれも追加しておくとURLがスッキリします
-  window.history.replaceState({}, '', url.toString());
-}
       });
-    }, delay);
-
-    return () => clearTimeout(timer);
+    }
   }, [syncEvents]);
-
 
   const handleLogout = useCallback(async () => {
     await logout();
