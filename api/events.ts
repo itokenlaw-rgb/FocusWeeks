@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 
-// ★ 追加：Vercelのbody自動パースを有効化
+// Vercelのbody自動パースを有効化
 export const config = {
   api: {
     bodyParser: true,
@@ -62,6 +62,11 @@ async function getValidAccessToken(
   res: VercelResponse
 ): Promise<string | null> {
   const cookieHeader = req.headers.cookie || '';
+
+  // セッションIDがなければ未ログイン
+  const sessionId = parseCookie(cookieHeader, 'session_id');
+  if (!sessionId) return null;
+
   const accessToken = parseCookie(cookieHeader, 'google_access_token');
   const expiresAtStr = parseCookie(cookieHeader, 'google_token_expires_at');
 
@@ -73,8 +78,8 @@ async function getValidAccessToken(
 
   if (isValid) return accessToken!;
 
-  // 期限切れ → KVからrefresh_tokenを取得してリフレッシュ
-  const refreshToken = await kv.get<string>('google_refresh_token');
+  // 期限切れ → セッションIDに紐付いたrefresh_tokenを取得してリフレッシュ
+  const refreshToken = await kv.get<string>(`refresh_token:${sessionId}`);
   if (!refreshToken) return null;
 
   return await refreshAccessToken(res, refreshToken);
@@ -83,8 +88,12 @@ async function getValidAccessToken(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ログアウト処理
   if (req.method === 'DELETE' && req.query.action === 'logout') {
-    await kv.del('google_refresh_token');
+    const sessionId = parseCookie(req.headers.cookie || '', 'session_id');
+    if (sessionId) {
+      await kv.del(`refresh_token:${sessionId}`);
+    }
     res.setHeader('Set-Cookie', [
+      'session_id=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
       'google_access_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
       'google_token_expires_at=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
     ]);
@@ -120,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ---- イベント作成 ----
   if (method === 'POST') {
-    console.log('POST body:', JSON.stringify(req.body)); // ★ デバッグ用
+    console.log('POST body:', JSON.stringify(req.body));
     const gcRes = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
       {
@@ -133,13 +142,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     );
     if (!gcRes.ok) {
-      const errText = await gcRes.text(); // ★ デバッグ用
+      const errText = await gcRes.text();
       console.error('Google API POST error:', errText);
       return res.status(gcRes.status).json({ error: 'Google API error', detail: errText });
     }
     return res.json(await gcRes.json());
   }
-
 
   // ---- イベント更新 ----
   if (method === 'PUT') {
