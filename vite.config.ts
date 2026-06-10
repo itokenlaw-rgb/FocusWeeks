@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react' // Vueの場合は@vitejs/plugin-vue
+import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
@@ -8,6 +8,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      workbox: {
+        // /api/ へのリクエストは Service Worker を素通りさせる
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'FocusWeeks',
         short_name: 'FocusWeeks',
