@@ -290,10 +290,7 @@ export default function App() {
     }
   }, [settings.weekStart]);
 
-  // [修正] syncEvents を isLoggedInRef に依存させず、引数で loggedIn を受け取る形に変更。
-  // これにより、useCallback の依存配列が空のまま stale クロージャの問題を回避できる。
   const syncEvents = useCallback(async (loggedIn?: boolean) => {
-    // 引数が渡された場合はそちらを優先、なければ ref の値を使用
     const currentlyLoggedIn = loggedIn !== undefined ? loggedIn : isLoggedInRef.current;
     setIsSyncing(true);
     try {
@@ -335,9 +332,8 @@ export default function App() {
     const hasAuthSuccess = url.searchParams.has('auth_success');
     const hasAuthError = url.searchParams.has('auth_error');
 
-    // [修正] OAuthコールバック後（auth_success）は、Cookieが確実にセットされるよう
-    // 少し待ってから checkLoginStatus を呼ぶ。
-    // 通常の初回ロードは即座にチェックする。
+    // [修正] OAuthコールバック直後（auth_success）はCookieがブラウザに
+    // セットされるまで少し待つ。通常の初回ロードは即座にチェック。
     const delay = hasAuthSuccess ? 300 : 0;
 
     const timer = setTimeout(() => {
@@ -345,12 +341,9 @@ export default function App() {
         // refを先に更新してからsyncEventsを呼ぶ（stateの非同期更新前にrefが参照される対策）
         isLoggedInRef.current = loggedIn;
         setIsLoggedIn(loggedIn);
-
-        // [修正] loggedIn を直接引数として渡すことで、
-        // isLoggedInRef がまだ false のままの状態で syncEvents が走る問題を解消
+        // [修正] loggedIn を直接引数で渡し、ref の更新タイミング問題を回避
         if (loggedIn) syncEvents(loggedIn);
 
-        // URLパラメータを履歴から削除
         if (hasAuthSuccess || hasAuthError) {
           url.searchParams.delete('auth_success');
           url.searchParams.delete('auth_error');
@@ -362,10 +355,11 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [syncEvents]);
 
+
   const handleLogout = useCallback(async () => {
     await logout();
     setIsLoggedIn(false);
-    isLoggedInRef.current = false;
+    isLoggedInRef.current = false; // [修正] ref も同期して更新
   }, []);
 
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
@@ -502,105 +496,229 @@ export default function App() {
     const currentWeekIdx = weeks.findIndex(w => w[0].dateString === focusedWeekId);
     if (currentWeekIdx === -1) return;
 
-    const nextIdx = direction === 'prev' ? currentWeekIdx - 1 : currentWeekIdx + 1;
-    if (nextIdx < 0 || nextIdx >= weeks.length) return;
+    let targetWeekIdx = currentWeekIdx;
+    if (direction === 'prev' && currentWeekIdx > 0) {
+      targetWeekIdx = currentWeekIdx - 1;
+    } else if (direction === 'next' && currentWeekIdx < weeks.length - 1) {
+      targetWeekIdx = currentWeekIdx + 1;
+    }
 
-    const nextWeek = weeks[nextIdx];
-    setFocusedWeekId(nextWeek[0].dateString);
-
-    const middleDay = nextWeek[Math.floor(nextWeek.length / 2)];
-    handleVisibleMonthChange(middleDay.date.getFullYear(), middleDay.date.getMonth());
-  };
-
-  const handleOpenAddForm = (date: string, timeSlot: number | null) => {
-    setActiveForm({ event: null, date, timeSlot });
-    setIsBottomPanelOpen(false);
-  };
-
-  const handleOpenEditForm = (event: CalendarEvent) => {
-    setActiveForm({ event, date: event.start.substring(0, 10), timeSlot: null });
-    setIsBottomPanelOpen(false);
+    if (targetWeekIdx !== currentWeekIdx) {
+      const targetWeek = weeks[targetWeekIdx];
+      setFocusedWeekId(targetWeek[0].dateString);
+      handleVisibleMonthChange(targetWeek[0].date.getFullYear(), targetWeek[0].date.getMonth());
+    }
   };
 
   const handleTriggerDuplicate = (event: CalendarEvent) => {
     setDuplicateEvent(event);
-    setDuplicateTargetDates([]);
-    setActiveForm(null);
+    setDuplicateTargetDates([]); 
+    setActiveForm(null); 
+    setIsBottomPanelOpen(false); 
+    setView('month'); 
   };
 
-  const getWeekDaysForSelectedWeek = (): { date: Date; dateString: string }[] => {
-    if (!focusedWeekId || weeks.length === 0) return [];
-    const week = weeks.find(w => w[0].dateString === focusedWeekId);
-    return week || [];
-  };
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateEvent || duplicateTargetDates.length === 0) return;
 
-  // 月ドロップダウン用のリスト生成
-  const monthDropdownItems = (() => {
-    const items = [];
-    const today = new Date();
-    for (let i = -6; i <= 18; i++) {
-      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      items.push({ year: d.getFullYear(), month: d.getMonth() });
+    const originalStart = new Date(duplicateEvent.start);
+    const originalEnd = new Date(duplicateEvent.end);
+    const duration = originalEnd.getTime() - originalStart.getTime();
+
+    const createdEvents: CalendarEvent[] = [];
+
+    for (const targetDate of duplicateTargetDates) {
+      const newStart = new Date(targetDate);
+      if (!duplicateEvent.allDay) {
+        newStart.setHours(originalStart.getHours());
+        newStart.setMinutes(originalStart.getMinutes());
+        newStart.setSeconds(0);
+        newStart.setMilliseconds(0);
+      }
+
+      const newEnd = duplicateEvent.allDay
+        ? targetDate
+        : new Date(newStart.getTime() + duration).toISOString();
+
+      const duplicatedData: Omit<CalendarEvent, 'id'> = {
+        title: duplicateEvent.title,
+        start: duplicateEvent.allDay ? targetDate : newStart.toISOString(),
+        end: newEnd,
+        allDay: duplicateEvent.allDay,
+        memo: duplicateEvent.memo,
+      };
+
+      let finalEvent: CalendarEvent;
+
+      if (isLoggedIn) {
+        try {
+          const created = await createGoogleEvent(duplicatedData);
+          finalEvent = created;
+        } catch {
+          finalEvent = {
+            ...duplicatedData,
+            id: 'local-' + Date.now() + '-' + Math.random(),
+          };
+        }
+      } else {
+        finalEvent = {
+          ...duplicatedData,
+          id: 'local-' + Date.now() + '-' + Math.random(),
+        };
+      }
+      createdEvents.push(finalEvent);
     }
-    return items;
-  })();
+
+    const newEvents = [...events, ...createdEvents];
+    setEvents(newEvents);
+    localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
+    
+    setDuplicateEvent(null);
+    setDuplicateTargetDates([]);
+    // 複製直後のsyncも省略（Google反映前にfetchすると複製分が消える）
+  };
+
+  const handleOpenAddForm = (date: string, timeSlot: number | null) => {
+    setActiveForm({
+      event: null,
+      date,
+      timeSlot,
+    });
+  };
+
+  const handleOpenEditForm = (event: CalendarEvent) => {
+    setActiveForm({
+      event,
+      date: event.start.substring(0, 10),
+      timeSlot: null,
+    });
+  };
+
+  const getWeekDaysForSelectedWeek = (): any[] => {
+    if (!focusedWeekId || weeks.length === 0) return [];
+    const activeWeek = weeks.find(w => w[0].dateString === focusedWeekId);
+    return activeWeek || [];
+  };
 
   return (
     <div className="app-container">
+      {duplicateEvent && (
+        <div className="duplicate-banner">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span>予定の複製中: 「{duplicateEvent.title}」</span>
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>
+              {duplicateTargetDates.length > 0 
+                ? `選択中: ${duplicateTargetDates.length} 日分 (仮押さえ)` 
+                : 'カレンダーから複製先（複数選択可）を選択してください'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', width: 'auto' }}
+              onClick={() => {
+                setDuplicateEvent(null);
+                setDuplicateTargetDates([]);
+              }}
+            >
+              キャンセル
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ 
+                padding: '4px 14px', 
+                fontSize: 'var(--text-xs)', 
+                width: 'auto',
+                backgroundColor: duplicateTargetDates.length > 0 ? 'var(--bg-card)' : 'rgba(255,255,255,0.3)',
+                color: duplicateTargetDates.length > 0 ? 'var(--accent-color)' : 'rgba(255,255,255,0.6)'
+              }}
+              disabled={duplicateTargetDates.length === 0}
+              onClick={handleConfirmDuplicate}
+            >
+              完了
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="app-header">
         <div className="header-left">
-          <div style={{ position: 'relative' }}>
-            <button
-              className="month-display"
-              onClick={() => setShowMonthDropdown(v => !v)}
-              aria-label="月を選択"
-            >
-              {currentYear}年 {currentMonth + 1}月
-              <ChevronDown size={14} style={{ marginLeft: 4 }} />
-            </button>
-
+          <div className="header-title-container">
+            <span className="header-year">{currentYear}年</span>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+<button 
+  // 必要に応じて icon-btn を外し、独自のクラスにするかインラインで制御します
+  className="header-month" 
+  style={{ 
+    padding: '0 4px', 
+    borderRadius: '4px',
+    background: 'none',             // 背景を透明に固定
+    border: 'none',                 // 枠線を消す
+    color: 'inherit',               // 文字色は親要素の白（または元々の色）を引き継ぐ
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    cursor: 'pointer',
+    outline: 'none',                // クリック時の青い枠線などを防止
+    WebkitTapHighlightColor: 'transparent' // スマホ等でのタップ時ハイライトを防止
+  }}
+  onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+>
+  {currentMonth + 1}月
+  <ChevronDown size={16} />
+</button>
+            </div>
+            
             {showMonthDropdown && (
-              <div
+              <div 
                 style={{
                   position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  zIndex: 200,
-                  background: 'var(--bg-card)',
+                  top: 50,
+                  left: 16,
+                  backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: 8,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                  maxHeight: 240,
-                  overflowY: 'auto',
-                  minWidth: 140,
+                  borderRadius: 'var(--radius-sm)',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  maxHeight: 200,
+                  overflowY: 'auto'
                 }}
               >
-                {monthDropdownItems.map(({ year, month }, idx) => (
-                  <button
-                    key={idx}
-                    style={{
-                      padding: '10px 16px',
-                      border: 'none',
-                      background: 'none',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-primary)',
-                      borderBottom: '1px solid var(--border-color)'
-                    }}
-                    onClick={() => {
-                      handleVisibleMonthChange(year, month);
-                      const dateStr = getFormattedDateString(new Date(year, month, 1));
-                      const targetWeekEl = document.querySelector(`[data-contains-date*="${dateStr}"]`);
-                      if (targetWeekEl) {
-                        targetWeekEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                      }
-                      setShowMonthDropdown(false);
-                    }}
-                  >
-                    {year}年 {month + 1}月
-                  </button>
-                ))}
+                {Array.from({ length: 12 }).map((_, idx) => {
+                  const target = new Date();
+                  target.setMonth(target.getMonth() - 3 + idx);
+                  const year = target.getFullYear();
+                  const month = target.getMonth();
+                  return (
+                    <button
+                      key={idx}
+                      style={{
+                        padding: '10px 16px',
+                        border: 'none',
+                        background: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--text-primary)',
+                        borderBottom: '1px solid var(--border-color)'
+                      }}
+                      onClick={() => {
+                        handleVisibleMonthChange(year, month);
+                        const dateStr = getFormattedDateString(new Date(year, month, 1));
+                        const targetWeekEl = document.querySelector(`[data-contains-date*="${dateStr}"]`);
+                        if (targetWeekEl) {
+                          targetWeekEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                        }
+                        setShowMonthDropdown(false);
+                      }}
+                    >
+                      {year}年 {month + 1}月
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -673,27 +791,27 @@ export default function App() {
             </button>
           </div>
 
-          <button 
-            className={`sync-btn ${isSyncing ? 'spinning' : ''}`}
-            onClick={handleManualSync}
-            disabled={isSyncing}
-            aria-label="Googleカレンダーと同期"
-            style={{ 
-              opacity: isLoggedIn ? 1 : 0.4,
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              outline: 'none',
-              WebkitTapHighlightColor: 'transparent'
-            }}
-          >
-            <RefreshCw size={18} />
-          </button>
+<button 
+  className={`sync-btn ${isSyncing ? 'spinning' : ''}`} // 反転の原因と思われる icon-btn クラスを外すか、下で上書き
+  onClick={handleManualSync}
+  disabled={isSyncing}
+  aria-label="Googleカレンダーと同期"
+  style={{ 
+    opacity: isLoggedIn ? 1 : 0.4,
+    background: 'none',             // 背景が白く反転するのを防止
+    border: 'none',
+    color: 'inherit',               // アイコンの色をそのまま維持
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    outline: 'none',
+    WebkitTapHighlightColor: 'transparent' // タップ時の反転防止
+  }}
+>
+  <RefreshCw size={18} />
+</button>
 
           <button 
             className="icon-btn" 
