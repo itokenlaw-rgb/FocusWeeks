@@ -92,7 +92,8 @@ export async function fetchGoogleEvents(
   timeMax: string
 ): Promise<CalendarEvent[]> {
   const res = await fetch(
-    `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+    `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
+    { credentials: 'include' }
   );
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
@@ -109,6 +110,7 @@ export async function createGoogleEvent(
   const res = await fetch('/api/events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(buildEventBody(event)),
   });
 
@@ -127,6 +129,7 @@ export async function updateGoogleEvent(
   const res = await fetch(`/api/events?eventId=${encodeURIComponent(eventId)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(buildEventBody(event)),
   });
 
@@ -141,6 +144,7 @@ export async function updateGoogleEvent(
 export async function deleteGoogleEvent(eventId: string): Promise<void> {
   const res = await fetch(`/api/events?eventId=${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
