@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 
-// Vercelのbody自動パースを有効化
 export const config = {
   api: {
     bodyParser: true,
@@ -13,8 +12,6 @@ const kv = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Cookie文字列から指定キーの値を取り出すユーティリティ
-// ※ 値にBase64パディングの'='が含まれる場合があるため、最初の'='のみで分割する
 function parseCookie(cookieHeader: string, key: string): string | null {
   const found = cookieHeader
     .split(';')
@@ -27,7 +24,9 @@ function parseCookie(cookieHeader: string, key: string): string | null {
   return found ? decodeURIComponent(found[1]) : null;
 }
 
-// refresh_token を使って新しい access_token を取得し、Cookieをセットして返す
+// [修正] SameSite=None; Secure に統一
+const COOKIE_OPTIONS = "HttpOnly; Path=/; SameSite=None; Secure";
+
 async function refreshAccessToken(
   res: VercelResponse,
   refreshToken: string
@@ -50,32 +49,29 @@ async function refreshAccessToken(
 
   const tokens = await tokenRes.json();
   const { access_token, expires_in } = tokens;
-  const expiresAt = Date.now() + (parseInt(expires_in, 10) || 3600) * 1000;
+  const expiresInSec = parseInt(String(expires_in), 10) || 3600;
+  const expiresAt = Date.now() + expiresInSec * 1000;
 
-  // 更新したトークンを Cookie に再セット
-res.setHeader('Set-Cookie', [
-  `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
-  `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
-]);
+  res.setHeader('Set-Cookie', [
+    `google_access_token=${access_token}; ${COOKIE_OPTIONS}; Max-Age=${expiresInSec}`,
+    `google_token_expires_at=${expiresAt}; ${COOKIE_OPTIONS}; Max-Age=${expiresInSec}`,
+  ]);
 
   return access_token;
 }
 
-// 有効な access_token を取得する（必要に応じて自動リフレッシュ）
 async function getValidAccessToken(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<string | null> {
   const cookieHeader = req.headers.cookie || '';
 
-  // セッションIDがなければ未ログイン
   const sessionId = parseCookie(cookieHeader, 'session_id');
   if (!sessionId) return null;
 
   const accessToken = parseCookie(cookieHeader, 'google_access_token');
   const expiresAtStr = parseCookie(cookieHeader, 'google_token_expires_at');
 
-  // トークンが有効（有効期限の5分前まで使用）
   const isValid =
     accessToken &&
     expiresAtStr &&
@@ -83,7 +79,6 @@ async function getValidAccessToken(
 
   if (isValid) return accessToken!;
 
-  // 期限切れ → セッションIDに紐付いたrefresh_tokenを取得してリフレッシュ
   const refreshToken = await kv.get<string>(`refresh_token:${sessionId}`);
   if (!refreshToken) return null;
 
@@ -97,11 +92,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (sessionId) {
       await kv.del(`refresh_token:${sessionId}`);
     }
-res.setHeader('Set-Cookie', [
-  'session_id=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
-  'google_access_token=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
-  'google_token_expires_at=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
-]);
+    res.setHeader('Set-Cookie', [
+      `session_id=; ${COOKIE_OPTIONS}; Max-Age=0`,
+      `google_access_token=; ${COOKIE_OPTIONS}; Max-Age=0`,
+      `google_token_expires_at=; ${COOKIE_OPTIONS}; Max-Age=0`,
+    ]);
     return res.json({ ok: true });
   }
 
@@ -134,7 +129,6 @@ res.setHeader('Set-Cookie', [
 
   // ---- イベント作成 ----
   if (method === 'POST') {
-    console.log('POST body:', JSON.stringify(req.body));
     const gcRes = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
       {
