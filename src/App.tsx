@@ -328,9 +328,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const hasAuthSuccess = url.searchParams.has('auth_success');
-    const hasAuthError = url.searchParams.has('auth_error');
+const url = new URL(window.location.href);
+// auth_success だけでなく、URLに「code」が含まれている場合も成功とみなす
+const hasAuthSuccess = url.searchParams.has('auth_success') || url.searchParams.has('code');
+const hasAuthError = url.searchParams.has('auth_error');
 
     // [修正] OAuthコールバック直後（auth_success）はCookieがブラウザに
     // セットされるまで少し待つ。通常の初回ロードは即座にチェック。
@@ -344,11 +345,13 @@ export default function App() {
         // [修正] loggedIn を直接引数で渡し、ref の更新タイミング問題を回避
         if (loggedIn) syncEvents(loggedIn);
 
-        if (hasAuthSuccess || hasAuthError) {
-          url.searchParams.delete('auth_success');
-          url.searchParams.delete('auth_error');
-          window.history.replaceState({}, '', url.toString());
-        }
+if (hasAuthSuccess || hasAuthError) {
+  url.searchParams.delete('auth_success');
+  url.searchParams.delete('auth_error');
+  url.searchParams.delete('code'); // <-- これを追加
+  url.searchParams.delete('iss');  // <-- ついでにこれも追加しておくとURLがスッキリします
+  window.history.replaceState({}, '', url.toString());
+}
       });
     }, delay);
 
