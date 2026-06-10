@@ -93,8 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res
     .status(302)
-    .setHeader('Set-Cookie', [
-      `session_id=${sessionId}; ${cookieOptions}; Max-Age=${60 * 60 * 24 * 30}`,
+.setHeader('Set-Cookie', [
+      `gcal_session_id=${sessionId}; ${cookieOptions}; Max-Age=${60 * 60 * 24 * 30}`,
       `google_access_token=${access_token}; ${cookieOptions}; Max-Age=${expiresInSec}`,
       `google_token_expires_at=${expiresAt}; ${cookieOptions}; Max-Age=${expiresInSec}`,
     ])
