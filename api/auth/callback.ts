@@ -8,6 +8,16 @@ const kv = new Redis({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // ← この行を追加
+  console.log('callback query:', JSON.stringify(req.query));
+  console.log('callback env check:', {
+    hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+    hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+    hasRedisUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+    hasRedisToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+
   const { code, error } = req.query;
 
   // Google認証画面でキャンセルなどが発生した場合のエラーハンドリング
