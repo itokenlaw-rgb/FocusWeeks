@@ -5,12 +5,20 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       workbox: {
-        // /api/ へのリクエストは Service Worker を素通りさせる
-        navigateFallbackDenylist: [/^\/api\//],
+        // ナビゲーションフォールバック（SPA用）の対象外にする設定を強化
+        navigateFallbackDenylist: [/^\/api\//, /\/api/],
+        
+        // 【追加】Service Worker自体に、/api/ 以下の通信を完全に無視（スルー）させる設定
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\/.*/,
+            handler: 'NetworkOnly', // キャッシュを見ず、常にネットワークに直接取りに行かせる
+          }
+        ]
       },
       manifest: {
         name: 'FocusWeeks',
