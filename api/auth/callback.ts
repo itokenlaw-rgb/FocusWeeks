@@ -58,13 +58,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 302リダイレクトではなく200+JSリダイレクトにする
   // SafariのITPは302リダイレクト時にSet-CookieをブロックするためHTMLを返す
-  res
-    .status(200)
-    .setHeader('Set-Cookie', [
-      `session_id=${sessionId}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${60 * 60 * 24 * 30}`,
-      `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
-      `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
-    ])
+res
+  .status(200)
+  .setHeader('Set-Cookie', [
+    `session_id=${sessionId}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${60 * 60 * 24 * 30}`,
+    `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
+    `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
+  ])
     .setHeader('Content-Type', 'text/html')
     .send(`<!DOCTYPE html>
 <html>

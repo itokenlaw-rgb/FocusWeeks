@@ -53,10 +53,10 @@ async function refreshAccessToken(
   const expiresAt = Date.now() + (parseInt(expires_in, 10) || 3600) * 1000;
 
   // 更新したトークンを Cookie に再セット
-  res.setHeader('Set-Cookie', [
-    `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
-    `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=${expires_in || 3600}`,
-  ]);
+res.setHeader('Set-Cookie', [
+  `google_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
+  `google_token_expires_at=${expiresAt}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=${expires_in || 3600}`,
+]);
 
   return access_token;
 }
@@ -97,11 +97,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (sessionId) {
       await kv.del(`refresh_token:${sessionId}`);
     }
-    res.setHeader('Set-Cookie', [
-      'session_id=; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=0',
-      'google_access_token=; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=0',
-      'google_token_expires_at=; HttpOnly; Path=/; SameSite=None; Secure; Max-Age=0',
-    ]);
+res.setHeader('Set-Cookie', [
+  'session_id=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
+  'google_access_token=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
+  'google_token_expires_at=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0',
+]);
     return res.json({ ok: true });
   }
 
