@@ -14,10 +14,15 @@ const kv = new Redis({
 });
 
 // Cookie文字列から指定キーの値を取り出すユーティリティ
+// ※ 値にBase64パディングの'='が含まれる場合があるため、最初の'='のみで分割する
 function parseCookie(cookieHeader: string, key: string): string | null {
   const found = cookieHeader
     .split(';')
-    .map(c => c.trim().split('='))
+    .map(c => {
+      const eqIdx = c.trim().indexOf('=');
+      if (eqIdx === -1) return [c.trim(), ''];
+      return [c.trim().substring(0, eqIdx), c.trim().substring(eqIdx + 1)];
+    })
     .find(([k]) => k === key);
   return found ? decodeURIComponent(found[1]) : null;
 }
