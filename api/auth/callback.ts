@@ -58,8 +58,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ex: 60 * 60 * 24 * 30, // 30日間有効
   });
 
+  // [修正] expires_in を数値として正規化（文字列・undefined 両方に対応）
+  const expiresInSec = parseInt(String(expires_in), 10) || 3600;
+
   // アクセストークンの有効期限（ミリ秒）を算出
-  const expiresAt = Date.now() + (parseInt(expires_in, 10) || 3600) * 1000;
+  const expiresAt = Date.now() + expiresInSec * 1000;
 
   // SafariのITP保護や他ブラウザでのCookie拒否を回避するための安全な属性セット
   const cookieOptions = "HttpOnly; Path=/; SameSite=Lax; Secure";
@@ -69,8 +72,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .status(302)
     .setHeader('Set-Cookie', [
       `session_id=${sessionId}; ${cookieOptions}; Max-Age=${60 * 60 * 24 * 30}`,
-      `google_access_token=${access_token}; ${cookieOptions}; Max-Age=${expires_in || 3600}`,
-      `google_token_expires_at=${expiresAt}; ${cookieOptions}; Max-Age=${expires_in || 3600}`,
+      // [修正] Max-Age に正規化済みの数値を使用
+      `google_access_token=${access_token}; ${cookieOptions}; Max-Age=${expiresInSec}`,
+      `google_token_expires_at=${expiresAt}; ${cookieOptions}; Max-Age=${expiresInSec}`,
     ])
     .setHeader('Location', '/?auth_success=1')
     .end();
