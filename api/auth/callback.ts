@@ -10,10 +10,12 @@ const kv = new Redis({
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, error } = req.query;
 
+  // Google認証画面でキャンセルなどが発生した場合のエラーハンドリング
   if (error) {
     return res.status(302).setHeader('Location', `/?auth_error=${encodeURIComponent(String(error))}`).end();
   }
 
+  // 認可コードがない場合はエラー
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
@@ -22,6 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI!;
 
+  // 認可コードをGoogleのアクセストークン／リフレッシュトークンと交換
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -43,22 +46,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tokens = await tokenRes.json();
   const { access_token, refresh_token, expires_in } = tokens;
 
+  // セキュリティ対策：refresh_tokenが取得できない場合はエラーにして不正な状態を防ぐ
   if (!refresh_token) {
     console.error('No refresh_token returned from Google');
     return res.status(302).setHeader('Location', '/?auth_error=no_refresh_token').end();
   }
 
-  // ユーザーごとにセッションIDを発行し、KVに紐付けて保存
+  // ユーザーごとに独立した一意のセッションIDを発行し、KV（Redis）にrefresh_tokenを紐付けて保存
   const sessionId = randomUUID();
   await kv.set(`refresh_token:${sessionId}`, refresh_token, {
-    ex: 60 * 60 * 24 * 30, // 30日
+    ex: 60 * 60 * 24 * 30, // 30日間有効
   });
 
+  // アクセストークンの有効期限（ミリ秒）を算出
   const expiresAt = Date.now() + (parseInt(expires_in, 10) || 3600) * 1000;
 
-const cookieOptions = "HttpOnly; Path=/; SameSite=Lax; Secure";
+  // SafariのITP保護や他ブラウザでのCookie拒否を回避するための安全な属性セット
+  const cookieOptions = "HttpOnly; Path=/; SameSite=Lax; Secure";
 
-  res
+  // 302リダイレクトでブラウザにCookieを焼きつつ、確実にトップページ（/）へ戻す
+  return res
     .status(302)
     .setHeader('Set-Cookie', [
       `session_id=${sessionId}; ${cookieOptions}; Max-Age=${60 * 60 * 24 * 30}`,
