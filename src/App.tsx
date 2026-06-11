@@ -17,8 +17,6 @@ import {
 import type { CalendarEvent } from './utils/googleCalendar';
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
-const [isAuthChecked, setIsAuthChecked] = useState(false);
-
 const getFormattedDateString = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
