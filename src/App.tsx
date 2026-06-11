@@ -17,6 +17,8 @@ import {
 import type { CalendarEvent } from './utils/googleCalendar';
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
+const [isAuthChecked, setIsAuthChecked] = useState(false);
+
 const getFormattedDateString = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -195,6 +197,7 @@ export default function App() {
   const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); 
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAuthChecked, setIsAuthChecked] = useState<boolean>(false); // ← 追加
 
   // isLoggedIn / events の最新値をrefで保持（useCallback内のstaleクロージャ対策）
   const isLoggedInRef = useRef<boolean>(false);
@@ -358,17 +361,26 @@ export default function App() {
     } else {
       checkLoginStatus().then(loggedIn => {
         isLoggedInRef.current = loggedIn;
-        setIsLoggedIn(loggedIn);
-        if (loggedIn) syncEvents(loggedIn);
+
+  setIsLoggedIn(loggedIn);
+  if (!loggedIn) {
+    // 未ログインなら localStorage の予定もクリア
+    setEvents([]);
+    localStorage.removeItem('focusweeks_events');
+  }
+  setIsAuthChecked(true); // ← 追加
+  if (loggedIn) syncEvents(loggedIn);
+
       });
     }
   }, [syncEvents]);
 
-  const handleLogout = useCallback(async () => {
-    await logout();
-    setIsLoggedIn(false);
-    isLoggedInRef.current = false; // [修正] ref も同期して更新
-  }, []);
+const handleLogout = useCallback(async () => {
+  await logout();
+  setIsLoggedIn(false);
+  setEvents([]);
+  localStorage.removeItem('focusweeks_events'); // ← 追加
+}, []);
 
   const handleSaveEvent = async (eventData: Omit<CalendarEvent, 'id'> & { id?: string }) => {
     const isEdit = !!eventData.id;
@@ -607,6 +619,10 @@ export default function App() {
     const activeWeek = weeks.find(w => w[0].dateString === focusedWeekId);
     return activeWeek || [];
   };
+
+  if (!isAuthChecked) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>読み込み中...</div>;
+  }
 
   return (
     <div className="app-container">
