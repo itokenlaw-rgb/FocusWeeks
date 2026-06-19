@@ -281,7 +281,11 @@ export const EventForm: React.FC<EventFormProps> = ({
               <button
                 type="button"
                 className="btn btn-danger"
-                onClick={() => event && onDelete(event.id)}
+onClick={() => {
+  if (event && window.confirm('予定を削除していいですか？')) {
+    onDelete(event.id);
+  }
+}}
                 disabled={!event}
                 style={{ 
                   flex: 1, 
