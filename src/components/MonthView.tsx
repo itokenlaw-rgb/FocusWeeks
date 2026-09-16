@@ -197,7 +197,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     }}
                   >
                     <div className="day-num">
-                      {dayOfMonth === 1 ? `1日` : dayOfMonth}
+{dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
                     </div>
 
                     {isWeekFocused ? (
