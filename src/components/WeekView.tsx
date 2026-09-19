@@ -17,6 +17,7 @@ interface WeekViewProps {
   onMoveEvent: (eventId: string, newStart: string, newEnd: string) => void;
   onNavigateWeek: (direction: 'prev' | 'next') => void;
   useGoogleColors: boolean; // ★ 追加：App.tsxからの型不一致エラーを解消
+  holidays: Record<string, string>; // 'YYYY-MM-DD' → 祝日名
 }
 
 interface DragState {
@@ -36,6 +37,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onMoveEvent,
   onNavigateWeek,
   useGoogleColors, // ★ 追加
+  holidays,
 }) => {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -324,10 +326,13 @@ export const WeekView: React.FC<WeekViewProps> = ({
           {weekDays.map((day) => {
             const isSat = day.date.getDay() === 6;
             const isSun = day.date.getDay() === 0;
+            const holidayName: string | undefined = holidays[day.dateString];
+            const isHoliday = !!holidayName;
             return (
               <div 
                 key={day.dateString}
                 className={`weekday-cell ${day.isToday ? 'today' : ''}`}
+                title={holidayName}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -345,14 +350,30 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     backgroundColor: day.isToday ? 'var(--accent-color)' : 'transparent',
                     color: day.isToday 
                       ? 'var(--bg-card)' 
-                      : isSat 
-                        ? 'var(--saturday-color)' 
-                        : isSun 
-                          ? 'var(--sunday-color)' 
+                      : (isSun || isHoliday)
+                        ? 'var(--sunday-color)' 
+                        : isSat 
+                          ? 'var(--saturday-color)' 
                           : 'var(--text-primary)',
                   }}
                 >
                   {day.dayOfMonth}
+                </span>
+                {/* 祝日名（高さを常に確保して、祝日のある週/ない週でヘッダーがガタつかないようにする） */}
+                <span
+                  style={{
+                    fontSize: '8px',
+                    lineHeight: '10px',
+                    height: 10,
+                    maxWidth: '100%',
+                    padding: '0 1px',
+                    color: 'var(--sunday-color)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {holidayName ?? ''}
                 </span>
               </div>
             );

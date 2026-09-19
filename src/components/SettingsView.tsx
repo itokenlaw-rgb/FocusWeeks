@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { HOLIDAY_REGIONS, HOLIDAY_NONE } from '../utils/holidays';
 
 
 // 1. Settings型を、3用と5用でそれぞれ before/after を持てるように拡張
@@ -15,6 +16,7 @@ interface Settings {
   useGoogleColors: boolean; // ★ 追加
   notificationEnabled: boolean; // 通知オン/オフ
   notificationMinutes: number[]; // 通知タイミング（分前）
+  holidayRegion: string; // 祝日の地域（'none' で非表示）
 }
 
 interface SettingsViewProps {
@@ -75,6 +77,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleWeekStartChange = (weekStart: Settings['weekStart']) => {
     onUpdateSettings({ ...settings, weekStart });
+  };
+
+  const handleHolidayRegionChange = (holidayRegion: string) => {
+    onUpdateSettings({ ...settings, holidayRegion });
   };
 
   const handleThemeColorChange = (themeColor: Settings['themeColor']) => {
@@ -347,6 +353,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 月曜
               </label>
             </div>
+          </div>
+
+          {/* 祝日の地域 */}
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span className="form-label" style={{ margin: 0 }}>祝日の表示</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Googleカレンダーの祝日データを使用します</span>
+            </div>
+            <select
+              className="settings-select"
+              value={settings.holidayRegion}
+              onChange={(e) => handleHolidayRegionChange(e.target.value)}
+            >
+              <option value={HOLIDAY_NONE}>表示しない</option>
+              {HOLIDAY_REGIONS.map((r) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* ベースカラー（旧：表示カラー） */}

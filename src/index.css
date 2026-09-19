@@ -249,7 +249,22 @@ body.theme-green {
 .day-cell.today .day-num { background-color: var(--accent-color); color: var(--bg-card); }
 .day-cell.sat .day-num { color: var(--saturday-color); }
 .day-cell.sun .day-num { color: var(--sunday-color); }
-.day-cell.today.sat .day-num, .day-cell.today.sun .day-num { color: var(--bg-card); }
+/* 祝日：日曜と同じ色（土曜と重なっても祝日色を優先するため sat/sun の後ろに置く） */
+.day-cell.holiday .day-num { color: var(--sunday-color); }
+.day-cell.today.sat .day-num, .day-cell.today.sun .day-num, .day-cell.today.holiday .day-num { color: var(--bg-card); }
+.holiday-label {
+  position: absolute; top: 9px; right: 2px;
+  font-size: 8px; line-height: 10px; color: var(--sunday-color);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 設定画面の祝日プルダウン（iOS Safari は 16px 未満だとフォーカス時にズームされるため 16px） */
+.settings-select {
+  font-size: 16px; padding: 6px 8px; max-width: 55%;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background-color: var(--bg-card); color: var(--text-primary);
+}
 
 /* Compact events */
 .day-events-compact { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }

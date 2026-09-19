@@ -15,6 +15,7 @@ interface MonthViewProps {
     focusSize5: { before: number; after: number };
     useGoogleColors: boolean; // ★ Props型定義に追加
   };
+  holidays: Record<string, string>; // 'YYYY-MM-DD' → 祝日名
   onSelectDay: (dateString: string, weekStartDate: string) => void;
   onVisibleMonthChange: (year: number, month: number) => void;
   duplicateMode: boolean;
@@ -53,6 +54,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   selectedDate,
   focusedWeekId,
   settings,
+  holidays,
   onSelectDay,
   onVisibleMonthChange,
   duplicateMode, 
@@ -159,6 +161,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 const isSun      = dayOfWeek === 0;
                 const isSelected = selectedDate === dateString;
                 const isDuplicateTarget = duplicateTargetDates.includes(dateString);
+                const holidayName: string | undefined = holidays[dateString];
 
                 let borderClasses = '';
                 try {
@@ -190,15 +193,22 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 return (
                   <div
                     key={dateString}
-                    className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isDuplicateTarget ? 'duplicate-selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''}${borderClasses}`}
+                    className={`day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isDuplicateTarget ? 'duplicate-selected' : ''} ${isSat ? 'sat' : ''} ${isSun ? 'sun' : ''} ${holidayName ? 'holiday' : ''}${borderClasses}`}
                     onClick={() => {
                       onVisibleMonthChange(year, month);
                       onSelectDay(dateString, weekStartDateStr);
                     }}
                   >
-                    <div className="day-num">
+                    <div className="day-num" title={holidayName}>
 {dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
                     </div>
+
+                    {/* 祝日名（フォーカス中の週のみ。1日は「M月1日」が長いので少し右にずらす） */}
+                    {isWeekFocused && holidayName && (
+                      <span className="holiday-label" style={{ left: dayOfMonth === 1 ? 44 : 26 }}>
+                        {holidayName}
+                      </span>
+                    )}
 
                     {isWeekFocused ? (
                       <div

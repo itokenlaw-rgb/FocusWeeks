@@ -15,6 +15,7 @@ import {
   deleteGoogleEvent
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
+import { useHolidays, DEFAULT_HOLIDAY_REGION } from './utils/holidays';
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
 const getFormattedDateString = (d: Date): string => {
@@ -89,6 +90,7 @@ export default function App() {
       useGoogleColors: true,
       notificationEnabled: true,
       notificationMinutes: [5],
+      holidayRegion: DEFAULT_HOLIDAY_REGION, // 祝日の地域（デフォルト: 日本）
     };
 
     if (saved) {
@@ -137,6 +139,9 @@ export default function App() {
   }, [settings]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // 設定した地域の祝日（Google Calendar API の祝日カレンダー）
+  const holidays = useHolidays(settings.holidayRegion);
 
   useEffect(() => {
     document.body.classList.remove(
@@ -887,6 +892,7 @@ const handleLogout = useCallback(async () => {
             selectedDate={selectedDate}
             focusedWeekId={focusedWeekId}
             settings={settings}
+            holidays={holidays}
             onSelectDay={handleSelectDay}
             onVisibleMonthChange={handleVisibleMonthChange}
             duplicateMode={!!duplicateEvent}
@@ -902,6 +908,7 @@ const handleLogout = useCallback(async () => {
             onMoveEvent={handleMoveEvent}
             onNavigateWeek={handleNavigateWeek}
             useGoogleColors={settings.useGoogleColors}
+            holidays={holidays}
           />
         )}
 
