@@ -360,15 +360,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <span className="form-label" style={{ margin: 0 }}>祝日の表示</span>
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Googleカレンダーの祝日データを使用します</span>
             </div>
-            <select
-              className="settings-select"
-              value={settings.holidayRegion}
-              onChange={(e) => handleHolidayRegionChange(e.target.value)}
-            >
-              <option value={HOLIDAY_NONE}>表示しない</option>
-              {HOLIDAY_REGIONS.map((r: any) => (
-                <option key={r.id} value={r.id}>{r.label}</option>
-              ))}
+
+<select
+  className="settings-select"
+  value={settings.holidayRegion}
+  onChange={(e) => handleHolidayRegionChange(e.target.value)}
+>
+  <option value={HOLIDAY_NONE}>表示しない</option>
+  {HOLIDAY_REGIONS.map((r: any) => (
+    <option key={r.id} value={r.id}>{r.name}</option>
+  ))}
+
             </select>
           </div>
 
