@@ -367,7 +367,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onChange={(e) => handleHolidayRegionChange(e.target.value)}
             >
               <option value={HOLIDAY_NONE}>表示しない</option>
-              {HOLIDAY_REGIONS.map((r) => (
+              {HOLIDAY_REGIONS.map((r: any) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
             </select>

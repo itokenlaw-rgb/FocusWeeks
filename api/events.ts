@@ -47,8 +47,8 @@ async function refreshAccessToken(
     return null;
   }
 
-  const tokens = await tokenRes.json();
-  const { access_token, expires_in } = tokens;
+const tokens = (await tokenRes.json()) as any;
+const { access_token, expires_in } = tokens;
   const expiresInSec = parseInt(String(expires_in), 10) || 3600;
   const expiresAt = Date.now() + expiresInSec * 1000;
 

@@ -46,8 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(302).setHeader('Location', '/?auth_error=token_exchange_failed').end();
   }
 
-  const tokens = await tokenRes.json();
-  const { access_token, refresh_token, expires_in } = tokens;
+const tokens = (await tokenRes.json()) as any;
+const { access_token, refresh_token, expires_in } = tokens;
 
   if (!refresh_token) {
     console.error('[callback] no refresh_token');
