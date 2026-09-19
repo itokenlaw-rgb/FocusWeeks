@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export interface Holiday {
-  date: string;
-  name: string;
-}
+export type HolidayMap = Record<string, string>;
 
 export interface HolidayRegion {
   id: string;
   name: string;
 }
 
-export const DEFAULT_HOLIDAY_REGION = 'japanese';
 export const HOLIDAY_NONE = 'none';
+export const DEFAULT_HOLIDAY_REGION = 'japanese';
 
 export const HOLIDAY_REGIONS: HolidayRegion[] = [
   { id: 'japanese', name: '日本 (Japan)' },
@@ -26,49 +23,85 @@ export const HOLIDAY_REGIONS: HolidayRegion[] = [
   { id: 'taiwan', name: '台湾 (Taiwan)' },
 ];
 
-export function useHolidays(region: string = DEFAULT_HOLIDAY_REGION, fromDate?: string, toDate?: string) {
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const CACHE_PREFIX = 'focusweeks_holidays_';
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface CacheEntry {
+  fetchedAt: number;
+  baseYear: number;
+  data: HolidayMap;
+}
+
+function readCache(region: string): CacheEntry | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + region);
+    return raw ? (JSON.parse(raw) as CacheEntry) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isFresh(entry: CacheEntry): boolean {
+  return (
+    Date.now() - entry.fetchedAt < CACHE_TTL_MS &&
+    entry.baseYear === new Date().getFullYear()
+  );
+}
+
+async function fetchFromApi(region: string): Promise<HolidayMap> {
+  const year = new Date().getFullYear();
+  const qs = new URLSearchParams({
+    region,
+    from: `${year - 1}-01-01`,
+    to: `${year + 1}-12-31`,
+  });
+  const res = await fetch(`/api/holidays?${qs}`);
+  if (!res.ok) throw new Error(`holidays api ${res.status}`);
+
+  const json = (await res.json()) as { holidays: { date: string; name: string }[] };
+  const map: HolidayMap = {};
+  for (const h of json.holidays) {
+    map[h.date] = map[h.date] && map[h.date] !== h.name ? `${map[h.date]} / ${h.name}` : h.name;
+  }
+  return map;
+}
+
+export async function getHolidays(region: string): Promise<HolidayMap> {
+  if (region === HOLIDAY_NONE) return {};
+
+  const cached = readCache(region);
+  if (cached && isFresh(cached)) return cached.data;
+
+  try {
+    const data = await fetchFromApi(region);
+    try {
+      const entry: CacheEntry = { fetchedAt: Date.now(), baseYear: new Date().getFullYear(), data };
+      localStorage.setItem(CACHE_PREFIX + region, JSON.stringify(entry));
+    } catch {
+      /* ignore */
+    }
+    return data;
+  } catch (e) {
+    console.error('祝日の取得に失敗しました:', e);
+    return cached?.data ?? {};
+  }
+}
+
+export function useHolidays(region: string = DEFAULT_HOLIDAY_REGION): HolidayMap {
+  const [holidays, setHolidays] = useState<HolidayMap>(() =>
+    region === HOLIDAY_NONE ? {} : readCache(region)?.data ?? {}
+  );
 
   useEffect(() => {
-    if (!region || region === HOLIDAY_NONE) {
-      setHolidays([]);
-      return;
-    }
-
-    const currentYear = new Date().getFullYear();
-    const start = fromDate || `${currentYear - 1}-01-01`;
-    const end = toDate || `${currentYear + 2}-12-31`;
-
-    let isMounted = true;
-    setLoading(true);
-
-    fetch(`/api/holidays?region=${encodeURIComponent(region)}&from=${start}&to=${end}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch holidays');
-        return res.json();
-      })
-      .then((data) => {
-        if (isMounted && data.holidays) {
-          setHolidays(data.holidays);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          console.error('Error fetching holidays:', err);
-          setError(err.message);
-        }
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
+    let cancelled = false;
+    setHolidays(region === HOLIDAY_NONE ? {} : readCache(region)?.data ?? {});
+    getHolidays(region).then((map) => {
+      if (!cancelled) setHolidays(map);
+    });
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [region, fromDate, toDate]);
+  }, [region]);
 
-  return { holidays, loading, error };
+  return holidays;
 }
