@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { HOLIDAY_REGIONS, HOLIDAY_NONE } from '../utils/holidays';
-
+const { HOLIDAY_REGIONS, HOLIDAY_NONE } = holidays;
 
 // 1. Settings型を、3用と5用でそれぞれ before/after を持てるように拡張
 interface Settings {

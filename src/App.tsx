@@ -16,8 +16,8 @@ import {
 } from './utils/googleCalendar';
 import type { CalendarEvent } from './utils/googleCalendar';
 
-import holidays from './utils/holidays';
-const { useHolidays, DEFAULT_HOLIDAY_REGION } = holidays;
+import { useHolidays, DEFAULT_HOLIDAY_REGION } from './utils/holidays';
+
 import { Settings as SettingsIcon, Plus, ChevronDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
 const getFormattedDateString = (d: Date): string => {
