@@ -252,11 +252,19 @@ body.theme-green {
 /* 祝日：日曜と同じ色（土曜と重なっても祝日色を優先するため sat/sun の後ろに置く） */
 .day-cell.holiday .day-num { color: var(--sunday-color); }
 .day-cell.today.sat .day-num, .day-cell.today.sun .day-num, .day-cell.today.holiday .day-num { color: var(--bg-card); }
+
 .holiday-label {
-  position: absolute; top: 9px; right: 2px;
-  font-size: 8px; line-height: 10px; color: var(--sunday-color);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: block;
+  font-size: 8px;
+  line-height: 1.1;
+  color: var(--sunday-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
+  margin-top: -2px;   /* 日付との高さを詰める微調整 */
+  margin-bottom: 2px; /* 予定エリアとの余白調整 */
+  text-align: center; /* 中央寄せ（必要に応じて left に変更可能） */
 }
 
 /* 設定画面の祝日プルダウン（iOS Safari は 16px 未満だとフォーカス時にズームされるため 16px） */

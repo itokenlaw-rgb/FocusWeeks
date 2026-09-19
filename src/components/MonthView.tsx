@@ -199,16 +199,17 @@ export const MonthView: React.FC<MonthViewProps> = ({
                       onSelectDay(dateString, weekStartDateStr);
                     }}
                   >
-                    <div className="day-num" title={holidayName}>
-{dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
-                    </div>
 
-                    {/* 祝日名（フォーカス中の週のみ。1日は「M月1日」が長いので少し右にずらす） */}
-                    {isWeekFocused && holidayName && (
-                      <span className="holiday-label" style={{ left: dayOfMonth === 1 ? 44 : 26 }}>
-                        {holidayName}
-                      </span>
-                    )}
+<div className="day-num" title={holidayName}>
+  {dayOfMonth === 1 ? `${month + 1}月1日` : dayOfMonth}
+</div>
+
+{/* 祝日名（日付の直下に改行配置） */}
+{isWeekFocused && holidayName && (
+  <span className="holiday-label">
+    {holidayName}
+  </span>
+)}
 
                     {isWeekFocused ? (
                       <div
