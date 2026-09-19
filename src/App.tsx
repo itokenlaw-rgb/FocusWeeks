@@ -143,7 +143,13 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   // 設定した地域の祝日（Google Calendar API の祝日カレンダー）
-const { holidays } = useHolidays(settings.holidayRegion);
+const { holidays: holidayList } = useHolidays(settings.holidayRegion);
+
+// Holiday[] 配列を Record<string, string> オブジェクトに変換
+const holidays: Record<string, string> = holidayList.reduce((acc, item) => {
+  acc[item.date] = item.name;
+  return acc;
+}, {} as Record<string, string>);
 
   useEffect(() => {
     document.body.classList.remove(
