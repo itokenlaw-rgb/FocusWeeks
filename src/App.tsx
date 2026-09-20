@@ -202,7 +202,6 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
   const [duplicateTargetDates, setDuplicateTargetDates] = useState<string[]>([]); 
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isAuthChecked, setIsAuthChecked] = useState<boolean>(false);
 
   // isLoggedIn / events の最新値をrefで保持（useCallback内のstaleクロージャ対策）
   const isLoggedInRef = useRef<boolean>(false);
@@ -356,13 +355,10 @@ const tryCheck = () => {
     if (loggedIn) {
       isLoggedInRef.current = true;
       setIsLoggedIn(true);
-      setIsAuthChecked(true); // ← 追加
       syncEvents(true);
     } else if (retryCount < maxRetries) {
       retryCount++;
       setTimeout(tryCheck, 500);
-    } else {
-      setIsAuthChecked(true); // ← リトライ上限に達したときも追加
     }
   });
 };
@@ -378,7 +374,6 @@ const tryCheck = () => {
     setEvents([]);
     localStorage.removeItem('focusweeks_events');
   }
-  setIsAuthChecked(true); // ← 追加
   if (loggedIn) syncEvents(loggedIn);
 });
 
@@ -629,10 +624,6 @@ const handleLogout = useCallback(async () => {
     const activeWeek = weeks.find(w => w[0].dateString === focusedWeekId);
     return activeWeek || [];
   };
-
-  if (!isAuthChecked) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>読み込み中...</div>;
-  }
 
   return (
     <div className="app-container">

@@ -117,7 +117,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ---- イベント一覧取得 ----
   if (method === 'GET') {
     const { timeMin, timeMax } = req.query;
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(String(timeMin))}&timeMax=${encodeURIComponent(String(timeMax))}&singleEvents=true&orderBy=startTime&maxResults=250`;
+    // クライアントの mapItem が使う項目だけに絞り、レスポンスサイズを削減する
+    const fields = encodeURIComponent('items(id,summary,description,start,end,colorId)');
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(String(timeMin))}&timeMax=${encodeURIComponent(String(timeMax))}&singleEvents=true&orderBy=startTime&maxResults=250&fields=${fields}`;
 
     const gcRes = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
