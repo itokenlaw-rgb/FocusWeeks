@@ -68,12 +68,24 @@ export const MonthView: React.FC<MonthViewProps> = ({
   };
 
 useEffect(() => {
-    if (focusedWeekId && containerRef.current) {
-      const targetEl = containerRef.current.querySelector(`[data-week-id="${focusedWeekId}"]`);
+    if (!focusedWeekId) return;
+
+    // .scroll-content is a flex sibling of the bottom panel, so whenever a
+    // date is tapped and the panel opens, this container's own height
+    // changes at the same moment we're trying to scroll it. Racing our
+    // scrollIntoView against that resize is why the landing spot isn't
+    // consistent from tap to tap — waiting for the panel's own transition
+    // (var(--transition-normal): 0.3s) to finish first removes the race.
+    const delay = selectedDate ? 320 : 0;
+
+    const timer = window.setTimeout(() => {
+      const targetEl = containerRef.current?.querySelector(`[data-week-id="${focusedWeekId}"]`);
       if (targetEl) {
         targetEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
-    }
+    }, delay);
+
+    return () => window.clearTimeout(timer);
   }, [focusedWeekId, selectedDate]);
 
   const handleScroll = () => {
