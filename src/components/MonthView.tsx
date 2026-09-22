@@ -67,14 +67,14 @@ export const MonthView: React.FC<MonthViewProps> = ({
     if (duplicateMode) onPasteDuplicate('');
   };
 
-  useEffect(() => {
+useEffect(() => {
     if (focusedWeekId && containerRef.current) {
       const targetEl = containerRef.current.querySelector(`[data-week-id="${focusedWeekId}"]`);
       if (targetEl) {
-        targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        targetEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
     }
-  }, [focusedWeekId]);
+  }, [focusedWeekId, selectedDate]);
 
   const handleScroll = () => {
     if (!containerRef.current) return;
