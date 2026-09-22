@@ -23,16 +23,22 @@ export async function redirectToGoogleLogin(): Promise<void> {
   window.location.href = url;
 }
 
-/** ログイン状態を確認する */
+/**
+ * ログイン状態を確認する。
+ * ネットワークに到達できない場合（オフライン等）は「未ログイン」と区別するため
+ * NETWORK_ERROR を投げる。サーバーが明確に401/エラーを返した場合のみ false を返す。
+ */
 export async function checkLoginStatus(): Promise<boolean> {
+  let res: Response;
   try {
-    const res = await fetch('/api/events?action=status', { credentials: 'include' });
-    if (!res.ok) return false;
-    const { loggedIn } = await res.json();
-    return !!loggedIn;
+    res = await fetch('/api/events?action=status', { credentials: 'include' });
   } catch {
-    return false;
+    // fetch自体が失敗＝オフライン・ネットワーク不通。サーバーから明確な回答なし。
+    throw new Error('NETWORK_ERROR');
   }
+  if (!res.ok) return false;
+  const { loggedIn } = await res.json();
+  return !!loggedIn;
 }
 
 /** ログアウト（KVのrefresh_tokenとCookieを削除） */
@@ -91,10 +97,15 @@ export async function fetchGoogleEvents(
   timeMin: string,
   timeMax: string
 ): Promise<CalendarEvent[]> {
-  const res = await fetch(
-    `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
-    { credentials: 'include' }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `/api/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
+      { credentials: 'include' }
+    );
+  } catch {
+    throw new Error('NETWORK_ERROR');
+  }
 
   if (res.status === 401) throw new Error('UNAUTHORIZED');
   if (!res.ok) throw new Error('Failed to fetch events');

@@ -203,6 +203,11 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
+  // オフライン対応：端末のネット接続状況を監視する
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
   // isLoggedIn / events の最新値をrefで保持（useCallback内のstaleクロージャ対策）
   const isLoggedInRef = useRef<boolean>(false);
   const eventsRef = useRef<CalendarEvent[]>([]);
@@ -220,6 +225,11 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
   // isLoggedInRefをisLoggedInと同期
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn;
+  }, [isLoggedIn]);
+
+  // ログイン状態を永続化（オフライン起動時に「未ログイン」と誤判定してキャッシュを消さないため）
+  useEffect(() => {
+    localStorage.setItem('focusweeks_isLoggedIn', String(isLoggedIn));
   }, [isLoggedIn]);
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -326,6 +336,10 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
       if (error.message === 'UNAUTHORIZED') {
         setIsLoggedIn(false);
         isLoggedInRef.current = false;
+      } else if (error.message === 'NETWORK_ERROR') {
+        // オフライン等で通信できなかっただけ。ログイン状態やキャッシュ済みの
+        // イベントはそのまま維持し、接続が戻った時に再同期させる。
+        setIsOnline(false);
       } else {
         console.error('Error syncing events:', error);
       }
@@ -360,24 +374,66 @@ const tryCheck = () => {
       retryCount++;
       setTimeout(tryCheck, 500);
     }
+  }).catch(() => {
+    // ネットワーク不通（オフライン等）。少し待って再試行する。
+    if (retryCount < maxRetries) {
+      retryCount++;
+      setTimeout(tryCheck, 500);
+    }
   });
 };
 
       setTimeout(tryCheck, 300);
+    } else if (!navigator.onLine) {
+      // 起動時点でオフライン：ネットワークには触れず、前回のログイン状態と
+      // localStorage にキャッシュされた予定をそのまま表示する（events は useState の
+      // 初期化時に localStorage から既に読み込み済み）。
+      const cachedLoggedIn = localStorage.getItem('focusweeks_isLoggedIn') === 'true';
+      isLoggedInRef.current = cachedLoggedIn;
+      setIsLoggedIn(cachedLoggedIn);
     } else {
-
- checkLoginStatus().then(loggedIn => {
-  isLoggedInRef.current = loggedIn;
-  setIsLoggedIn(loggedIn);
-  if (!loggedIn) {
-    // 未ログインなら localStorage の予定もクリア
-    setEvents([]);
-    localStorage.removeItem('focusweeks_events');
-  }
-  if (loggedIn) syncEvents(loggedIn);
-});
-
+      checkLoginStatus().then(loggedIn => {
+        isLoggedInRef.current = loggedIn;
+        setIsLoggedIn(loggedIn);
+        if (!loggedIn) {
+          // 未ログインなら localStorage の予定もクリア
+          setEvents([]);
+          localStorage.removeItem('focusweeks_events');
+        }
+        if (loggedIn) syncEvents(loggedIn);
+      }).catch(() => {
+        // NETWORK_ERROR: サーバーに到達できなかっただけなので、ログアウト扱いにせず
+        // 直前のログイン状態とキャッシュ済みの予定をそのまま維持する。
+        const cachedLoggedIn = localStorage.getItem('focusweeks_isLoggedIn') === 'true';
+        isLoggedInRef.current = cachedLoggedIn;
+        setIsLoggedIn(cachedLoggedIn);
+      });
     }
+  }, [syncEvents]);
+
+  // オンライン／オフラインの切り替わりを監視し、復帰時はシームレスに再同期する
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      checkLoginStatus().then(loggedIn => {
+        isLoggedInRef.current = loggedIn;
+        setIsLoggedIn(loggedIn);
+        if (loggedIn) {
+          syncEvents(loggedIn);
+        }
+      }).catch(() => {
+        // 復帰直後でまだ本当には繋がっていない等。次の online イベントや
+        // 手動同期ボタンで再試行される。
+      });
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [syncEvents]);
 
 const handleLogout = useCallback(async () => {
@@ -392,7 +448,7 @@ const handleLogout = useCallback(async () => {
     let finalEvent: CalendarEvent;
     const isGoogleEvent = isEdit && eventData.id && !eventData.id.startsWith('local-');
 
-    if (isLoggedIn) {
+    if (isLoggedIn && isOnline) {
       try {
         if (isGoogleEvent && eventData.id) {
           const updated = await updateGoogleEvent(eventData.id, eventData);
@@ -439,7 +495,7 @@ const handleLogout = useCallback(async () => {
   const handleDeleteEvent = async (id: string) => {
     const hasGoogleId = !id.startsWith('local-');
     
-    if (isLoggedIn && hasGoogleId) {
+    if (isLoggedIn && isOnline && hasGoogleId) {
       try {
         await deleteGoogleEvent(id);
       } catch (err) {
@@ -472,7 +528,7 @@ const handleLogout = useCallback(async () => {
     setEvents(newEvents);
     localStorage.setItem('focusweeks_events', JSON.stringify(newEvents));
 
-    if (isLoggedIn && !eventId.startsWith('local-')) {
+    if (isLoggedIn && isOnline && !eventId.startsWith('local-')) {
       try {
         await updateGoogleEvent(eventId, updatedEvent);
         // 更新直後のsyncは省略（Google側反映前にfetchすると古いデータで上書きされるため）
@@ -483,6 +539,10 @@ const handleLogout = useCallback(async () => {
   };
 
   const handleManualSync = () => {
+    if (!isOnline) {
+      alert('オフラインです。ネットに繋がったら自動的に同期されます。');
+      return;
+    }
     if (isLoggedIn) {
       syncEvents();
     } else {
@@ -750,6 +810,23 @@ const handleLogout = useCallback(async () => {
         </div>
 
         <div className="header-right">
+          {!isOnline && (
+            <span
+              className="offline-badge"
+              title="オフラインです。キャッシュされた予定を表示しています。接続が戻ると自動的に同期します。"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'var(--bg-card)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              オフライン
+            </span>
+          )}
+
           <button
             className="header-focus-toggle-btn"
             onClick={() => {
@@ -822,7 +899,7 @@ const handleLogout = useCallback(async () => {
   disabled={isSyncing}
   aria-label="Googleカレンダーと同期"
   style={{ 
-    opacity: isLoggedIn ? 1 : 0.4,
+    opacity: isLoggedIn && isOnline ? 1 : 0.4,
     background: 'none',             // 背景が白く反転するのを防止
     border: 'none',
     color: 'inherit',               // アイコンの色をそのまま維持
