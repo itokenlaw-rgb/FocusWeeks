@@ -90,8 +90,6 @@ export default function App() {
       focusSize3: { before: 0, after: 0 },
       focusSize5: { before: 0, after: 0 },
       useGoogleColors: true,
-      notificationEnabled: true,
-      notificationMinutes: [5],
       holidayRegion: DEFAULT_HOLIDAY_REGION, // 祝日の地域（デフォルト: 日本）
     };
 
@@ -105,13 +103,10 @@ export default function App() {
         if (parsed.eventColor === undefined) {
           parsed.eventColor = 'default';
         }
-        if (parsed.notificationEnabled === undefined) {
-          parsed.notificationEnabled = true;
-        }
-        if (parsed.notificationMinutes === undefined) {
-          parsed.notificationMinutes = [5];
-        }
-        
+        // 旧バージョンのアプリ内通知設定は使わなくなったため破棄
+        delete parsed.notificationEnabled;
+        delete parsed.notificationMinutes;
+
         if (parsed.focusSize3 === undefined) {
           parsed.focusSize3 = {
             before: parsed.focusBefore !== undefined ? parsed.focusBefore : 0,
@@ -232,59 +227,8 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
     localStorage.setItem('focusweeks_isLoggedIn', String(isLoggedIn));
   }, [isLoggedIn]);
 
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const lastCheckedMinute = useRef<string>('');
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const currentHM = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
-    
-    if (lastCheckedMinute.current === currentHM) return;
-    lastCheckedMinute.current = currentHM;
-
-    // 通知がオフ、または通知分数が未設定の場合はスキップ
-    if (!settings.notificationEnabled) return;
-    if (settings.notificationMinutes.length === 0) return;
-
-    const todayStr = getFormattedDateString(currentTime);
-
-    events.forEach((event) => {
-      if (event.allDay) return;
-
-      try {
-        const eventDate = new Date(event.start);
-
-        settings.notificationMinutes.forEach((minutesBefore) => {
-          // イベント開始時刻から minutesBefore 分前の時刻を計算
-          const notifyTime = new Date(eventDate.getTime() - minutesBefore * 60 * 1000);
-          const notifyDateStr = getFormattedDateString(notifyTime);
-          const notifyHM = `${String(notifyTime.getHours()).padStart(2, '0')}:${String(notifyTime.getMinutes()).padStart(2, '0')}`;
-
-          if (notifyDateStr === todayStr && notifyHM === currentHM) {
-            const eventHM = `${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`;
-            const label = minutesBefore === 0 ? `予定の時間になりました（${eventHM}〜）` : `${minutesBefore}分後に予定があります（${eventHM}〜）`;
-            triggerNotification(event.title, label);
-          }
-        });
-      } catch (e) {
-        console.error('Failed to parse event date for notification:', e);
-      }
-    });
-  }, [currentTime, events, settings.notificationEnabled, settings.notificationMinutes]);
-
-  const triggerNotification = (title: string, body: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body });
-    } else {
-      alert(`【通知】\n${title}\n${body}`);
-    }
-  };
+  // 予定の通知はアプリ内では行わず、Googleカレンダー側の通知設定に委ねる
+  // （設定画面の「予定の通知」からGoogleカレンダーの通知設定ページを開けるようにしている）
 
   useEffect(() => {
     const base = new Date();

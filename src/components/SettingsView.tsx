@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 import { HOLIDAY_REGIONS, HOLIDAY_NONE } from '../utils/holidays';
 
@@ -13,8 +13,6 @@ interface Settings {
   focusSize3: { before: 0 | 1; after: 0 | 1 | 2 };
   focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
   useGoogleColors: boolean; // ★ 追加
-  notificationEnabled: boolean; // 通知オン/オフ
-  notificationMinutes: number[]; // 通知タイミング（分前）
   holidayRegion: string; // 祝日の地域（'none' で非表示）
 }
 
@@ -41,30 +39,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, useGoogleColors: checked });
   };
 
-  // 通知の許可状態をローカルステートで管理 ('default' | 'granted' | 'denied' | 'unsupported')
-  const [notificationPermission, setNotificationPermission] = useState<string>(() => {
-    if (!('Notification' in window)) return 'unsupported';
-    return Notification.permission;
-  });
-
-  const NOTIFICATION_OPTIONS = [5, 15, 30, 60];
-
-  // 通知分数のチェックボックストグル
-  const handleNotificationMinuteToggle = (minute: number) => {
-    const current = settings.notificationMinutes;
-    const next = current.includes(minute)
-      ? current.filter(m => m !== minute)
-      : [...current, minute].sort((a, b) => a - b);
-    onUpdateSettings({ ...settings, notificationMinutes: next });
+  // 予定の通知はGoogleカレンダー側に委ねるため、タップでGoogleカレンダーの
+  // 通知設定ページを新しいタブで開く
+  const openGoogleCalendarNotificationSettings = () => {
+    window.open('https://calendar.google.com/calendar/r/settings/notifications', '_blank', 'noopener,noreferrer');
   };
-
-  // 通知ステータス表示文字列
-  const notificationStatusText = (() => {
-    if (!settings.notificationEnabled) return '通知設定：オフ';
-    if (settings.notificationMinutes.length === 0) return '通知設定：オン';
-    const labels = settings.notificationMinutes.map(m => `${m}分`).join('・');
-    return `通知設定：オン（${labels}）`;
-  })();
 
   const handleTextSizeChange = (textSize: Settings['textSize']) => {
     onUpdateSettings({ ...settings, textSize });
@@ -114,17 +93,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings(nextSettings);
   };
 
-  // 通知の権限をリクエストする関数
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) return;
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
-    if (permission === 'granted') {
-      new Notification('通知が有効になりました', {
-      });
-    }
-  };
-
 // 現在選ばれているフォーカスサイズ（3か5）の設定値を参照しやすくする
   const currentRange = settings.focusSize === 3 ? settings.focusSize3 : settings.focusSize5;
 
@@ -144,85 +112,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* スクロール可能な設定項目エリア */}
         <div className="fullscreen-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           
-          {/* システム通知設定（新規追加項目） */}
+          {/* 予定の通知（Googleカレンダー側の通知設定を開く） */}
           <div className="form-group">
-            <span className="form-label" style={{ marginBottom: 8 }}>アプリ通知機能</span>
+            <span className="form-label" style={{ marginBottom: 8 }}>予定の通知</span>
             <div className="login-status-container" style={{ marginTop: 0 }}>
-
-              {/* ブロック中 */}
-              {notificationPermission === 'denied' && (
+              {isLoggedIn ? (
                 <>
-                  <div className="login-status-text" style={{ color: '#b91c1c' }}>通知設定：ブロック中</div>
-                  <div className="login-status-subtext">ブラウザの設定で通知が禁止されています。アドレスバーの鍵マーク等から通知を許可してください。</div>
-                </>
-              )}
-
-              {/* 非対応 */}
-              {notificationPermission === 'unsupported' && (
-                <>
-                  <div className="login-status-text">通知設定：非対応</div>
-                  <div className="login-status-subtext">お使いのブラウザはWeb通知機能に対応していません。</div>
-                </>
-              )}
-
-              {/* 未許可：まず有効化ボタン */}
-              {notificationPermission === 'default' && (
-                <>
-                  <div className="login-status-text">通知設定：オフ</div>
+                  <div className="login-status-text">通知はGoogleカレンダー側で設定します</div>
+                  <div className="login-status-subtext">下のボタンからGoogleカレンダーの通知設定ページが開きます。通知のオン/オフやタイミングはそちらで設定してください。</div>
                   <button
                     type="button"
                     className="btn btn-primary"
                     style={{ width: '100%', marginTop: 8 }}
-                    onClick={requestNotificationPermission}
+                    onClick={openGoogleCalendarNotificationSettings}
                   >
-                    通知を有効にする
+                    Googleカレンダーの通知設定を開く
                   </button>
                 </>
-              )}
-
-              {/* 許可済み：オン/オフ切り替え＋時間選択 */}
-              {notificationPermission === 'granted' && (
+              ) : (
                 <>
-                  {/* ステータス表示 */}
-                  <div className="login-status-text" style={{ color: settings.notificationEnabled ? 'var(--event-text)' : undefined }}>
-                    {notificationStatusText}
-                  </div>
-
-                  {/* オン/オフ切り替えボタン */}
-                  <button
-                    type="button"
-                    className={settings.notificationEnabled ? 'btn btn-danger' : 'btn btn-primary'}
-                    style={{ width: '100%', marginTop: 8 }}
-                    onClick={() => onUpdateSettings({ ...settings, notificationEnabled: !settings.notificationEnabled })}
-                  >
-                    {settings.notificationEnabled ? '通知をオフにする' : '通知をオンにする'}
-                  </button>
-
-                  {/* 通知タイミング選択（オン時のみ表示） */}
-                  {settings.notificationEnabled && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 8 }}>通知タイミング（複数選択可）</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {NOTIFICATION_OPTIONS.map((minute) => (
-                          <label
-                            key={minute}
-                            style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={settings.notificationMinutes.includes(minute)}
-                              onChange={() => handleNotificationMinuteToggle(minute)}
-                              style={{ cursor: 'pointer', accentColor: 'var(--accent-color)', width: 16, height: 16 }}
-                            />
-                            {minute}分前
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="login-status-text">通知はGoogleカレンダー側で設定します</div>
+                  <div className="login-status-subtext">Googleアカウントと連携すると、Googleカレンダーの通知設定を開けるようになります。</div>
                 </>
               )}
-
             </div>
           </div>
 
