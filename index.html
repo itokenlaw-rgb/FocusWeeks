@@ -3,12 +3,173 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>FocusWeeks - シンプルなGoogleカレンダー表示・フォーカスアプリ</title>
     <meta name="description" content="FocusWeeksは、週の拡大表示と時間帯別スケジュール配置で1日の時間を直感的に把握できる、シンプルでスタイリッシュなGoogleカレンダー表示アプリです。" />
+
+    <!-- フォント取得を早める接続の事前確立 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      index.css 側の @import を廃止し、こちらの <link> に置き換えた。
+      @import はCSSファイル自身の適用をブロックしてしまうが、<link> なら
+      index.css 本体（main.tsxがimportする分）と並行してリクエストされるため、
+      両方が揃うまでの待ち時間が短くなる（直列 → 並列）。
+    -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" />
+
+    <!--
+      index.css は main.tsx で `import './index.css'` しているので、手動で
+      <link> を足す必要はない。`vite build` 時にViteがこのCSSを抽出し、
+      正しいハッシュ付きファイル名で <link rel="stylesheet"> を自動的に
+      このheadへ挿入してくれる（挿入先はbodyのpreboot scriptより前）ので、
+      本番ビルドでは preboot script が実行される時点で必ずCSS適用済みになる。
+      自分でパスを書くと、ビルド後のファイル名とズレて二重読み込みや
+      404の原因になるので書かないこと。
+
+      注意: `vite dev` の開発サーバーではCSSがJS経由（styleタグ注入）で
+      適用されるため、devモードでは一瞬だけ preboot が無スタイルで見える
+      ことがある。これは開発時のみの挙動で、実際のユーザーが使う本番ビルド
+      （vite build && vite preview で確認可）には影響しない。
+    -->
   </head>
   <body>
     <div id="root"></div>
+
+    <!--
+      ==========================================================
+      起動直後の「即席プリレンダー」
+      ------------------------------------------------------------
+      React本体(main.tsx)がダウンロード・パース・実行されるより前に、
+      localStorageにキャッシュされた予定と設定を使って、実物に近い
+      静的HTMLを #root に直接書き込む。
+      ・クラス名はindex.cssのセレクタ（.app-container / .calendar-week /
+        .day-cell / .compact-event など）と完全に一致させているので、
+        追加CSSなしでそのまま本番と同じ見た目になる。
+      ・キャッシュが無い（初回起動）場合は何もせず、通常のReact起動を待つ。
+      ・Reactがマウントされる際、createRoot().render() が #root の中身を
+        丸ごと置き換えるので、このスクリプトの後片付けは不要。
+      ・type="module" のスクリプトは自動的に defer されるため、このスクリプトは
+        必ずそれより先（パーサに到達した時点）に同期実行される。
+      ==========================================================
+    -->
+    <script>
+      (function () {
+        try {
+          var root = document.getElementById('root');
+          if (!root) return;
+
+          var settingsRaw = localStorage.getItem('focusweeks_settings');
+          if (!settingsRaw) return; // キャッシュなし＝初回起動。通常のReact起動に任せる
+
+          var settings = JSON.parse(settingsRaw);
+          var eventsRaw = localStorage.getItem('focusweeks_events');
+          var events = eventsRaw ? JSON.parse(eventsRaw) : [];
+
+          // App.tsx の useEffect と同じロジックでテーマ／文字サイズを即時適用
+          document.body.classList.add('theme-' + (settings.themeColor || 'blue'));
+          document.body.classList.add('size-' + (settings.textSize || 'medium'));
+
+          var weekStartsSunday = settings.weekStart === 'sunday';
+          var today = new Date();
+          var todayStr = fmt(today);
+
+          function fmt(d) {
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+          }
+          function pad(n) {
+            return String(n).padStart(2, '0');
+          }
+          function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, function (c) {
+              return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+          }
+
+          // 今月のグリッド開始日（月曜/日曜起点はsettingsに合わせる）
+          var monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          var startDay = monthStart.getDay();
+          var diff = weekStartsSunday ? startDay : (startDay === 0 ? 6 : startDay - 1);
+          var gridStart = new Date(monthStart);
+          gridStart.setDate(monthStart.getDate() - diff);
+
+          var TOTAL_WEEKS = 6; // 1ヶ月分の表示に十分な週数（本起動時はApp.tsxが40週分に差し替える）
+          var weekdayLabels = weekStartsSunday
+            ? ['日', '月', '火', '水', '木', '金', '土']
+            : ['月', '火', '水', '木', '金', '土', '日'];
+
+          var eventsByDate = {};
+          events.forEach(function (e) {
+            var key = (e.start || '').substring(0, 10);
+            (eventsByDate[key] = eventsByDate[key] || []).push(e);
+          });
+
+          var html = '';
+          html += '<div class="app-container">';
+
+          html += '<header class="app-header"><div class="header-left"><div class="header-title-container">'
+            + '<span class="header-year">' + today.getFullYear() + '</span>'
+            + '<span class="header-month">' + (today.getMonth() + 1) + '月</span>'
+            + '</div></div></header>';
+
+          html += '<div class="weekday-header">';
+          weekdayLabels.forEach(function (label, i) {
+            var isSat = weekStartsSunday ? i === 6 : i === 5;
+            var isSun = weekStartsSunday ? i === 0 : i === 6;
+            html += '<span class="' + (isSat ? 'sat' : isSun ? 'sun' : '') + '">' + label + '</span>';
+          });
+          html += '</div>';
+
+          html += '<div class="scroll-content"><div class="month-container">';
+          var cursor = new Date(gridStart);
+          for (var w = 0; w < TOTAL_WEEKS; w++) {
+            html += '<div class="calendar-week">';
+            for (var d = 0; d < 7; d++) {
+              var dateStr = fmt(cursor);
+              var isOtherMonth = cursor.getMonth() !== today.getMonth();
+              var isToday = dateStr === todayStr;
+              var dow = cursor.getDay();
+
+              var cls = ['day-cell'];
+              if (isOtherMonth) cls.push('other-month');
+              if (isToday) cls.push('today');
+              if (dow === 6) cls.push('sat');
+              if (dow === 0) cls.push('sun');
+
+              var dayEvents = eventsByDate[dateStr] || [];
+
+              html += '<div class="' + cls.join(' ') + '">';
+              html += '<div class="day-num">' + cursor.getDate() + '</div>';
+              html += '<div class="day-events-compact">';
+              dayEvents.slice(0, 2).forEach(function (ev) {
+                html += '<div class="compact-event">' + escapeHtml(ev.title || '') + '</div>';
+              });
+              if (dayEvents.length > 2) {
+                html += '<div class="compact-event-more">他 ' + (dayEvents.length - 2) + ' 件</div>';
+              }
+              html += '</div></div>';
+
+              cursor.setDate(cursor.getDate() + 1);
+            }
+            html += '</div>';
+          }
+          html += '</div></div></div>';
+
+          root.innerHTML = html;
+
+          // 今日のセルが見える位置まで一応スクロール（本起動後にApp.tsx側で正式に調整される）
+          requestAnimationFrame(function () {
+            var todayCell = document.querySelector('.day-cell.today');
+            if (todayCell) todayCell.scrollIntoView({ block: 'center' });
+          });
+        } catch (err) {
+          // 壊れたキャッシュ等で失敗しても、通常のReact起動を妨げないようにする
+          console.warn('preboot render skipped:', err);
+        }
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
