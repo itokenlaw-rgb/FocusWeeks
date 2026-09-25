@@ -27,6 +27,14 @@ const getFormattedDateString = (d: Date): string => {
   return `${y}-${m}-${date}`;
 };
 
+// 表示期間設定（週数）。normal は従来どおり、wide は過去6ヶ月・未来12ヶ月ぶんを
+// 週カレンダーの表示範囲と、Googleカレンダーから同期する範囲の両方に使う。
+function getRangeWeeks(calendarRange: 'normal' | 'wide') {
+  return calendarRange === 'wide'
+    ? { before: 26, after: 52 } // 過去約6ヶ月・未来約12ヶ月
+    : { before: 10, after: 40 }; // 従来の範囲
+}
+
 function generateWeeksList(baseDate: Date, weekStart: 'monday' | 'sunday', countBefore = 10, countAfter = 30) {
   const weeks = [];
   
@@ -91,6 +99,7 @@ export default function App() {
       focusSize5: { before: 0, after: 0 },
       useGoogleColors: true,
       holidayRegion: DEFAULT_HOLIDAY_REGION, // 祝日の地域（デフォルト: 日本）
+      calendarRange: 'normal', // 予定を読み込む期間（デフォルト: 標準）
     };
 
     if (saved) {
@@ -102,6 +111,9 @@ export default function App() {
         }
         if (parsed.eventColor === undefined) {
           parsed.eventColor = 'default';
+        }
+        if (parsed.calendarRange === undefined) {
+          parsed.calendarRange = 'normal';
         }
         // 旧バージョンのアプリ内通知設定は使わなくなったため破棄
         delete parsed.notificationEnabled;
@@ -232,7 +244,8 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
 
   useEffect(() => {
     const base = new Date();
-    const list = generateWeeksList(base, settings.weekStart, 10, 40);
+    const { before: listBefore, after: listAfter } = getRangeWeeks(settings.calendarRange);
+    const list = generateWeeksList(base, settings.weekStart, listBefore, listAfter);
     setWeeks(list);
 
     if (list.length > 0 && list[0].length > 0) {
@@ -249,17 +262,18 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
     if (defaultFocusedWeek) {
       setFocusedWeekId(defaultFocusedWeek[0].dateString);
     }
-  }, [settings.weekStart]);
+  }, [settings.weekStart, settings.calendarRange]);
 
   const syncEvents = useCallback(async (loggedIn?: boolean) => {
     const currentlyLoggedIn = loggedIn !== undefined ? loggedIn : isLoggedInRef.current;
     setIsSyncing(true);
     try {
+      const { before: syncBeforeWeeks, after: syncAfterWeeks } = getRangeWeeks(settings.calendarRange);
       const today = new Date();
       const start = new Date(today);
-      start.setDate(today.getDate() - 12 * 7);
+      start.setDate(today.getDate() - syncBeforeWeeks * 7);
       const end = new Date(today);
-      end.setDate(today.getDate() + 42 * 7);
+      end.setDate(today.getDate() + syncAfterWeeks * 7);
 
       if (currentlyLoggedIn) {
         const localEvents = eventsRef.current.filter(e => e.id.startsWith('local-'));
@@ -290,7 +304,7 @@ const holidays = useHolidays(settings.holidayRegion) as unknown as Record<string
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [settings.calendarRange]);
 
   useEffect(() => {
     const url = new URL(window.location.href);

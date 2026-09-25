@@ -14,6 +14,7 @@ interface Settings {
   focusSize5: { before: 0 | 1; after: 0 | 1 | 2 };
   useGoogleColors: boolean; // ★ 追加
   holidayRegion: string; // 祝日の地域（'none' で非表示）
+  calendarRange: 'normal' | 'wide'; // 予定を読み込む期間（normal: 過去3ヶ月・未来6ヶ月／wide: 過去6ヶ月・未来12ヶ月）
 }
 
 interface SettingsViewProps {
@@ -59,6 +60,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleHolidayRegionChange = (holidayRegion: string) => {
     onUpdateSettings({ ...settings, holidayRegion });
+  };
+
+  const handleCalendarRangeChange = (calendarRange: Settings['calendarRange']) => {
+    onUpdateSettings({ ...settings, calendarRange });
   };
 
   const handleThemeColorChange = (themeColor: Settings['themeColor']) => {
@@ -262,6 +267,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
                 />
                 月曜
+              </label>
+            </div>
+          </div>
+
+          {/* 表示期間 */}
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span className="form-label" style={{ margin: 0 }}>表示できる期間</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                広めにすると起動や同期がやや遅くなります
+              </span>
+            </div>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="calendarRange"
+                  checked={settings.calendarRange === 'normal'}
+                  onChange={() => handleCalendarRangeChange('normal')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                標準（過去3ヶ月・未来6ヶ月）
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="calendarRange"
+                  checked={settings.calendarRange === 'wide'}
+                  onChange={() => handleCalendarRangeChange('wide')}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                />
+                広め（過去6ヶ月・未来12ヶ月）
               </label>
             </div>
           </div>
